@@ -20,12 +20,11 @@
       "properties": {
         "dayNumber": { "type": "number" },
         "title": { "type": "string" },
-        "descriptionText": { "type": "string" },
-        "videoUrl": { "type": "string" },
-        "initialContent": { "type": "string" },
+        "description": { "type": "string" },
+        "youtubeVideoId": { "type": "string" },
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },
-      "required": ["dayNumber", "title", "descriptionText", "videoUrl"]
+      "required": ["dayNumber", "title", "description", "youtubeVideoId"]
     }
   },
   "auth": {

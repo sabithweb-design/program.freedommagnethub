@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -11,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { generateLessonDescription } from "@/ai/flows/generate-lesson-description";
-import { Wand2, Save, PlusCircle, ShieldAlert } from "lucide-react";
+import { Wand2, Save, PlusCircle, ShieldAlert, Youtube } from "lucide-react";
 
 export default function AdminPage() {
   const { isAdmin, loading } = useAuth();
@@ -22,8 +23,8 @@ export default function AdminPage() {
   const [lessonForm, setLessonForm] = useState({
     dayNumber: 1,
     title: "",
-    descriptionText: "",
-    videoUrl: "",
+    description: "",
+    youtubeVideoId: "",
     initialContent: ""
   });
 
@@ -39,7 +40,7 @@ export default function AdminPage() {
         title: lessonForm.title,
         initialContent: lessonForm.initialContent
       });
-      setLessonForm(prev => ({ ...prev, descriptionText: result.description }));
+      setLessonForm(prev => ({ ...prev, description: result.description }));
       toast({ title: "Description Generated", description: "AI has crafted a lesson summary for you." });
     } catch (error) {
       toast({ variant: "destructive", title: "AI Error", description: "Failed to generate description. Please try again." });
@@ -53,12 +54,22 @@ export default function AdminPage() {
     setIsSaving(true);
     try {
       await addDoc(collection(db, "lessons"), {
-        ...lessonForm,
+        dayNumber: lessonForm.dayNumber,
+        title: lessonForm.title,
+        description: lessonForm.description,
+        youtubeVideoId: lessonForm.youtubeVideoId,
         createdAt: serverTimestamp(),
       });
       toast({ title: "Lesson Saved", description: `Day ${lessonForm.dayNumber} has been successfully added.` });
-      // Reset partially
-      setLessonForm(prev => ({ ...prev, dayNumber: prev.dayNumber + 1, title: "", descriptionText: "", initialContent: "" }));
+      // Reset for next entry
+      setLessonForm(prev => ({ 
+        ...prev, 
+        dayNumber: prev.dayNumber + 1, 
+        title: "", 
+        description: "", 
+        youtubeVideoId: "",
+        initialContent: "" 
+      }));
     } catch (error: any) {
       toast({ variant: "destructive", title: "Save Error", description: error.message });
     } finally {
@@ -84,8 +95,8 @@ export default function AdminPage() {
       <div className="max-w-4xl mx-auto space-y-8">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold font-headline">Course Administration</h1>
-            <p className="text-muted-foreground">Create and manage your 90-day curriculum</p>
+            <h1 className="text-3xl font-bold font-headline">Curriculum Manager</h1>
+            <p className="text-muted-foreground">All lessons are available to students immediately after publishing.</p>
           </div>
         </div>
 
@@ -93,9 +104,9 @@ export default function AdminPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <PlusCircle className="text-primary" />
-              Add New Lesson
+              Add Lesson
             </CardTitle>
-            <CardDescription>Fill in the details to add a lesson to the curriculum</CardDescription>
+            <CardDescription>Publish a new lesson to the 90-day curriculum</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSaveLesson} className="space-y-6">
@@ -115,7 +126,7 @@ export default function AdminPage() {
                   <Label htmlFor="title">Lesson Title</Label>
                   <Input 
                     id="title" 
-                    placeholder="e.g. Effective Classroom Management" 
+                    placeholder="e.g. Building Rapport with Students" 
                     value={lessonForm.title}
                     onChange={e => setLessonForm({...lessonForm, title: e.target.value})}
                     required
@@ -124,21 +135,24 @@ export default function AdminPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="videoUrl">Video URL (Embed Link)</Label>
+                <Label htmlFor="youtubeVideoId" className="flex items-center gap-2">
+                  <Youtube className="w-4 h-4 text-red-600" />
+                  YouTube Video ID
+                </Label>
                 <Input 
-                  id="videoUrl" 
-                  placeholder="https://player.vimeo.com/video/..." 
-                  value={lessonForm.videoUrl}
-                  onChange={e => setLessonForm({...lessonForm, videoUrl: e.target.value})}
+                  id="youtubeVideoId" 
+                  placeholder="e.g. dQw4w9WgXcQ (The ID part after v=)" 
+                  value={lessonForm.youtubeVideoId}
+                  onChange={e => setLessonForm({...lessonForm, youtubeVideoId: e.target.value})}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="initialContent">Initial Content / Key Points (For AI)</Label>
+                <Label htmlFor="initialContent">Context for AI (Optional)</Label>
                 <Textarea 
                   id="initialContent" 
-                  placeholder="Bullet points or brief summary to help AI generate a better description..." 
+                  placeholder="Provide key points or a rough draft for AI to expand upon..." 
                   value={lessonForm.initialContent}
                   onChange={e => setLessonForm({...lessonForm, initialContent: e.target.value})}
                 />
@@ -146,7 +160,7 @@ export default function AdminPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <Label htmlFor="description">Lesson Description</Label>
+                  <Label htmlFor="description">Full Lesson Description</Label>
                   <Button 
                     type="button" 
                     variant="outline" 
@@ -154,22 +168,22 @@ export default function AdminPage() {
                     onClick={handleGenerateDescription}
                     disabled={isGenerating}
                   >
-                    {isGenerating ? "Thinking..." : "Generate with AI"}
+                    {isGenerating ? "AI Working..." : "Expand with AI"}
                     <Wand2 className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
                 <Textarea 
                   id="description" 
                   className="min-h-[200px]"
-                  placeholder="The rich description students will see..." 
-                  value={lessonForm.descriptionText}
-                  onChange={e => setLessonForm({...lessonForm, descriptionText: e.target.value})}
+                  placeholder="Rich content students will read below the video..." 
+                  value={lessonForm.description}
+                  onChange={e => setLessonForm({...lessonForm, description: e.target.value})}
                   required
                 />
               </div>
 
               <Button type="submit" className="w-full" disabled={isSaving}>
-                {isSaving ? "Saving Lesson..." : "Save Lesson to Curriculum"}
+                {isSaving ? "Publishing..." : "Publish Lesson"}
                 <Save className="ml-2 h-4 w-4" />
               </Button>
             </form>

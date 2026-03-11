@@ -1,20 +1,20 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
-import { calculateCurrentDay, isLessonUnlocked } from "@/lib/drip-logic";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, Lock, BookOpen, Clock } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle } from "lucide-react";
 import Link from "next/link";
 
 interface LessonData {
   title: string;
-  descriptionText: string;
-  videoUrl: string;
+  description: string;
+  youtubeVideoId: string;
   dayNumber: number;
 }
 
@@ -22,55 +22,38 @@ export default function LessonPage() {
   const { dayNumber } = useParams();
   const day = parseInt(dayNumber as string);
   const router = useRouter();
-  const { profile, loading } = useAuth();
+  const { user, loading } = useAuth();
   const [lesson, setLesson] = useState<LessonData | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState(false);
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
-    if (profile?.cohortStartDate) {
-      const currentDay = calculateCurrentDay(profile.cohortStartDate);
-      const unlocked = isLessonUnlocked(day, currentDay);
-      setIsUnlocked(unlocked);
+    if (!loading && !user) {
+      router.push("/login");
+      return;
+    }
 
-      if (unlocked) {
-        const fetchLesson = async () => {
+    if (user) {
+      const fetchLesson = async () => {
+        try {
           const q = query(collection(db, "lessons"), where("dayNumber", "==", day));
           const querySnapshot = await getDocs(q);
           if (!querySnapshot.empty) {
             setLesson(querySnapshot.docs[0].data() as LessonData);
           }
+        } catch (error) {
+          console.error("Error fetching lesson:", error);
+        } finally {
           setFetching(false);
-        };
-        fetchLesson();
-      } else {
-        setFetching(false);
-      }
+        }
+      };
+      fetchLesson();
     }
-  }, [profile, day]);
+  }, [user, loading, day, router]);
 
   if (loading || fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (!isUnlocked) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 text-center">
-        <div className="bg-muted p-6 rounded-full mb-6">
-          <Lock size={64} className="text-muted-foreground" />
-        </div>
-        <h1 className="text-3xl font-bold mb-2">Content Locked</h1>
-        <p className="text-muted-foreground max-w-md mb-8">
-          This lesson will be available on Day {day} of your training. 
-          Keep working through your current materials!
-        </p>
-        <Button asChild>
-          <Link href="/dashboard">Back to Dashboard</Link>
-        </Button>
       </div>
     );
   }
@@ -85,15 +68,15 @@ export default function LessonPage() {
               Back
             </Link>
           </Button>
-          <div className="font-bold text-primary">Day {day}</div>
+          <div className="font-bold text-primary">Lesson Day {day}</div>
           <div className="flex gap-2">
             <Button variant="ghost" size="sm" asChild disabled={day === 1}>
-              <Link href={`/lesson/${day - 1}`}>
+              <Link href={day > 1 ? `/lesson/${day - 1}` : "#"}>
                 <ChevronLeft className="h-4 w-4" />
               </Link>
             </Button>
-            <Button variant="ghost" size="sm" asChild disabled={day === 90 || !isLessonUnlocked(day + 1, calculateCurrentDay(profile!.cohortStartDate))}>
-              <Link href={`/lesson/${day + 1}`}>
+            <Button variant="ghost" size="sm" asChild disabled={day === 90}>
+              <Link href={day < 90 ? `/lesson/${day + 1}` : "#"}>
                 <ChevronRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -104,18 +87,21 @@ export default function LessonPage() {
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl relative">
-              {lesson.videoUrl ? (
+            {/* Suppressed YouTube Embed Wrapper */}
+            <div className="relative aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl">
+              <div className="absolute inset-0 z-10 pointer-events-none ring-1 ring-white/10 rounded-2xl" />
+              {lesson.youtubeVideoId ? (
                 <iframe 
-                  src={lesson.videoUrl} 
+                  src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&fs=0&disablekb=1&iv_load_policy=3&showinfo=0`}
                   className="w-full h-full" 
-                  allowFullScreen 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen={false}
                   title={lesson.title}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-white/50">
-                  <Play size={48} className="mb-4" />
-                  <p>Video not yet available for this lesson</p>
+                  <PlayCircle size={48} className="mb-4" />
+                  <p>Video content pending</p>
                 </div>
               )}
             </div>
@@ -128,30 +114,30 @@ export default function LessonPage() {
                     <BookOpen size={16} /> Module {Math.floor((day - 1) / 30) + 1}
                   </span>
                   <span className="flex items-center gap-1">
-                    <Clock size={16} /> 15 min read
+                    <Clock size={16} /> Estimated 15 min
                   </span>
                 </div>
-                <div className="prose prose-indigo max-w-none text-muted-foreground leading-relaxed">
-                  {lesson.descriptionText}
+                <div className="prose prose-indigo max-w-none text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {lesson.description}
                 </div>
               </div>
 
               <div className="md:w-64 space-y-4">
                 <Card>
                   <CardContent className="pt-6">
-                    <h3 className="font-bold mb-4">Lesson Summary</h3>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
+                    <h3 className="font-bold mb-4">Study Plan</h3>
+                    <ul className="space-y-3 text-sm text-muted-foreground">
                       <li className="flex items-start gap-2">
-                        <div className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                        Complete video lesson
+                        <div className="mt-1 w-2 h-2 rounded-full bg-primary shrink-0" />
+                        Watch the full video
                       </li>
                       <li className="flex items-start gap-2">
-                        <div className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                        Reflection activity
+                        <div className="mt-1 w-2 h-2 rounded-full bg-primary shrink-0" />
+                        Take personal notes
                       </li>
                       <li className="flex items-start gap-2">
-                        <div className="mt-1 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                        Next steps: Day {day + 1}
+                        <div className="mt-1 w-2 h-2 rounded-full bg-primary shrink-0" />
+                        Implement strategies
                       </li>
                     </ul>
                   </CardContent>
@@ -160,9 +146,12 @@ export default function LessonPage() {
             </div>
           </div>
         ) : (
-          <div className="text-center py-20">
-            <h2 className="text-2xl font-bold mb-4">Lesson content is coming soon!</h2>
-            <p className="text-muted-foreground">This content is being prepared for you.</p>
+          <div className="text-center py-20 bg-white rounded-2xl border">
+            <h2 className="text-2xl font-bold mb-4">Lesson content coming soon!</h2>
+            <p className="text-muted-foreground mb-8">This module is currently being finalized.</p>
+            <Button asChild variant="outline">
+              <Link href="/dashboard">Return to Curriculum</Link>
+            </Button>
           </div>
         )}
       </main>
