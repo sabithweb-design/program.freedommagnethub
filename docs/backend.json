@@ -1,0 +1,44 @@
+
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "User account information including role and cohort start date.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["student", "admin"] },
+        "cohortStartDate": { "type": "object", "description": "Firestore Timestamp" }
+      },
+      "required": ["uid", "email", "role", "cohortStartDate"]
+    },
+    "Lesson": {
+      "title": "Lesson",
+      "description": "Educational lesson content for the 90-day program.",
+      "type": "object",
+      "properties": {
+        "dayNumber": { "type": "number" },
+        "title": { "type": "string" },
+        "descriptionText": { "type": "string" },
+        "videoUrl": { "type": "string" },
+        "initialContent": { "type": "string" },
+        "createdAt": { "type": "object", "description": "Firestore Timestamp" }
+      },
+      "required": ["dayNumber", "title", "descriptionText", "videoUrl"]
+    }
+  },
+  "auth": {
+    "providers": ["password", "emailLink"]
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles indexed by UID."
+    },
+    "/lessons/{lessonId}": {
+      "schema": "Lesson",
+      "description": "Lessons in the training program."
+    }
+  }
+}
