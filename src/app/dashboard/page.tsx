@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const [activeCategory, setActiveCategory] = useState("Coding");
 
-  // Fetch all courses without filtering by userId
+  // Fetch all courses from the collection without filtering by userId
   const coursesQuery = useMemo(() => {
     if (!firestore) return null;
     return query(collection(firestore, "courses"));
@@ -47,6 +47,7 @@ export default function DashboardPage() {
   }, [courses, activeCategory]);
 
   const latestLearned = useMemo(() => {
+    // Find course marked as latest or default to the first one available
     return courses?.find((c) => c.isLatestLearned) || courses?.[0];
   }, [courses]);
 
@@ -65,14 +66,14 @@ export default function DashboardPage() {
         <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -ml-2">
           <ChevronLeft className="h-6 w-6 text-slate-700" />
         </Button>
-        <h1 className="text-xl font-bold text-slate-800">My Courses</h1>
+        <h1 className="text-xl font-bold text-slate-800 text-center flex-1">My Courses</h1>
         <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -mr-2">
           <Search className="h-6 w-6 text-slate-700" />
         </Button>
       </header>
 
       <main className="px-6 space-y-8 max-w-xl mx-auto pt-4">
-        {/* Categories */}
+        {/* Category Tabs */}
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-3 py-2">
             {CATEGORIES.map((cat) => (
@@ -94,7 +95,7 @@ export default function DashboardPage() {
           <ScrollBar orientation="horizontal" className="hidden" />
         </ScrollArea>
 
-        {/* Featured Section */}
+        {/* Featured Card Section */}
         <section className="space-y-4">
           <h2 className="text-lg font-bold text-slate-800">Latest Learned</h2>
           {latestLearned ? (
@@ -105,10 +106,10 @@ export default function DashboardPage() {
               <div className="relative aspect-[16/9]">
                 <Image
                   src={latestLearned.thumbnailUrl || 'https://picsum.photos/seed/latest/800/400'}
-                  alt={latestLearned.title || "Featured Course"}
+                  alt={latestLearned.title || "Latest Lesson"}
                   fill
                   className="object-cover"
-                  data-ai-hint="learning hub"
+                  data-ai-hint="learning course"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
                 
@@ -130,7 +131,7 @@ export default function DashboardPage() {
           )}
         </section>
 
-        {/* Course List */}
+        {/* Course List Section */}
         <div className="space-y-4 pb-12">
           {filteredCourses.length > 0 ? (
             <div className="grid gap-4">
@@ -141,15 +142,17 @@ export default function DashboardPage() {
                   onClick={() => router.push(`/lesson/1`)}
                 >
                   <div className="flex gap-4">
-                    <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-[#E8F5F1]">
+                    {/* Thumbnail */}
+                    <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-slate-100">
                       <Image
                         src={course.thumbnailUrl || 'https://picsum.photos/seed/course/200/200'}
                         alt={course.title || "Course Thumbnail"}
                         fill
                         className="object-cover"
-                        data-ai-hint="course icon"
+                        data-ai-hint="course thumbnail"
                       />
                     </div>
+                    {/* Course Details */}
                     <div className="flex-1 flex flex-col justify-between py-0.5">
                       <div>
                         <h3 className="font-bold text-slate-800 text-sm leading-tight">{course.title}</h3>
@@ -157,6 +160,7 @@ export default function DashboardPage() {
                           Author by {course.author}
                         </p>
                       </div>
+                      {/* Progress Info */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-[#76C8B2]">
@@ -184,7 +188,7 @@ export default function DashboardPage() {
               <div>
                 <h3 className="font-bold text-slate-800">No courses in {activeCategory}</h3>
                 <p className="text-xs text-slate-400 max-w-[200px] mt-1 mx-auto">
-                  Courses for this category will appear here.
+                  Courses for this category will appear here once added.
                 </p>
               </div>
             </div>
