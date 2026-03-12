@@ -1,144 +1,116 @@
+'use client';
 
-"use client";
+import { useMemo } from 'react';
+import { collection, query, where } from 'firebase/firestore';
+import { useAuth } from '@/context/auth-context';
+import { useCollection, useFirestore } from '@/firebase';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 
-import { useEffect, useState, useMemo } from "react";
-import { collection, query, orderBy, getDocs } from "firebase/firestore";
-import { db } from "@/lib/firebase";
-import { useAuth } from "@/context/auth-context";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import Link from "next/link";
-import { Play, CheckCircle2, Calendar, Trophy, BookOpen } from "lucide-react";
-import { cn } from "@/lib/utils";
-
-interface Lesson {
+interface Course {
   id: string;
-  dayNumber: number;
   title: string;
+  author: string;
+  category: string;
+  lessonsTotal: number;
+  lessonsCompleted: number;
+  thumbnailUrl: string;
+  userId: string;
 }
 
-export default function Dashboard() {
-  const { profile, loading } = useAuth();
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [fetching, setFetching] = useState(true);
+export default function DashboardPage() {
+  const { user, loading: authLoading } = useAuth();
+  const firestore = useFirestore();
 
-  useEffect(() => {
-    const fetchLessons = async () => {
-      try {
-        const q = query(collection(db, "lessons"), orderBy("dayNumber", "asc"));
-        const querySnapshot = await getDocs(q);
-        const lessonsData = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        })) as Lesson[];
-        setLessons(lessonsData);
-      } catch (error) {
-        console.error("Error fetching lessons:", error);
-      } finally {
-        setFetching(false);
-      }
-    };
-    
-    fetchLessons();
-  }, []);
+  // Stabilize the query reference to avoid infinite re-renders
+  const coursesQuery = useMemo(() => {
+    if (!firestore || !user) return null;
+    return query(collection(firestore, 'courses'), where('userId', '==', user.uid));
+  }, [firestore, user]);
 
-  if (loading || fetching) {
+  const { data: courses, loading: coursesLoading, error } = useCollection<Course>(coursesQuery);
+
+  if (authLoading || coursesLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="container mx-auto p-4 md:p-8 space-y-6">
+        <Skeleton className="h-10 w-48" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (!profile) return null;
-
-  // We show 90 slots regardless of whether they exist in DB yet
-  const totalDays = 90;
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 text-center py-20">
+        <h2 className="text-xl font-bold text-destructive">Unable to load courses</h2>
+        <p className="text-muted-foreground">Please try refreshing the page later.</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
-      <header className="bg-white border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Trophy className="text-primary w-6 h-6" />
-            <h1 className="text-xl font-bold text-primary">EduTrail</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:block text-right">
-              <p className="text-sm font-medium">{profile.email}</p>
-              <p className="text-xs text-muted-foreground">Full Curriculum Access</p>
-            </div>
-            <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground font-bold">
-              {profile.email?.charAt(0).toUpperCase()}
-            </div>
-          </div>
+    <div className="container mx-auto p-4 md:p-8 space-y-8 min-h-screen bg-background">
+      <div className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-bold font-headline tracking-tight text-primary">My Learning</h1>
+          <p className="text-muted-foreground">Track your progress and continue your journey.</p>
         </div>
-      </header>
+      </div>
 
-      <main className="container mx-auto px-4 py-8 max-w-6xl">
-        <section className="mb-12">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            <Card className="bg-primary text-primary-foreground">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium opacity-80">Welcome to your Training</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold mb-2">Immediate Access Granted</div>
-                <p className="text-sm opacity-90">You have full access to all 90 lessons. Start anywhere, learn at your own pace.</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">Quick Stats</CardTitle>
-              </CardHeader>
-              <CardContent className="flex items-center gap-4">
-                <div className="bg-secondary p-2 rounded-lg">
-                  <BookOpen className="text-secondary-foreground" />
-                </div>
-                <div>
-                  <div className="text-xl font-bold">{lessons.length} / 90</div>
-                  <p className="text-xs text-muted-foreground">Lessons Published</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
+      {!courses || courses.length === 0 ? (
+        <Card className="border-dashed border-2 flex flex-col items-center justify-center p-12 text-center bg-muted/30">
+          <CardHeader>
+            <CardTitle>No courses found</CardTitle>
+            <CardDescription>You haven't enrolled in any training modules yet.</CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {courses.map((course) => {
+            const progress = course.lessonsTotal > 0 
+              ? Math.round((course.lessonsCompleted / course.lessonsTotal) * 100) 
+              : 0;
 
-        <section>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold font-headline">Training Curriculum</h2>
-            <div className="flex gap-2 text-sm">
-              <Badge variant="default">All Content Unlocked</Badge>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-9 gap-4">
-            {Array.from({ length: totalDays }, (_, i) => i + 1).map((day) => {
-              const lesson = lessons.find(l => l.dayNumber === day);
-              
-              return (
-                <Link
-                  key={day}
-                  href={`/lesson/${day}`}
-                  className={cn(
-                    "lesson-grid-item relative group h-24 flex flex-col items-center justify-center border rounded-xl transition-all bg-white border-primary/20 hover:border-primary hover:shadow-lg cursor-pointer"
-                  )}
-                >
-                  <span className="text-2xl font-bold mb-1">{day}</span>
-                  <Play size={16} className="text-primary group-hover:scale-125 transition-transform" />
-                  
-                  {lesson && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity bg-primary/10 rounded-xl overflow-hidden pointer-events-none p-2">
-                      <p className="text-[10px] text-center font-bold text-primary line-clamp-3">{lesson.title}</p>
+            return (
+              <Card key={course.id} className="group hover:shadow-lg transition-all duration-300 border-none shadow-sm overflow-hidden bg-card">
+                <div className="aspect-video relative overflow-hidden bg-muted">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img 
+                    src={course.thumbnailUrl || 'https://picsum.photos/seed/course/600/400'} 
+                    alt={course.title}
+                    className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-2 right-2">
+                    <div className="bg-background/80 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider">
+                      {course.category}
                     </div>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-      </main>
+                  </div>
+                </div>
+                <CardHeader className="space-y-1">
+                  <CardTitle className="text-lg font-bold leading-tight group-hover:text-primary transition-colors">
+                    {course.title}
+                  </CardTitle>
+                  <CardDescription>By {course.author}</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-xs font-medium">
+                      <span className="text-primary">{progress}% Complete</span>
+                      <span className="text-muted-foreground">{course.lessonsCompleted}/{course.lessonsTotal} Lessons</span>
+                    </div>
+                    <Progress value={progress} className="h-1.5" />
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
