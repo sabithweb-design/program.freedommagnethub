@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -13,12 +12,10 @@ import {
   ChevronRight, 
   BookOpen, 
   Clock, 
-  PlayCircle, 
   GraduationCap, 
   Lock, 
   ShieldAlert, 
   CheckCircle2,
-  Download,
   FileText,
   ClipboardList
 } from "lucide-react";
@@ -28,6 +25,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
+import { PlayerIcon } from "@/app/admin/page";
 
 interface LessonData {
   id?: string;
@@ -237,7 +235,7 @@ export default function LessonPage() {
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800">
-                  <PlayCircle size={64} className="mb-4 animate-pulse" />
+                  <PlayerIcon className="h-16 w-16 mb-4 animate-pulse" />
                   <p className="font-medium">Video content pending</p>
                 </div>
               )}
@@ -326,7 +324,7 @@ export default function LessonPage() {
         ) : (
           <div className="text-center py-32 bg-card text-card-foreground rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
             <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-               <Clock size={40} className="text-primary" />
+               <PlayerIcon className="h-12 w-12 text-primary" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Lesson Coming Soon</h2>
             <p className="text-slate-400 mb-8 max-w-xs mx-auto">This module is currently being finalized by your mentors.</p>

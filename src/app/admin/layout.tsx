@@ -6,7 +6,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Compass, 
-  Video, 
   BookOpen, 
   MessageCircle,
   Bell, 
@@ -17,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/BrandLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { PlayerIcon } from './page';
 
 const ADMIN_EMAIL = "admin@freedommagnethub.com";
 
@@ -59,7 +59,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <nav className="hidden lg:flex items-center gap-10 h-full">
             <NavItem icon={<LayoutDashboard size={20} />} label="DASHBOARD" href="/admin" active={pathname === '/admin'} />
             <NavItem icon={<Compass size={20} />} label="FEED" href="#" />
-            <NavItem icon={<Video size={20} />} label="WORKSHOPS" href="#" />
+            <NavItem icon={<PlayerIcon className="h-5 w-5" />} label="WORKSHOPS" href="#" />
             <NavItem icon={<BookOpen size={20} />} label="PROGRAMS" href="/admin/courses" active={pathname === '/admin/courses'} />
             <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
           </nav>

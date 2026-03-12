@@ -65,7 +65,7 @@ import Image from 'next/image';
 /**
  * Custom Player Icon matching the requested Flaticon style.
  */
-const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
+export const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
     xmlns="http://www.w3.org/2000/svg" 
