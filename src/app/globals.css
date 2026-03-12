@@ -78,7 +78,7 @@
 
 /* 
   The "Stealth Clip" technique: 
-  We make the iframe larger (115%) and center it. 
+  We make the iframe larger (120%) and center it. 
   This physically crops out the top bar (titles) 
   and the bottom right area (logo).
 */
@@ -86,8 +86,8 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 115%;
-  height: 115%;
+  width: 120%;
+  height: 120%;
   transform: translate(-50%, -50%);
   pointer-events: auto;
 }

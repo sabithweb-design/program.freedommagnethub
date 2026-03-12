@@ -217,15 +217,18 @@ export default function LessonPage() {
                     src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
                     className="video-iframe border-none" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    sandbox="allow-forms allow-scripts allow-pointer-lock allow-same-origin"
                     title={lesson.title || `Day ${day}`}
                   />
                   {/* Deterrent: Transparent overlays that block clicks on the Top (Title) and Bottom Right (Logo) areas */}
                   {!isAdmin && (
                     <>
-                      {/* Covers the Top Title Area */}
-                      <div className="absolute top-0 left-0 right-0 h-[15%] z-10 bg-transparent cursor-default" />
-                      {/* Covers the Bottom Right Logo Area */}
-                      <div className="absolute bottom-0 right-0 w-[20%] h-[15%] z-10 bg-transparent cursor-default" />
+                      {/* Covers the Top Title Area (Title, Watch Later, Share) */}
+                      <div className="absolute top-0 left-0 right-0 h-[20%] z-10 bg-transparent cursor-default" />
+                      {/* Covers the Bottom Right Logo Area (YouTube Logo) */}
+                      <div className="absolute bottom-0 right-0 w-[25%] h-[20%] z-10 bg-transparent cursor-default" />
+                      {/* Covers the Bottom Left Area (Watch on YouTube) */}
+                      <div className="absolute bottom-0 left-0 w-[20%] h-[15%] z-10 bg-transparent cursor-default" />
                     </>
                   )}
                 </>
