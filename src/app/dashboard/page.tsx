@@ -93,8 +93,6 @@ export default function DashboardPage() {
                     category: "AI",
                     rating: 4.4,
                     reviewCount: 595,
-                    price: 519,
-                    originalPrice: 799,
                     imageUrl: "https://picsum.photos/seed/ai-bootcamp/800/450",
                     isBestseller: true
                   }} 
@@ -108,8 +106,6 @@ export default function DashboardPage() {
                     category: "AI",
                     rating: 4.5,
                     reviewCount: 40800,
-                    price: 519,
-                    originalPrice: 799,
                     imageUrl: "https://picsum.photos/seed/ai-agents/800/450",
                     isBestseller: true
                   }} 
@@ -133,6 +129,9 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
   const thumbnailSrc = isValidImageUrl(course.imageUrl)
     ? course.imageUrl 
     : "https://picsum.photos/seed/program/800/450";
+
+  const ratingValue = course.rating || 4.5;
+  const reviewCountValue = course.reviewCount || 0;
 
   return (
     <div 
@@ -162,17 +161,17 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
         </p>
         
         <div className="flex items-center gap-1">
-          <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{course.rating || 4.5}</span>
+          <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue}</span>
           <div className="flex">
             {[...Array(5)].map((_, i) => (
               <Star 
                 key={i} 
                 size={10} 
-                className={i < Math.floor(course.rating || 4.5) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500" : "text-slate-200 dark:text-slate-700"} 
+                className={i < Math.floor(ratingValue) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500" : "text-slate-200 dark:text-slate-700"} 
               />
             ))}
           </div>
-          <span className="text-[10px] text-[#6a6f73] dark:text-slate-500">({(course.reviewCount || 0).toLocaleString()})</span>
+          {reviewCountValue > 0 && <span className="text-[10px] text-[#6a6f73] dark:text-slate-500">({reviewCountValue.toLocaleString()})</span>}
         </div>
 
         <div className="flex items-center gap-2">
@@ -181,12 +180,14 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           </Badge>
         </div>
 
-        <div className="flex items-center gap-2 pt-1">
-          <span className="font-bold text-lg text-[#1c1d1f] dark:text-slate-100">₹{course.price || 519}</span>
-          {course.originalPrice && (
-            <span className="text-sm text-[#6a6f73] dark:text-slate-500 line-through">₹{course.originalPrice}</span>
-          )}
-        </div>
+        {course.price && course.price > 0 ? (
+          <div className="flex items-center gap-2 pt-1">
+            <span className="font-bold text-lg text-[#1c1d1f] dark:text-slate-100">₹{course.price}</span>
+            {course.originalPrice && course.originalPrice > course.price && (
+              <span className="text-sm text-[#6a6f73] dark:text-slate-500 line-through">₹{course.originalPrice}</span>
+            )}
+          </div>
+        ) : null}
       </div>
     </div>
   );

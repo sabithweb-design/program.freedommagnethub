@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -59,7 +58,7 @@ export default function AdminPage() {
   const { data: lessons, loading: lessonsLoading } = useCollection<any>(lessonsQuery);
 
   // Form States
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin', price: 519, originalPrice: 799 });
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin', price: 0, originalPrice: 0 });
   const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', courseId: '' });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
   const [isAddingUser, setIsAddingUser] = useState(false);
@@ -138,7 +137,7 @@ export default function AdminPage() {
       progress: 0,
       createdAt: serverTimestamp()
     }).then(() => {
-      setCourseForm({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin', price: 519, originalPrice: 799 });
+      setCourseForm({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin', price: 0, originalPrice: 0 });
       toast({ title: "Program Created", description: "Successfully added a new training program." });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm });
@@ -387,11 +386,11 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="font-bold">Sale Price (₹)</Label>
-                      <Input type="number" placeholder="519" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12" />
+                      <Input type="number" placeholder="0" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12" />
                     </div>
                     <div className="space-y-2">
                       <Label className="font-bold">Original Price (₹)</Label>
-                      <Input type="number" placeholder="799" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12" />
+                      <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12" />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -425,7 +424,7 @@ export default function AdminPage() {
                       <h4 className="font-bold text-slate-800 dark:text-slate-200 leading-tight line-clamp-1">{c.title}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{c.category}</span>
-                        <span className="text-[10px] text-emerald-500 font-black">₹{c.price || 0}</span>
+                        {c.price > 0 && <span className="text-[10px] text-emerald-500 font-black">₹{c.price}</span>}
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
