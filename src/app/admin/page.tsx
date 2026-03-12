@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -55,7 +54,8 @@ import {
   IndianRupee, 
   Lock, 
   Unlock,
-  Star
+  Star,
+  Image as ImageIcon
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -95,6 +95,10 @@ export default function AdminPage() {
   const [editingProgram, setEditingProgram] = useState<any | null>(null);
   const [editFields, setEditFields] = useState({ 
     title: '', 
+    description: '',
+    category: '',
+    imageUrl: '',
+    author: '',
     price: 0, 
     originalPrice: 0,
     rating: 4.5,
@@ -229,6 +233,10 @@ export default function AdminPage() {
     const programRef = doc(firestore, 'courses', editingProgram.id);
     const updateData = {
       title: editFields.title,
+      description: editFields.description,
+      category: editFields.category,
+      imageUrl: editFields.imageUrl,
+      author: editFields.author,
       price: Number(editFields.price),
       originalPrice: Number(editFields.originalPrice),
       rating: Number(editFields.rating),
@@ -543,7 +551,11 @@ export default function AdminPage() {
                         onClick={() => { 
                           setEditingProgram(c); 
                           setEditFields({ 
-                            title: c.title, 
+                            title: c.title || '', 
+                            description: c.description || '',
+                            category: c.category || '',
+                            imageUrl: c.imageUrl || '',
+                            author: c.author || '',
                             price: c.price || 0, 
                             originalPrice: c.originalPrice || 0,
                             rating: c.rating || 4.5,
@@ -664,74 +676,121 @@ export default function AdminPage() {
 
       {/* Edit Dialog */}
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
-        <DialogContent className="rounded-3xl max-w-md">
+        <DialogContent className="rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Program Details</DialogTitle>
-            <DialogDescription>Modify the title, pricing, and ratings for this training program.</DialogDescription>
+            <DialogDescription>Modify all aspects of this training program.</DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Program Title</Label>
+                  <Input 
+                    value={editFields.title} 
+                    onChange={(e) => setEditFields({...editFields, title: e.target.value})}
+                    className="rounded-xl h-12"
+                    placeholder="Enter program title..."
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Category</Label>
+                  <Input 
+                    value={editFields.category} 
+                    onChange={(e) => setEditFields({...editFields, category: e.target.value})}
+                    className="rounded-xl h-12"
+                    placeholder="e.g. Digital Marketing"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Author / Instructor</Label>
+                  <Input 
+                    value={editFields.author} 
+                    onChange={(e) => setEditFields({...editFields, author: e.target.value})}
+                    className="rounded-xl h-12"
+                    placeholder="Instructor name..."
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Thumbnail URL</Label>
+                  <div className="relative">
+                    <ImageIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                    <Input 
+                      value={editFields.imageUrl} 
+                      onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})}
+                      className="rounded-xl h-12 pl-10"
+                      placeholder="https://..."
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Sale Price (₹)</Label>
+                    <div className="relative">
+                      <IndianRupee className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                      <Input 
+                        type="number"
+                        value={editFields.price} 
+                        onChange={(e) => setEditFields({...editFields, price: Number(e.target.value)})}
+                        className="rounded-xl h-12 pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Original Price (₹)</Label>
+                    <div className="relative">
+                      <IndianRupee className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                      <Input 
+                        type="number"
+                        value={editFields.originalPrice} 
+                        onChange={(e) => setEditFields({...editFields, originalPrice: Number(e.target.value)})}
+                        className="rounded-xl h-12 pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Rating (0-5)</Label>
+                    <Input 
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      max="5"
+                      value={editFields.rating} 
+                      onChange={(e) => setEditFields({...editFields, rating: Number(e.target.value)})}
+                      className="rounded-xl h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Reviews</Label>
+                    <Input 
+                      type="number"
+                      value={editFields.reviewCount} 
+                      onChange={(e) => setEditFields({...editFields, reviewCount: Number(e.target.value)})}
+                      className="rounded-xl h-12"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
-              <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Program Title</Label>
-              <Input 
-                value={editFields.title} 
-                onChange={(e) => setEditFields({...editFields, title: e.target.value})}
-                className="rounded-xl h-12"
-                placeholder="Enter new title..."
+              <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Description</Label>
+              <Textarea 
+                value={editFields.description} 
+                onChange={(e) => setEditFields({...editFields, description: e.target.value})}
+                className="rounded-xl min-h-[120px]"
+                placeholder="Detailed program description..."
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Current Price (₹)</Label>
-                <div className="relative">
-                  <IndianRupee className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-                  <Input 
-                    type="number"
-                    value={editFields.price} 
-                    onChange={(e) => setEditFields({...editFields, price: Number(e.target.value)})}
-                    className="rounded-xl h-12 pl-10"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Original Price (₹)</Label>
-                <div className="relative">
-                  <IndianRupee className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-                  <Input 
-                    type="number"
-                    value={editFields.originalPrice} 
-                    onChange={(e) => setEditFields({...editFields, originalPrice: Number(e.target.value)})}
-                    className="rounded-xl h-12 pl-10"
-                  />
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Rating (0-5)</Label>
-                <Input 
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="5"
-                  value={editFields.rating} 
-                  onChange={(e) => setEditFields({...editFields, rating: Number(e.target.value)})}
-                  className="rounded-xl h-12"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Total Reviews</Label>
-                <Input 
-                  type="number"
-                  value={editFields.reviewCount} 
-                  onChange={(e) => setEditFields({...editFields, reviewCount: Number(e.target.value)})}
-                  className="rounded-xl h-12"
-                />
-              </div>
-            </div>
           </div>
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 pt-4 border-t">
             <Button variant="ghost" onClick={() => setEditingProgram(null)} className="rounded-xl h-12 font-bold flex-1">Cancel</Button>
-            <Button onClick={handleUpdateProgram} className="rounded-xl h-12 font-bold bg-primary text-white flex-1">Save Changes</Button>
+            <Button onClick={handleUpdateProgram} className="rounded-xl h-12 font-bold bg-primary text-white flex-1 shadow-lg shadow-primary/20">Save All Changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
