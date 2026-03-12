@@ -3,17 +3,21 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle, GraduationCap, Lock, ShieldAlert } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle, GraduationCap, Lock, ShieldAlert, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { useToast } from "@/hooks/use-toast";
+import { errorEmitter } from "@/firebase/error-emitter";
+import { FirestorePermissionError } from "@/firebase/errors";
 
 interface LessonData {
+  id?: string;
   title: string;
   description: string;
   youtubeVideoId: string;
@@ -37,8 +41,12 @@ export default function LessonPage() {
   const day = parseInt(dayNumber as string);
   const router = useRouter();
   const { user, loading } = useAuth();
+  const { toast } = useToast();
   const [lesson, setLesson] = useState<LessonData | null>(null);
+  const [lessonId, setLessonId] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -52,12 +60,25 @@ export default function LessonPage() {
           const q = query(collection(db, "lessons"), where("dayNumber", "==", day));
           const querySnapshot = await getDocs(q);
           
+          let currentLessonId = null;
+          let currentLesson = null;
+
           if (!querySnapshot.empty) {
-            setLesson(querySnapshot.docs[0].data() as LessonData);
+            currentLessonId = querySnapshot.docs[0].id;
+            currentLesson = querySnapshot.docs[0].data() as LessonData;
           } else if (STARTER_LESSONS[day]) {
-            setLesson(STARTER_LESSONS[day]);
-          } else {
-            setLesson(null);
+            currentLessonId = `starter-${day}`;
+            currentLesson = STARTER_LESSONS[day];
+          }
+
+          setLessonId(currentLessonId);
+          setLesson(currentLesson);
+
+          // Check completion status
+          if (currentLessonId) {
+            const progressRef = doc(db, 'users', user.uid, 'completedLessons', currentLessonId);
+            const docSnap = await getDoc(progressRef);
+            setIsCompleted(docSnap.exists());
           }
         } catch (error) {
           console.error("Error fetching lesson:", error);
@@ -69,6 +90,49 @@ export default function LessonPage() {
     }
   }, [user, loading, day, router]);
 
+  const handleToggleComplete = () => {
+    if (!user || !lessonId) return;
+    setCompleting(true);
+
+    const progressRef = doc(db, 'users', user.uid, 'completedLessons', lessonId);
+    
+    if (isCompleted) {
+      deleteDoc(progressRef)
+        .then(() => {
+          setIsCompleted(false);
+          toast({
+            title: "Lesson Unmarked",
+            description: "Lesson has been removed from your completed list.",
+          });
+        })
+        .catch(async (err) => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: progressRef.path,
+            operation: 'delete'
+          }));
+        })
+        .finally(() => setCompleting(false));
+    } else {
+      const data = { completedAt: serverTimestamp() };
+      setDoc(progressRef, data)
+        .then(() => {
+          setIsCompleted(true);
+          toast({
+            title: "Great Job!",
+            description: "Day " + day + " marked as complete. Keep going!",
+          });
+        })
+        .catch(async (err) => {
+          errorEmitter.emit('permission-error', new FirestorePermissionError({
+            path: progressRef.path,
+            operation: 'create',
+            requestResourceData: data
+          }));
+        })
+        .finally(() => setCompleting(false));
+    }
+  };
+
   if (loading || fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -77,7 +141,6 @@ export default function LessonPage() {
     );
   }
 
-  // Handle Locked State
   if (lesson?.isLocked) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
@@ -146,7 +209,6 @@ export default function LessonPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Advance Branding-Free Video Player */}
             <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative">
               {lesson.youtubeVideoId ? (
                 <>
@@ -156,11 +218,8 @@ export default function LessonPage() {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     title={lesson.title}
                   />
-                  {/* Branding Protection Overlays */}
                   <div className="absolute top-0 left-0 w-full h-24 bg-transparent z-10 pointer-events-none" /> 
                   <div className="absolute bottom-0 right-0 w-48 h-16 bg-transparent z-10 pointer-events-none" />
-                  
-                  {/* Custom Mask for 'Watch on YouTube' button */}
                   <div className="absolute bottom-4 left-4 w-40 h-8 bg-black/40 rounded-md backdrop-blur-sm z-10 flex items-center justify-center pointer-events-none">
                      <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Freedom Magnet Player</span>
                   </div>
@@ -175,16 +234,34 @@ export default function LessonPage() {
 
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
               <div className="flex-1 space-y-6">
-                <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title}</h1>
-                  <div className="flex gap-4 mt-4">
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
-                      <BookOpen size={14} /> Module {Math.floor((day - 1) / 30) + 1}
-                    </span>
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                      <Clock size={14} /> 15 MIN READ
-                    </span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title}</h1>
+                    <div className="flex gap-4 mt-4">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
+                        <BookOpen size={14} /> Module {Math.floor((day - 1) / 30) + 1}
+                      </span>
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <Clock size={14} /> 15 MIN READ
+                      </span>
+                    </div>
                   </div>
+                  
+                  <Button 
+                    onClick={handleToggleComplete}
+                    disabled={completing}
+                    className={`rounded-full h-12 px-8 font-bold transition-all shadow-lg ${
+                      isCompleted 
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
+                        : "bg-slate-900 dark:bg-slate-100 dark:text-slate-900 shadow-slate-900/20"
+                    }`}
+                  >
+                    {isCompleted ? (
+                      <><CheckCircle2 className="mr-2 h-5 w-5" /> Completed</>
+                    ) : (
+                      "Mark as Complete"
+                    )}
+                  </Button>
                 </div>
 
                 <div className="prose prose-slate dark:prose-invert max-w-none">

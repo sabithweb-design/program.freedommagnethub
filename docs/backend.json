@@ -52,6 +52,14 @@
         "reviewCount": { "type": "number", "description": "Total number of reviews" }
       },
       "required": ["title", "author", "category", "videos", "progress", "imageUrl"]
+    },
+    "UserLessonProgress": {
+      "title": "User Lesson Progress",
+      "description": "Tracks if a user has completed a specific lesson.",
+      "type": "object",
+      "properties": {
+        "completedAt": { "type": "object", "description": "Firestore Timestamp" }
+      }
     }
   },
   "auth": {
@@ -69,6 +77,10 @@
     "/courses/{courseId}": {
       "schema": "Course",
       "description": "Educational courses with progress and metadata."
+    },
+    "/users/{userId}/completedLessons/{lessonId}": {
+      "schema": "UserLessonProgress",
+      "description": "Subcollection to track completed lessons per user."
     }
   }
 }
