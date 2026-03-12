@@ -54,7 +54,8 @@ import {
   Trash2, 
   IndianRupee, 
   Lock, 
-  Unlock 
+  Unlock,
+  Star
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -74,7 +75,17 @@ export default function AdminPage() {
   const { data: lessons, loading: lessonsLoading } = useCollection<any>(lessonsQuery);
 
   // Form States
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin', price: 0, originalPrice: 0 });
+  const [courseForm, setCourseForm] = useState({ 
+    title: '', 
+    description: '', 
+    category: 'General', 
+    imageUrl: '', 
+    author: 'Freedom Magnet Admin', 
+    price: 0, 
+    originalPrice: 0,
+    rating: 4.5,
+    reviewCount: 0
+  });
   const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', courseId: '' });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
   const [isAddingUser, setIsAddingUser] = useState(false);
@@ -82,7 +93,13 @@ export default function AdminPage() {
 
   // Edit State
   const [editingProgram, setEditingProgram] = useState<any | null>(null);
-  const [editFields, setEditFields] = useState({ title: '', price: 0, originalPrice: 0 });
+  const [editFields, setEditFields] = useState({ 
+    title: '', 
+    price: 0, 
+    originalPrice: 0,
+    rating: 4.5,
+    reviewCount: 0
+  });
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
     const userRef = doc(firestore!, 'users', userId);
@@ -181,12 +198,24 @@ export default function AdminPage() {
       ...courseForm,
       price: Number(courseForm.price),
       originalPrice: Number(courseForm.originalPrice),
+      rating: Number(courseForm.rating),
+      reviewCount: Number(courseForm.reviewCount),
       videos: "0",
       progress: 0,
       isLocked: false,
       createdAt: serverTimestamp()
     }).then(() => {
-      setCourseForm({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin', price: 0, originalPrice: 0 });
+      setCourseForm({ 
+        title: '', 
+        description: '', 
+        category: 'General', 
+        imageUrl: '', 
+        author: 'Freedom Magnet Admin', 
+        price: 0, 
+        originalPrice: 0,
+        rating: 4.5,
+        reviewCount: 0
+      });
       toast({ title: "Program Created", description: "Successfully added a new training program." });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm });
@@ -201,7 +230,9 @@ export default function AdminPage() {
     const updateData = {
       title: editFields.title,
       price: Number(editFields.price),
-      originalPrice: Number(editFields.originalPrice)
+      originalPrice: Number(editFields.originalPrice),
+      rating: Number(editFields.rating),
+      reviewCount: Number(editFields.reviewCount)
     };
 
     updateDoc(programRef, updateData)
@@ -443,6 +474,16 @@ export default function AdminPage() {
                       <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12" />
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-bold">Rating (0-5)</Label>
+                      <Input type="number" step="0.1" min="0" max="5" placeholder="4.5" value={courseForm.rating} onChange={e => setCourseForm({...courseForm, rating: Number(e.target.value)})} required className="rounded-xl h-12" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold">Reviews</Label>
+                      <Input type="number" placeholder="0" value={courseForm.reviewCount} onChange={e => setCourseForm({...courseForm, reviewCount: Number(e.target.value)})} required className="rounded-xl h-12" />
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Thumbnail URL</Label>
                     <Input placeholder="https://picsum.photos/..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} required className="rounded-xl h-12" />
@@ -480,6 +521,10 @@ export default function AdminPage() {
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{c.category}</span>
                         {c.price > 0 && <span className="text-[10px] text-emerald-500 font-black">₹{c.price}</span>}
+                        <div className="flex items-center gap-1 ml-auto">
+                          <Star size={10} className="fill-amber-400 text-amber-400" />
+                          <span className="text-[10px] font-bold">{c.rating || 0}</span>
+                        </div>
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -500,7 +545,9 @@ export default function AdminPage() {
                           setEditFields({ 
                             title: c.title, 
                             price: c.price || 0, 
-                            originalPrice: c.originalPrice || 0 
+                            originalPrice: c.originalPrice || 0,
+                            rating: c.rating || 4.5,
+                            reviewCount: c.reviewCount || 0
                           }); 
                         }}
                       >
@@ -620,7 +667,7 @@ export default function AdminPage() {
         <DialogContent className="rounded-3xl max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Program Details</DialogTitle>
-            <DialogDescription>Modify the title and pricing for this training program.</DialogDescription>
+            <DialogDescription>Modify the title, pricing, and ratings for this training program.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div className="space-y-2">
@@ -656,6 +703,29 @@ export default function AdminPage() {
                     className="rounded-xl h-12 pl-10"
                   />
                 </div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Rating (0-5)</Label>
+                <Input 
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="5"
+                  value={editFields.rating} 
+                  onChange={(e) => setEditFields({...editFields, rating: Number(e.target.value)})}
+                  className="rounded-xl h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Total Reviews</Label>
+                <Input 
+                  type="number"
+                  value={editFields.reviewCount} 
+                  onChange={(e) => setEditFields({...editFields, reviewCount: Number(e.target.value)})}
+                  className="rounded-xl h-12"
+                />
               </div>
             </div>
           </div>

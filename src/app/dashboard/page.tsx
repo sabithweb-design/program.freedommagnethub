@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -122,12 +123,7 @@ export default function DashboardPage() {
 }
 
 function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
-  const isValidImageUrl = (url: string) => {
-    if (!url) return false;
-    return url.startsWith('http') && !url.includes('freepik.com/free-photos-vectors');
-  };
-
-  const thumbnailSrc = isValidImageUrl(course.imageUrl)
+  const thumbnailSrc = course.imageUrl && course.imageUrl.trim() !== "" 
     ? course.imageUrl 
     : "https://picsum.photos/seed/program/800/450";
 
@@ -171,21 +167,20 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           {course.author || "Freedom Magnet Hub"}
         </p>
         
-        {!course.isLocked && (
-          <div className="flex items-center gap-1">
-            <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue}</span>
-            <div className="flex">
-              {[...Array(5)].map((_, i) => (
-                <Star 
-                  key={i} 
-                  size={10} 
-                  className={i < Math.floor(ratingValue) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500" : "text-slate-200 dark:text-slate-700"} 
-                />
-              ))}
-            </div>
-            {reviewCountValue > 0 && <span className="text-[10px] text-[#6a6f73] dark:text-slate-500">({reviewCountValue.toLocaleString()})</span>}
+        {/* Rating Stars Section - Now Always Visible if Not Locked */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue.toFixed(1)}</span>
+          <div className="flex">
+            {[...Array(5)].map((_, i) => (
+              <Star 
+                key={i} 
+                size={10} 
+                className={i < Math.floor(ratingValue) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500" : "text-slate-200 dark:text-slate-700"} 
+              />
+            ))}
           </div>
-        )}
+          {reviewCountValue > 0 && <span className="text-[10px] text-[#6a6f73] dark:text-slate-500">({reviewCountValue.toLocaleString()})</span>}
+        </div>
 
         <div className="flex items-center gap-2">
           <Badge className="bg-[#5022c3] dark:bg-[#4338ca] hover:bg-[#5022c3] text-white text-[10px] font-bold h-5 px-2 rounded-sm gap-1 flex items-center border-none">

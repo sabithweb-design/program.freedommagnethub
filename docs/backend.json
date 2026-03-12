@@ -46,7 +46,9 @@
         "description": { "type": "string" },
         "price": { "type": "number" },
         "originalPrice": { "type": "number" },
-        "isLocked": { "type": "boolean", "default": false }
+        "isLocked": { "type": "boolean", "default": false },
+        "rating": { "type": "number", "description": "Star rating (0-5)" },
+        "reviewCount": { "type": "number", "description": "Total number of reviews" }
       },
       "required": ["title", "author", "category", "videos", "progress", "imageUrl"]
     }
