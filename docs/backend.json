@@ -42,7 +42,9 @@
         "imageUrl": { "type": "string" },
         "isLatestLearned": { "type": "boolean" },
         "userId": { "type": "string" },
-        "description": { "type": "string" }
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "originalPrice": { "type": "number" }
       },
       "required": ["title", "author", "category", "videos", "progress", "imageUrl"]
     }
