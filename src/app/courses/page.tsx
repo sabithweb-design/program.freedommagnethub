@@ -51,19 +51,19 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-12 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-6 md:px-12 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild className="rounded-full">
             <Link href="/dashboard">
               <ChevronLeft className="h-6 w-6" />
             </Link>
           </Button>
-          <h1 className="text-xl font-black tracking-tighter text-foreground uppercase">
+          <h1 className="text-lg md:text-xl font-black tracking-tighter text-foreground uppercase hidden xs:block">
             MARKETPLACE
           </h1>
         </div>
         
-        <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
+        <div className="hidden md:flex items-center flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <Input 
@@ -73,22 +73,22 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6 sm:gap-10">
+        <div className="flex items-center gap-4 sm:gap-10">
           {isAdmin && (
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="hidden lg:flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95"
+              className="flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95 px-4"
             >
               <Link href="/admin">
                 <Settings size={14} />
-                Admin Panel
+                <span className="hidden sm:inline">Admin Panel</span>
               </Link>
             </Button>
           )}
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4">
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="rounded-full text-slate-600 dark:text-slate-400">
               <ShoppingCart className="h-5 w-5" />
