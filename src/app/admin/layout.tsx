@@ -15,13 +15,18 @@ import { Button } from '@/components/ui/button';
 import { auth } from '@/lib/firebase';
 import { signOut } from 'firebase/auth';
 
+/**
+ * ADMIN CONFIGURATION
+ * Set your master admin email here. 
+ * Ensure you create this user in the Firebase Console.
+ */
 const ADMIN_EMAIL = "admin@edutrail.com";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
 
-  // Primary security guard
+  // Primary security guard: Check by hardcoded email or Firestore role
   const isAuthorized = user?.email === ADMIN_EMAIL || profile?.role === 'admin';
 
   React.useEffect(() => {
@@ -58,7 +63,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <AdminNavLink icon={<Video size={18} />} label="Lessons" href="/admin?tab=lessons" />
         </nav>
 
-        <div className="p-4 border-t">
+        <div className="p-4 border-t space-y-2">
+          <div className="px-4 py-2 bg-slate-50 rounded-lg">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged in as</p>
+            <p className="text-xs font-semibold text-slate-600 truncate">{user?.email}</p>
+          </div>
           <Button 
             variant="ghost" 
             className="w-full justify-start text-slate-500 hover:text-destructive hover:bg-destructive/5"
