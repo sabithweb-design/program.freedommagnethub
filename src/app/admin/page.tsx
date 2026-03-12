@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -58,7 +57,6 @@ import {
   Star,
   Image as ImageIcon,
   FileText,
-  ClipboardList,
   Share2
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -91,7 +89,7 @@ export default function AdminPage() {
     rating: 4.5,
     reviewCount: 0
   });
-  const [lessonForm, setLessonForm] = useState({ title: '', description: '', actionPlan: '', dayNumber: 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', courseId: '' });
+  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', courseId: '' });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
@@ -300,7 +298,6 @@ export default function AdminPage() {
       courseId: lessonForm.courseId,
       title: lessonForm.title || '',
       description: lessonForm.description || '',
-      actionPlan: lessonForm.actionPlan || '',
       dayNumber: Number(lessonForm.dayNumber),
       youtubeVideoId: extractId(lessonForm.youtubeUrl),
       thumbnailUrl: lessonForm.thumbnailUrl || '',
@@ -310,7 +307,7 @@ export default function AdminPage() {
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', actionPlan: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '' });
       toast({ title: "Lesson Published", description: `Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData });
@@ -322,8 +319,17 @@ export default function AdminPage() {
     const url = `${window.location.origin}/lesson/${dayNumber}`;
     navigator.clipboard.writeText(url);
     toast({
-      title: "Link Copied",
-      description: `Direct link to Day ${dayNumber} has been copied to your clipboard.`,
+      title: "Lesson Link Copied",
+      description: `Direct link to Day ${dayNumber} has been copied.`,
+    });
+  };
+
+  const handleShareCourse = (courseId: string) => {
+    const url = `${window.location.origin}/courses`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Program Link Copied",
+      description: `The marketplace link has been copied to your clipboard.`,
     });
   };
 
@@ -557,6 +563,14 @@ export default function AdminPage() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
+                        className="rounded-full text-slate-400 hover:text-primary"
+                        onClick={() => handleShareCourse(c.id)}
+                      >
+                        <Share2 size={16} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
                         className={`rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 ${c.isLocked ? 'text-primary' : 'text-slate-400'}`}
                         onClick={() => handleToggleProgramLock(c.id, !!c.isLocked)}
                       >
@@ -663,10 +677,6 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     <Label className="font-bold">Lesson Title (Optional)</Label>
                     <Input placeholder="Key Concepts" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold">Action Plan (Optional)</Label>
-                    <Textarea className="min-h-[80px] rounded-xl" placeholder="Step 1: ..., Step 2: ..." value={lessonForm.actionPlan} onChange={e => setLessonForm({...lessonForm, actionPlan: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Description (Optional)</Label>
