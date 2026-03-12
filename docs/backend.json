@@ -26,6 +26,7 @@
         "description": { "type": "string" },
         "youtubeVideoId": { "type": "string" },
         "thumbnailUrl": { "type": "string", "description": "URL for the lesson preview image" },
+        "pdfUrl": { "type": "string", "description": "URL for downloadable PDF resources" },
         "isLocked": { "type": "boolean", "default": false },
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },
@@ -51,7 +52,7 @@
         "rating": { "type": "number", "description": "Star rating (0-5)" },
         "reviewCount": { "type": "number", "description": "Total number of reviews" }
       },
-      "required": ["title", "author", "category", "videos", "progress", "imageUrl"]
+      "required": ["title", "category", "videos", "progress"]
     },
     "UserLessonProgress": {
       "title": "User Lesson Progress",

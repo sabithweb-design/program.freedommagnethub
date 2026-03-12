@@ -56,7 +56,8 @@ import {
   Lock, 
   Unlock,
   Star,
-  Image as ImageIcon
+  Image as ImageIcon,
+  FileText
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -88,7 +89,7 @@ export default function AdminPage() {
     rating: 4.5,
     reviewCount: 0
   });
-  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', thumbnailUrl: '', courseId: '' });
+  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', courseId: '' });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
@@ -202,6 +203,7 @@ export default function AdminPage() {
 
     addDoc(collection(firestore, 'courses'), {
       ...courseForm,
+      title: courseForm.title || "Untitled Program",
       price: Number(courseForm.price),
       originalPrice: Number(courseForm.originalPrice),
       rating: Number(courseForm.rating),
@@ -234,7 +236,7 @@ export default function AdminPage() {
 
     const programRef = doc(firestore, 'courses', editingProgram.id);
     const updateData = {
-      title: editFields.title,
+      title: editFields.title || "Untitled Program",
       description: editFields.description,
       category: editFields.category,
       imageUrl: editFields.imageUrl,
@@ -298,13 +300,14 @@ export default function AdminPage() {
       description: lessonForm.description || '',
       dayNumber: Number(lessonForm.dayNumber),
       youtubeVideoId: extractId(lessonForm.youtubeUrl),
-      thumbnailUrl: lessonForm.thumbnailUrl,
+      thumbnailUrl: lessonForm.thumbnailUrl || '',
+      pdfUrl: lessonForm.pdfUrl || '',
       isLocked: false,
       createdAt: serverTimestamp()
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '' });
       toast({ title: "Lesson Published", description: `Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData });
@@ -472,8 +475,8 @@ export default function AdminPage() {
               <CardContent>
                 <form onSubmit={handleAddCourse} className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="font-bold">Title</Label>
-                    <Input placeholder="e.g. Master React Native" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} required className="rounded-xl h-12" />
+                    <Label className="font-bold">Title (Optional)</Label>
+                    <Input placeholder="e.g. Master React Native" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -496,15 +499,15 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Thumbnail URL</Label>
-                    <Input placeholder="https://picsum.photos/..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} required className="rounded-xl h-12" />
+                    <Label className="font-bold">Thumbnail URL (Optional)</Label>
+                    <Input placeholder="https://picsum.photos/..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Category</Label>
                     <Input placeholder="Coding" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Description</Label>
+                    <Label className="font-bold">Description (Optional)</Label>
                     <Textarea placeholder="Quick overview..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px]" />
                   </div>
                   <Button type="submit" className="w-full rounded-xl h-12 font-bold">Create Program</Button>
@@ -528,7 +531,7 @@ export default function AdminPage() {
                       )}
                     </div>
                     <div className="flex flex-col justify-center flex-1 min-w-0">
-                      <h4 className="font-bold text-slate-800 dark:text-slate-200 leading-tight line-clamp-1">{c.title}</h4>
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 leading-tight line-clamp-1">{c.title || "Untitled Program"}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{c.category}</span>
                         {c.price > 0 && <span className="text-[10px] text-emerald-500 font-black">₹{c.price}</span>}
@@ -592,7 +595,7 @@ export default function AdminPage() {
                 <CardTitle className="flex items-center gap-2">
                   <Video className="text-primary" /> Add Lesson
                 </CardTitle>
-                <CardDescription>Upload a video to a specific program.</CardDescription>
+                <CardDescription>Upload a video and resources to a specific program.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddLesson} className="space-y-4">
@@ -604,7 +607,7 @@ export default function AdminPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {courses?.map((c: any) => (
-                          <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                          <SelectItem key={c.id} value={c.id}>{c.title || "Untitled Program"}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -619,16 +622,30 @@ export default function AdminPage() {
                       <Input placeholder="https://youtube.com/..." value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl" />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold">Thumbnail URL</Label>
-                    <div className="relative">
-                      <ImageIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
-                      <Input 
-                        placeholder="https://picsum.photos/..." 
-                        value={lessonForm.thumbnailUrl} 
-                        onChange={e => setLessonForm({...lessonForm, thumbnailUrl: e.target.value})} 
-                        className="h-12 rounded-xl pl-10" 
-                      />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-bold">Thumbnail URL (Optional)</Label>
+                      <div className="relative">
+                        <ImageIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                        <Input 
+                          placeholder="https://picsum.photos/..." 
+                          value={lessonForm.thumbnailUrl} 
+                          onChange={e => setLessonForm({...lessonForm, thumbnailUrl: e.target.value})} 
+                          className="h-12 rounded-xl pl-10" 
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold">PDF Resource URL (Optional)</Label>
+                      <div className="relative">
+                        <FileText className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                        <Input 
+                          placeholder="https://example.com/file.pdf" 
+                          value={lessonForm.pdfUrl} 
+                          onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} 
+                          className="h-12 rounded-xl pl-10" 
+                        />
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -678,7 +695,7 @@ export default function AdminPage() {
                           <div>
                             <div className="flex items-center gap-2">
                                <h4 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{l.title || `Lesson ${l.dayNumber}`}</h4>
-                               {course && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded font-black uppercase whitespace-nowrap">{course.title}</span>}
+                               {course && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded font-black uppercase whitespace-nowrap">{course.title || "Untitled"}</span>}
                             </div>
                             <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
                           </div>
@@ -714,7 +731,7 @@ export default function AdminPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Program Title</Label>
+                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Program Title (Optional)</Label>
                   <Input 
                     value={editFields.title} 
                     onChange={(e) => setEditFields({...editFields, title: e.target.value})}
@@ -732,7 +749,7 @@ export default function AdminPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Author / Instructor</Label>
+                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Author / Instructor (Optional)</Label>
                   <Input 
                     value={editFields.author} 
                     onChange={(e) => setEditFields({...editFields, author: e.target.value})}
@@ -744,7 +761,7 @@ export default function AdminPage() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Thumbnail URL</Label>
+                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Thumbnail URL (Optional)</Label>
                   <div className="relative">
                     <ImageIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
                     <Input 
@@ -808,7 +825,7 @@ export default function AdminPage() {
             </div>
 
             <div className="space-y-2">
-              <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Description</Label>
+              <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Description (Optional)</Label>
               <Textarea 
                 value={editFields.description} 
                 onChange={(e) => setEditFields({...editFields, description: e.target.value})}

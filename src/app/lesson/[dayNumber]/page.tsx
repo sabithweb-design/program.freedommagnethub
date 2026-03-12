@@ -8,7 +8,19 @@ import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle, GraduationCap, Lock, ShieldAlert, CheckCircle2 } from "lucide-react";
+import { 
+  ChevronLeft, 
+  ChevronRight, 
+  BookOpen, 
+  Clock, 
+  PlayCircle, 
+  GraduationCap, 
+  Lock, 
+  ShieldAlert, 
+  CheckCircle2,
+  Download,
+  FileText
+} from "lucide-react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -22,6 +34,7 @@ interface LessonData {
   description?: string;
   youtubeVideoId: string;
   thumbnailUrl?: string;
+  pdfUrl?: string;
   dayNumber: number;
   isLocked?: boolean;
 }
@@ -247,21 +260,34 @@ export default function LessonPage() {
                     </div>
                   </div>
                   
-                  <Button 
-                    onClick={handleToggleComplete}
-                    disabled={completing}
-                    className={`rounded-full h-12 px-8 font-bold transition-all shadow-lg ${
-                      isCompleted 
-                        ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
-                        : "bg-slate-900 dark:bg-slate-100 dark:text-slate-900 shadow-slate-900/20"
-                    }`}
-                  >
-                    {isCompleted ? (
-                      <><CheckCircle2 className="mr-2 h-5 w-5" /> Completed</>
-                    ) : (
-                      "Mark as Complete"
+                  <div className="flex items-center gap-3">
+                    {lesson.pdfUrl && (
+                      <Button 
+                        variant="outline"
+                        asChild
+                        className="rounded-full h-12 px-6 font-bold border-2 border-slate-200 dark:border-slate-800 flex gap-2"
+                      >
+                        <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                          <Download size={18} /> Resources
+                        </a>
+                      </Button>
                     )}
-                  </Button>
+                    <Button 
+                      onClick={handleToggleComplete}
+                      disabled={completing}
+                      className={`rounded-full h-12 px-8 font-bold transition-all shadow-lg ${
+                        isCompleted 
+                          ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
+                          : "bg-slate-900 dark:bg-slate-100 dark:text-slate-900 shadow-slate-900/20"
+                      }`}
+                    >
+                      {isCompleted ? (
+                        <><CheckCircle2 className="mr-2 h-5 w-5" /> Completed</>
+                      ) : (
+                        "Mark as Complete"
+                      )}
+                    </Button>
+                  </div>
                 </div>
 
                 {lesson.description && (
@@ -273,28 +299,27 @@ export default function LessonPage() {
                 )}
               </div>
 
-              <div className="md:w-72 shrink-0 space-y-4">
-                <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
-                  <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-                    <span className="w-1.5 h-6 bg-primary rounded-full" />
-                    Action Plan
-                  </h3>
-                  <ul className="space-y-4">
-                    {[
-                      "Watch video lesson",
-                      "Download day worksheet",
-                      "Join the peer discussion"
-                    ].map((step, i) => (
-                      <li key={i} className="flex items-start gap-3 group">
-                        <div className="w-6 h-6 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
-                          {i + 1}
-                        </div>
-                        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium group-hover:text-foreground transition-colors">{step}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </Card>
-              </div>
+              {lesson.pdfUrl && (
+                <div className="md:w-72 shrink-0 space-y-4">
+                  <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
+                    <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                      <FileText size={18} className="text-primary" />
+                      Study Material
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium">
+                      Download the day's specialized worksheet and roadmap.
+                    </p>
+                    <Button 
+                      className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold"
+                      asChild
+                    >
+                      <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                        Download PDF
+                      </a>
+                    </Button>
+                  </Card>
+                </div>
+              )}
             </div>
           </div>
         ) : (
