@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { 
   signInWithEmailAndPassword, 
   sendSignInLinkToEmail 
@@ -11,23 +12,31 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { GraduationCap, Mail, Lock, Sparkles, ShieldAlert } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export default function LoginPage() {
+function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Get redirect path if user arrived from a shared link
+  const redirectPath = searchParams.get('redirect');
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      if (email === "admin@freedommagnethub.com") {
+      
+      // Navigate to the intended lesson link or default to role-based landing
+      if (redirectPath) {
+        router.push(redirectPath);
+      } else if (email === "admin@freedommagnethub.com") {
         router.push("/admin");
       } else {
         router.push("/dashboard");
@@ -107,6 +116,7 @@ export default function LoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        autoComplete="off"
                       />
                     </div>
                   </div>
@@ -121,6 +131,7 @@ export default function LoginPage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        autoComplete="off"
                       />
                     </div>
                   </div>
@@ -144,6 +155,7 @@ export default function LoginPage() {
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
+                        autoComplete="off"
                       />
                     </div>
                   </div>
@@ -168,5 +180,13 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div></div>}>
+      <LoginContent />
+    </Suspense>
   );
 }

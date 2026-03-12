@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -61,7 +62,8 @@ export default function LessonPage() {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.push("/login");
+      // Force user to login page with a redirect back to this lesson
+      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
       return;
     }
 

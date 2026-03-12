@@ -3,7 +3,7 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
 export function initializeFirebase(): {
@@ -14,6 +14,11 @@ export function initializeFirebase(): {
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   const firestore = getFirestore(app);
   const auth = getAuth(app);
+
+  // Set persistence to session-based so users are asked for credentials more often (e.g., after browser restart)
+  setPersistence(auth, browserSessionPersistence).catch((err) => {
+    console.error("Failed to set auth persistence:", err);
+  });
 
   return { app, firestore, auth };
 }
