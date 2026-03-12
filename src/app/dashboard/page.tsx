@@ -47,11 +47,12 @@ export default function DashboardPage() {
   }, [courses, activeCategory]);
 
   const latestLearned = useMemo(() => {
-    return courses?.find((c) => c.isLatestLearned) || courses?.[0];
+    if (!courses || courses.length === 0) return null;
+    return courses.find((c) => c.isLatestLearned) || courses[0];
   }, [courses]);
 
-  const defaultPlaceholder = PlaceHolderImages.find(img => img.id === 'course-default')?.imageUrl || '';
-  const latestPlaceholder = PlaceHolderImages.find(img => img.id === 'latest-lesson')?.imageUrl || '';
+  const defaultPlaceholder = PlaceHolderImages.find(img => img.id === 'course-default')?.imageUrl || 'https://picsum.photos/seed/course/600/400';
+  const latestPlaceholder = PlaceHolderImages.find(img => img.id === 'latest-lesson')?.imageUrl || 'https://picsum.photos/seed/latest/800/400';
 
   if (authLoading || coursesLoading) {
     return (
@@ -65,7 +66,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-[#FFFBF5] text-slate-800 pb-10 font-body">
       {/* Header */}
       <header className="px-6 h-16 flex items-center justify-between sticky top-0 bg-[#FFFBF5]/80 backdrop-blur-md z-30">
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -ml-2">
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -ml-2" onClick={() => router.back()}>
           <ChevronLeft className="h-6 w-6 text-slate-700" />
         </Button>
         <h1 className="text-xl font-bold text-slate-800 text-center flex-1">My Courses</h1>
@@ -129,7 +130,9 @@ export default function DashboardPage() {
               </div>
             </Card>
           ) : (
-             <div className="h-48 rounded-[2.5rem] bg-slate-100 animate-pulse" />
+             <div className="h-48 rounded-[2.5rem] bg-slate-100 flex items-center justify-center text-slate-400 border border-dashed">
+               <p>Start learning to see your progress here</p>
+             </div>
           )}
         </section>
 
