@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle, GraduationCap } from "lucide-react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface LessonData {
   title: string;
@@ -66,15 +67,15 @@ export default function LessonPage() {
 
   if (loading || fetching) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F28C7F]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] pb-20 font-body">
-      <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-20">
+    <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
+      <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-20 transition-colors">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" asChild className="rounded-full">
@@ -83,26 +84,29 @@ export default function LessonPage() {
                 Back
               </Link>
             </Button>
-            <div className="font-bold text-slate-800 flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-[#F28C7F]" />
+            <div className="font-bold text-foreground flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-primary" />
               Day {day}
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
-            <div className="flex gap-1">
-              <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full">
-                <Link href={day > 1 ? `/lesson/${day - 1}` : "#"}>
-                  <ChevronLeft className="h-5 w-5" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild disabled={day >= 90} className="rounded-full">
-                <Link href={day < 90 ? `/lesson/${day + 1}` : "#"}>
-                  <ChevronRight className="h-5 w-5" />
-                </Link>
-              </Button>
+          <div className="flex items-center gap-4 sm:gap-6">
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <div className="flex gap-1">
+                <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full">
+                  <Link href={day > 1 ? `/lesson/${day - 1}` : "#"}>
+                    <ChevronLeft className="h-5 w-5" />
+                  </Link>
+                </Button>
+                <Button variant="ghost" size="icon" asChild disabled={day >= 90} className="rounded-full">
+                  <Link href={day < 90 ? `/lesson/${day + 1}` : "#"}>
+                    <ChevronRight className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </div>
             </div>
-            <div className="h-8 w-px bg-slate-100 hidden sm:block" />
+            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
             <BrandLogo className="h-8 w-8" />
           </div>
         </div>
@@ -112,7 +116,7 @@ export default function LessonPage() {
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Advance Branding-Free Video Player */}
-            <div className="video-container shadow-2xl ring-8 ring-white/50 relative">
+            <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative">
               {lesson.youtubeVideoId ? (
                 <>
                   <iframe 
@@ -141,28 +145,28 @@ export default function LessonPage() {
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
               <div className="flex-1 space-y-6">
                 <div>
-                  <h1 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">{lesson.title}</h1>
+                  <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title}</h1>
                   <div className="flex gap-4 mt-4">
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-[#F28C7F] uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
                       <BookOpen size={14} /> Module {Math.floor((day - 1) / 30) + 1}
                     </span>
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                       <Clock size={14} /> 15 MIN READ
                     </span>
                   </div>
                 </div>
 
-                <div className="prose prose-slate max-w-none">
-                  <p className="text-slate-600 leading-relaxed text-lg whitespace-pre-wrap">
+                <div className="prose prose-slate dark:prose-invert max-w-none">
+                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg whitespace-pre-wrap">
                     {lesson.description}
                   </p>
                 </div>
               </div>
 
               <div className="md:w-72 shrink-0 space-y-4">
-                <Card className="border-none shadow-sm rounded-3xl bg-white p-6">
-                  <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                    <span className="w-1.5 h-6 bg-[#F28C7F] rounded-full" />
+                <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
+                  <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-6 bg-primary rounded-full" />
                     Action Plan
                   </h3>
                   <ul className="space-y-4">
@@ -172,10 +176,10 @@ export default function LessonPage() {
                       "Join the peer discussion"
                     ].map((step, i) => (
                       <li key={i} className="flex items-start gap-3 group">
-                        <div className="w-6 h-6 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-[#F28C7F] group-hover:text-white transition-colors shrink-0">
+                        <div className="w-6 h-6 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-400 group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
                           {i + 1}
                         </div>
-                        <span className="text-sm text-slate-500 font-medium group-hover:text-slate-800 transition-colors">{step}</span>
+                        <span className="text-sm text-slate-500 dark:text-slate-400 font-medium group-hover:text-foreground transition-colors">{step}</span>
                       </li>
                     ))}
                   </ul>
@@ -184,11 +188,11 @@ export default function LessonPage() {
             </div>
           </div>
         ) : (
-          <div className="text-center py-32 bg-white rounded-[3rem] border border-dashed border-slate-200">
-            <div className="bg-[#FFFBF5] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-               <Clock size={40} className="text-[#F28C7F]" />
+          <div className="text-center py-32 bg-card text-card-foreground rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800">
+            <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+               <Clock size={40} className="text-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800 mb-2">Lesson Coming Soon</h2>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Lesson Coming Soon</h2>
             <p className="text-slate-400 mb-8 max-w-xs mx-auto">This module is currently being finalized by your mentors.</p>
             <Button asChild variant="outline" className="rounded-full px-8">
               <Link href="/dashboard">Return to Dashboard</Link>

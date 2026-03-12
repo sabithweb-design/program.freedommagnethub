@@ -16,11 +16,8 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/BrandLogo';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
-/**
- * ADMIN CONFIGURATION
- * Primary Top-Navigation Layout based on TagMango design.
- */
 const ADMIN_EMAIL = "admin@freedommagnethub.com";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -38,7 +35,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -47,13 +44,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isAuthorized) return null;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Top Navbar */}
-      <header className="bg-white border-b sticky top-0 z-50">
+      <header className="bg-background/95 backdrop-blur-md border-b sticky top-0 z-50 transition-colors">
         <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
           <Link href="/admin" className="flex items-center gap-1 group">
-            <span className="font-bold text-2xl tracking-tight text-slate-800">
+            <span className="font-bold text-2xl tracking-tight text-slate-800 dark:text-slate-100">
               freedom<span className="text-primary">magnet</span>
             </span>
           </Link>
@@ -73,7 +70,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               variant="outline" 
               size="sm" 
               asChild 
-              className="hidden sm:flex rounded-full border-slate-200 text-slate-600 font-bold gap-2 hover:bg-slate-50 transition-all active:scale-95"
+              className="hidden sm:flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95"
             >
               <Link href="/dashboard">
                 <ExternalLink size={14} />
@@ -81,23 +78,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             </Button>
             
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Button variant="ghost" size="icon" className="text-slate-400">
+            <div className="flex items-center gap-1">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full">
                 <Grid size={20} />
               </Button>
-              <Button variant="ghost" size="icon" className="text-slate-400 relative">
+              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 relative rounded-full">
                 <Bell size={20} />
-                <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white">3</span>
+                <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white dark:border-slate-900">3</span>
               </Button>
             </div>
-            <div className="h-10 w-px bg-slate-100 mx-2 hidden sm:block" />
+            <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 mx-2 hidden sm:block" />
             <BrandLogo className="h-10 w-10" />
           </div>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="bg-white min-h-[calc(100vh-80px)]">
+      <main className="min-h-[calc(100vh-80px)]">
         {children}
       </main>
     </div>
@@ -107,7 +105,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 function NavItem({ icon, label, href, active = false }: { icon: React.ReactNode, label: string, href: string, active?: boolean }) {
   return (
     <Link href={href} className={`flex flex-col items-center gap-1 cursor-pointer group relative pt-4 h-full`}>
-      <div className={`flex flex-col items-center gap-1.5 transition-colors ${active ? "text-primary" : "text-slate-400 group-hover:text-slate-600"}`}>
+      <div className={`flex flex-col items-center gap-1.5 transition-colors ${active ? "text-primary" : "text-slate-400 dark:text-slate-500 group-hover:text-slate-600 dark:group-hover:text-slate-300"}`}>
         {icon}
         <span className="text-[11px] font-bold tracking-wider">{label}</span>
       </div>

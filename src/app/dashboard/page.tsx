@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, ChevronDown, Star, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import { BrandLogo } from '@/components/BrandLogo';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Course {
   id: string;
@@ -38,40 +39,41 @@ export default function DashboardPage() {
 
   if (authLoading || coursesLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] text-slate-900 pb-20 font-body">
+    <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-6 h-20 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-30 border-b">
-        <h1 className="text-xl font-black tracking-tighter text-slate-900">
+      <header className="px-6 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+        <h1 className="text-xl font-black tracking-tighter text-foreground">
           freedom<span className="text-primary">magnet</span>
         </h1>
         
-        <div className="flex items-center gap-6">
-          <div className="flex gap-2">
-            <Button variant="ghost" size="icon" className="rounded-full">
+        <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500">
               <Search className="h-5 w-5" />
             </Button>
           </div>
-          <div className="h-10 w-px bg-slate-100 hidden sm:block" />
+          <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
           <BrandLogo className="h-10 w-10" />
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 pt-6 space-y-8">
         <div className="space-y-2">
-          <p className="text-sm text-slate-500 font-medium">From critical skills to technical topics, Freedom Magnet supports your professional development.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">From critical skills to technical topics, Freedom Magnet supports your professional development.</p>
         </div>
 
         {/* Category Header */}
         <section className="space-y-6">
-          <div className="flex items-center justify-between border-b pb-4">
-            <h2 className="text-xl font-bold text-slate-900">Featured Programs</h2>
+          <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
+            <h2 className="text-xl font-bold text-foreground">Featured Programs</h2>
             <ChevronDown className="h-5 w-5 text-slate-400" />
           </div>
 
@@ -137,7 +139,7 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
       className="group cursor-pointer flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
       onClick={onClick}
     >
-      <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100">
+      <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-slate-100 dark:bg-slate-900">
         <Image
           src={thumbnailSrc}
           alt={course.title || "Program thumbnail"}
@@ -145,44 +147,44 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
         {course.isBestseller && (
-          <div className="absolute top-3 left-3 bg-[#e1f7f1] text-[#1c1d1f] text-[10px] font-bold px-2 py-1 rounded-sm border border-[#acd2cc] shadow-sm">
+          <div className="absolute top-3 left-3 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[10px] font-bold px-2 py-1 rounded-sm border border-[#acd2cc] dark:border-emerald-800 shadow-sm">
             Bestseller
           </div>
         )}
       </div>
 
       <div className="space-y-1">
-        <h3 className="font-bold text-[#1c1d1f] text-base leading-snug line-clamp-2">
+        <h3 className="font-bold text-[#1c1d1f] dark:text-slate-100 text-base leading-snug line-clamp-2">
           {course.title || "Untitled Program"}
         </h3>
-        <p className="text-[11px] text-[#6a6f73] line-clamp-1">
+        <p className="text-[11px] text-[#6a6f73] dark:text-slate-400 line-clamp-1">
           {course.author || "Freedom Magnet Hub"}
         </p>
         
         <div className="flex items-center gap-1">
-          <span className="text-xs font-bold text-[#b4690e]">{course.rating || 4.5}</span>
+          <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{course.rating || 4.5}</span>
           <div className="flex">
             {[...Array(5)].map((_, i) => (
               <Star 
                 key={i} 
                 size={10} 
-                className={i < Math.floor(course.rating || 4.5) ? "fill-[#b4690e] text-[#b4690e]" : "text-slate-200"} 
+                className={i < Math.floor(course.rating || 4.5) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500" : "text-slate-200 dark:text-slate-700"} 
               />
             ))}
           </div>
-          <span className="text-[10px] text-[#6a6f73]">({(course.reviewCount || 0).toLocaleString()})</span>
+          <span className="text-[10px] text-[#6a6f73] dark:text-slate-500">({(course.reviewCount || 0).toLocaleString()})</span>
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge className="bg-[#5022c3] hover:bg-[#5022c3] text-white text-[10px] font-bold h-5 px-2 rounded-sm gap-1 flex items-center border-none">
+          <Badge className="bg-[#5022c3] dark:bg-[#4338ca] hover:bg-[#5022c3] text-white text-[10px] font-bold h-5 px-2 rounded-sm gap-1 flex items-center border-none">
             <ShieldCheck size={10} /> Premium
           </Badge>
         </div>
 
         <div className="flex items-center gap-2 pt-1">
-          <span className="font-bold text-lg text-[#1c1d1f]">₹{course.price || 519}</span>
+          <span className="font-bold text-lg text-[#1c1d1f] dark:text-slate-100">₹{course.price || 519}</span>
           {course.originalPrice && (
-            <span className="text-sm text-[#6a6f73] line-through">₹{course.originalPrice}</span>
+            <span className="text-sm text-[#6a6f73] dark:text-slate-500 line-through">₹{course.originalPrice}</span>
           )}
         </div>
       </div>
