@@ -10,7 +10,8 @@ import {
   BookOpen, 
   MessageCircle,
   Bell, 
-  Grid
+  Grid,
+  ExternalLink
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -67,8 +68,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
 
           {/* Right Icons & Brand Logo */}
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              asChild 
+              className="hidden sm:flex rounded-full border-slate-200 text-slate-600 font-bold gap-2 hover:bg-slate-50 transition-all active:scale-95"
+            >
+              <Link href="/dashboard">
+                <ExternalLink size={14} />
+                View Hub
+              </Link>
+            </Button>
+            
+            <div className="flex items-center gap-2 sm:gap-4">
               <Button variant="ghost" size="icon" className="text-slate-400">
                 <Grid size={20} />
               </Button>
