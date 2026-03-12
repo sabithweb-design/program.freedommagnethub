@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { collection, query, where } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
@@ -8,11 +8,8 @@ import { useCollection, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronLeft, Search, Play, BookOpen } from "lucide-react";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface Course {
@@ -27,13 +24,10 @@ interface Course {
   userId: string;
 }
 
-const CATEGORIES = ["Coding", "Design", "Development", "Writing", "Business"];
-
 export default function MyCoursesPage() {
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const firestore = useFirestore();
-  const [activeCategory, setActiveCategory] = useState("Coding");
 
   const coursesQuery = useMemo(() => {
     if (!firestore || !user) return null;
@@ -41,11 +35,6 @@ export default function MyCoursesPage() {
   }, [firestore, user]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
-
-  const filteredCourses = useMemo(() => {
-    if (!courses) return [];
-    return courses.filter((c) => c.category === activeCategory);
-  }, [courses, activeCategory]);
 
   const latestLearned = useMemo(() => {
     return courses?.find((c) => c.isLatestLearned) || courses?.[0];
@@ -76,28 +65,6 @@ export default function MyCoursesPage() {
       </header>
 
       <main className="px-6 space-y-8 max-w-md mx-auto">
-        {/* Categories */}
-        <ScrollArea className="w-full whitespace-nowrap -mx-6 px-6">
-          <div className="flex gap-3 py-2">
-            {CATEGORIES.map((cat) => (
-              <Badge
-                key={cat}
-                variant="outline"
-                className={cn(
-                  "px-6 py-2.5 cursor-pointer transition-all rounded-full border-none font-semibold text-sm",
-                  activeCategory === cat 
-                    ? "bg-[#F28C7F] text-white shadow-lg shadow-[#F28C7F]/30" 
-                    : "bg-white text-slate-400 hover:bg-slate-50"
-                )}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat}
-              </Badge>
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" className="hidden" />
-        </ScrollArea>
-
         {/* Featured Section */}
         <section className="space-y-4">
           <h2 className="text-lg font-bold text-slate-800">Latest Learned</h2>
@@ -127,15 +94,18 @@ export default function MyCoursesPage() {
               </div>
             </Card>
           ) : (
-             <div className="h-48 rounded-[2.5rem] bg-slate-100 animate-pulse" />
+             <div className="h-48 rounded-[2.5rem] bg-white flex items-center justify-center text-slate-400 border border-dashed border-slate-200">
+               <p className="text-sm">Enroll in a course to see it here</p>
+             </div>
           )}
         </section>
 
         {/* Course List */}
         <div className="space-y-4 pb-12">
-          {filteredCourses.length > 0 ? (
+          <h2 className="text-lg font-bold text-slate-800">Enrollments</h2>
+          {courses && courses.length > 0 ? (
             <div className="grid gap-4">
-              {filteredCourses.map((course) => (
+              {courses.map((course) => (
                 <Card key={course.id} className="border-none shadow-sm rounded-3xl bg-white overflow-hidden p-4">
                   <div className="flex gap-4">
                     <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-[#E8F5F1]">
@@ -179,7 +149,7 @@ export default function MyCoursesPage() {
               <div>
                 <h3 className="font-bold text-slate-800">No courses yet</h3>
                 <p className="text-xs text-slate-400 max-w-[200px] mt-1 mx-auto">
-                  Courses in the {activeCategory} category will appear here.
+                  Start your learning journey by enrolling in a course from the dashboard.
                 </p>
               </div>
             </div>

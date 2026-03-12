@@ -8,11 +8,8 @@ import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Play, BookOpen, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface Course {
@@ -26,13 +23,10 @@ interface Course {
   isLatestLearned?: boolean;
 }
 
-const CATEGORIES = ["Coding", "Design", "Development", "Writing", "Business"];
-
 export default function DashboardPage() {
   const router = useRouter();
   const { loading: authLoading } = useAuth();
   const firestore = useFirestore();
-  const [activeCategory, setActiveCategory] = useState("Coding");
 
   const coursesQuery = useMemo(() => {
     if (!firestore) return null;
@@ -40,11 +34,6 @@ export default function DashboardPage() {
   }, [firestore]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
-
-  const filteredCourses = useMemo(() => {
-    if (!courses) return [];
-    return courses.filter((c) => c.category === activeCategory);
-  }, [courses, activeCategory]);
 
   const latestLearned = useMemo(() => {
     if (!courses || courses.length === 0) return null;
@@ -76,28 +65,6 @@ export default function DashboardPage() {
       </header>
 
       <main className="px-6 space-y-8 max-w-xl mx-auto pt-4">
-        {/* Category Tabs */}
-        <ScrollArea className="w-full whitespace-nowrap">
-          <div className="flex gap-3 py-2">
-            {CATEGORIES.map((cat) => (
-              <Badge
-                key={cat}
-                variant="outline"
-                className={cn(
-                  "px-6 py-2.5 cursor-pointer transition-all rounded-full border-none font-semibold text-sm",
-                  activeCategory === cat 
-                    ? "bg-[#F28C7F] text-white shadow-lg shadow-[#F28C7F]/30" 
-                    : "bg-white text-slate-400 hover:bg-slate-50 shadow-sm"
-                )}
-                onClick={() => setActiveCategory(cat)}
-              >
-                {cat}
-              </Badge>
-            ))}
-          </div>
-          <ScrollBar orientation="horizontal" className="hidden" />
-        </ScrollArea>
-
         {/* Featured Card Section */}
         <section className="space-y-4">
           <h2 className="text-lg font-bold text-slate-800">Latest Learned</h2>
@@ -130,7 +97,7 @@ export default function DashboardPage() {
               </div>
             </Card>
           ) : (
-             <div className="h-48 rounded-[2.5rem] bg-slate-100 flex items-center justify-center text-slate-400 border border-dashed">
+             <div className="h-48 rounded-[2.5rem] bg-white flex items-center justify-center text-slate-400 border border-dashed border-slate-200">
                <p>Start learning to see your progress here</p>
              </div>
           )}
@@ -138,9 +105,10 @@ export default function DashboardPage() {
 
         {/* Course List Section */}
         <div className="space-y-4 pb-12">
-          {filteredCourses.length > 0 ? (
+          <h2 className="text-lg font-bold text-slate-800">All Courses</h2>
+          {courses && courses.length > 0 ? (
             <div className="grid gap-4">
-              {filteredCourses.map((course) => (
+              {courses.map((course) => (
                 <Card 
                   key={course.id} 
                   className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden p-4 hover:shadow-md transition-shadow cursor-pointer"
@@ -191,9 +159,9 @@ export default function DashboardPage() {
                 <BookOpen size={40} />
               </div>
               <div>
-                <h3 className="font-bold text-slate-800">No courses in {activeCategory}</h3>
+                <h3 className="font-bold text-slate-800">No courses available</h3>
                 <p className="text-xs text-slate-400 max-w-[200px] mt-1 mx-auto">
-                  Courses for this category will appear here once added.
+                  Courses will appear here once they are added by the administrator.
                 </p>
               </div>
             </div>
