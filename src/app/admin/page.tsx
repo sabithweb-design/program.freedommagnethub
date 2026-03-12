@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -28,7 +29,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs';
 import { 
   Dialog, 
   DialogContent, 
@@ -59,6 +60,7 @@ import {
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import Image from 'next/image';
 
 export default function AdminPage() {
   const firestore = useFirestore();
@@ -86,7 +88,7 @@ export default function AdminPage() {
     rating: 4.5,
     reviewCount: 0
   });
-  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', courseId: '' });
+  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', thumbnailUrl: '', courseId: '' });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
@@ -296,12 +298,13 @@ export default function AdminPage() {
       description: lessonForm.description,
       dayNumber: Number(lessonForm.dayNumber),
       youtubeVideoId: extractId(lessonForm.youtubeUrl),
+      thumbnailUrl: lessonForm.thumbnailUrl,
       isLocked: false,
       createdAt: serverTimestamp()
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '' });
       toast({ title: "Lesson Published", description: `Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData });
@@ -617,6 +620,18 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
+                    <Label className="font-bold">Thumbnail URL</Label>
+                    <div className="relative">
+                      <ImageIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                      <Input 
+                        placeholder="https://picsum.photos/..." 
+                        value={lessonForm.thumbnailUrl} 
+                        onChange={e => setLessonForm({...lessonForm, thumbnailUrl: e.target.value})} 
+                        className="h-12 rounded-xl pl-10" 
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
                     <Label className="font-bold">Lesson Title</Label>
                     <Input placeholder="Key Concepts" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} required className="h-12 rounded-xl" />
                   </div>
@@ -643,16 +658,30 @@ export default function AdminPage() {
                   return (
                     <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-4 flex items-center justify-between group">
                       <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${l.isLocked ? 'bg-slate-100 text-slate-400' : 'bg-primary/10 text-primary'}`}>
-                          {l.dayNumber}
+                        <div className="relative w-16 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800">
+                          <Image 
+                            src={l.thumbnailUrl || `https://picsum.photos/seed/${l.id}/200/120`}
+                            alt={l.title}
+                            fill
+                            className="object-cover"
+                          />
+                          {l.isLocked && (
+                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                              <Lock size={12} className="text-white" />
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                             <h4 className="font-bold text-slate-800 dark:text-slate-200">{l.title}</h4>
-                             {course && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded font-black uppercase">{course.title}</span>}
-                             {l.isLocked && <Lock size={12} className="text-slate-400" />}
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${l.isLocked ? 'bg-slate-100 text-slate-400' : 'bg-primary/10 text-primary'}`}>
+                            {l.dayNumber}
                           </div>
-                          <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
+                          <div>
+                            <div className="flex items-center gap-2">
+                               <h4 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{l.title}</h4>
+                               {course && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded font-black uppercase whitespace-nowrap">{course.title}</span>}
+                            </div>
+                            <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
+                          </div>
                         </div>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity">

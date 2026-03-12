@@ -17,6 +17,7 @@ interface LessonData {
   title: string;
   description: string;
   youtubeVideoId: string;
+  thumbnailUrl?: string;
   dayNumber: number;
   isLocked?: boolean;
 }

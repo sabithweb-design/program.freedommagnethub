@@ -25,6 +25,7 @@
         "title": { "type": "string" },
         "description": { "type": "string" },
         "youtubeVideoId": { "type": "string" },
+        "thumbnailUrl": { "type": "string", "description": "URL for the lesson preview image" },
         "isLocked": { "type": "boolean", "default": false },
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },
