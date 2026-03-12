@@ -62,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NavItem icon={<LayoutDashboard size={20} />} label="DASHBOARD" href="/admin" active={pathname === '/admin'} />
             <NavItem icon={<Compass size={20} />} label="FEED" href="#" />
             <NavItem icon={<Video size={20} />} label="WORKSHOPS" href="#" />
-            <NavItem icon={<BookOpen size={20} />} label="COURSES" href="/admin/courses" active={pathname === '/admin/courses'} />
+            <NavItem icon={<BookOpen size={20} />} label="PROGRAMS" href="/admin/courses" active={pathname === '/admin/courses'} />
             <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
           </nav>
 

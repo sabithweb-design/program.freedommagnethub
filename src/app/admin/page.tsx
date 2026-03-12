@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -27,7 +26,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Users, BookOpen, Video, Plus, UserCheck, UserMinus, Youtube, Save, Wand2, ArrowRight } from 'lucide-react';
+import { Users, BookOpen, Video, Plus, UserCheck, UserMinus, Youtube, Save, Wand2 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -74,7 +73,7 @@ export default function AdminPage() {
       createdAt: serverTimestamp()
     }).then(() => {
       setCourseForm({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin' });
-      toast({ title: "Course Created", description: "Successfully added a new course to the curriculum." });
+      toast({ title: "Program Created", description: "Successfully added a new training program." });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm });
       errorEmitter.emit('permission-error', pErr);
@@ -84,11 +83,10 @@ export default function AdminPage() {
   const handleAddLesson = (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !lessonForm.courseId) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please select a course for this lesson." });
+      toast({ variant: "destructive", title: "Missing Information", description: "Please select a program for this lesson." });
       return;
     }
 
-    // Helper to extract YouTube ID
     const extractId = (url: string) => {
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
       const match = url.match(regExp);
@@ -128,7 +126,7 @@ export default function AdminPage() {
             <Users size={16} /> Users
           </TabsTrigger>
           <TabsTrigger value="courses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold">
-            <BookOpen size={16} /> Courses
+            <BookOpen size={16} /> Programs
           </TabsTrigger>
           <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold">
             <Video size={16} /> Lessons
@@ -186,13 +184,13 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        {/* Courses Section */}
+        {/* Programs Section */}
         <TabsContent value="courses">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white h-fit">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Plus className="text-primary" /> New Course
+                  <Plus className="text-primary" /> New Program
                 </CardTitle>
                 <CardDescription>Launch a new learning path.</CardDescription>
               </CardHeader>
@@ -212,16 +210,16 @@ export default function AdminPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Description</Label>
-                    <Textarea placeholder="Quick course overview..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px]" />
+                    <Textarea placeholder="Quick overview..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px]" />
                   </div>
-                  <Button type="submit" className="w-full rounded-xl h-12 font-bold">Create Course</Button>
+                  <Button type="submit" className="w-full rounded-xl h-12 font-bold">Create Program</Button>
                 </form>
               </CardContent>
             </Card>
 
             <div className="lg:col-span-2 space-y-4">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 px-2">
-                <BookOpen size={18} /> Active Courses
+                <BookOpen size={18} /> Active Programs
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {courses?.map((c: any) => (
@@ -248,15 +246,15 @@ export default function AdminPage() {
                 <CardTitle className="flex items-center gap-2">
                   <Video className="text-primary" /> Add Lesson
                 </CardTitle>
-                <CardDescription>Upload a video to a specific course.</CardDescription>
+                <CardDescription>Upload a video to a specific program.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddLesson} className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="font-bold">Select Course</Label>
+                    <Label className="font-bold">Select Program</Label>
                     <Select value={lessonForm.courseId} onValueChange={(val) => setLessonForm({...lessonForm, courseId: val})}>
                       <SelectTrigger className="h-12 rounded-xl">
-                        <SelectValue placeholder="Choose a course" />
+                        <SelectValue placeholder="Choose a program" />
                       </SelectTrigger>
                       <SelectContent>
                         {courses?.map((c: any) => (
@@ -313,9 +311,6 @@ export default function AdminPage() {
                           <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Wand2 size={16} />
-                      </Button>
                     </Card>
                   );
                 })}
