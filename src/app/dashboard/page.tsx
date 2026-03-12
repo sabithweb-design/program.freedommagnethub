@@ -50,7 +50,7 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-6 md:px-12 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <h1 className="text-xl font-black tracking-tighter text-foreground">
           freedom<span className="text-primary">magnethub</span>
         </h1>
@@ -61,16 +61,16 @@ export default function DashboardPage() {
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95 px-4"
+              className="flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95 px-4 h-10"
             >
               <Link href="/admin">
                 <Settings size={14} />
-                <span className="hidden xs:inline">Admin Panel</span>
+                <span className="inline text-[10px] sm:text-xs">Admin Panel</span>
               </Link>
             </Button>
           )}
           
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500">
               <Search className="h-5 w-5" />

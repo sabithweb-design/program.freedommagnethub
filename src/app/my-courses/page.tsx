@@ -48,8 +48,8 @@ export default function MyCoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Top Navbar */}
-      <header className="bg-background border-b sticky top-0 z-50 transition-colors">
-        <div className="max-w-[1400px] mx-auto px-6 md:px-12 h-20 flex items-center justify-between">
+      <header className="bg-background border-b sticky top-0 z-50 transition-colors px-8 md:px-20">
+        <div className="max-w-[1400px] mx-auto h-20 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-1 group">
             <span className="font-bold text-2xl tracking-tighter text-foreground">
               freedom<span className="text-primary">magnethub</span>
@@ -62,22 +62,22 @@ export default function MyCoursesPage() {
             <NavItem label="WORKSHOPS" href="#" />
           </nav>
 
-          <div className="flex items-center gap-4 sm:gap-10">
+          <div className="flex items-center gap-4 sm:gap-8">
             {isAdmin && (
               <Button 
                 variant="outline" 
                 size="sm" 
                 asChild 
-                className="flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95 px-4"
+                className="flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95 px-4 h-10"
               >
                 <Link href="/admin">
                   <Settings size={14} />
-                  <span className="hidden xs:inline">Admin Panel</span>
+                  <span className="inline text-[10px] sm:text-xs">Admin Panel</span>
                 </Link>
               </Button>
             )}
             
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex items-center gap-3 md:gap-4">
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full">
                 <Bell size={20} />

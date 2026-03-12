@@ -51,14 +51,14 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-6 md:px-12 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild className="rounded-full">
             <Link href="/dashboard">
               <ChevronLeft className="h-6 w-6" />
             </Link>
           </Button>
-          <h1 className="text-lg md:text-xl font-black tracking-tighter text-foreground uppercase hidden xs:block">
+          <h1 className="text-lg md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
             MARKETPLACE
           </h1>
         </div>
@@ -73,22 +73,22 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-10">
+        <div className="flex items-center gap-4 sm:gap-8">
           {isAdmin && (
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95 px-4"
+              className="flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95 px-4 h-10"
             >
               <Link href="/admin">
                 <Settings size={14} />
-                <span className="hidden sm:inline">Admin Panel</span>
+                <span className="inline text-[10px] sm:text-xs">Admin Panel</span>
               </Link>
             </Button>
           )}
 
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-4">
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="rounded-full text-slate-600 dark:text-slate-400">
               <ShoppingCart className="h-5 w-5" />
