@@ -425,6 +425,9 @@ export default function AdminPage() {
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{c.category}</span>
                         {c.price > 0 && <span className="text-[10px] text-emerald-500 font-black">₹{c.price}</span>}
+                        {c.originalPrice > c.price && (
+                          <span className="text-[10px] text-slate-300 dark:text-slate-600 line-through font-bold">₹{c.originalPrice}</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
