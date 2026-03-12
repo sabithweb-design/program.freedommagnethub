@@ -11,7 +11,6 @@ import { Badge } from '@/components/ui/badge';
 import { Star, PlayCircle, ShieldCheck, Grid, Bell, Menu } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { BrandLogo } from '@/components/BrandLogo';
 
 interface Course {
@@ -63,14 +62,10 @@ export default function MyCoursesPage() {
           </nav>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" className="text-slate-400">
                 <Bell size={20} />
               </Button>
-              <Avatar className="h-9 w-9 border cursor-pointer">
-                <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/user-avatar/100"} />
-                <AvatarFallback>{user?.email?.substring(0, 2).toUpperCase() || 'FM'}</AvatarFallback>
-              </Avatar>
             </div>
             <div className="h-8 w-px bg-slate-100 hidden sm:block" />
             <BrandLogo className="h-10 w-10" />
