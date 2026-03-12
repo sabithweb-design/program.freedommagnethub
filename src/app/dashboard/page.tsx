@@ -6,9 +6,8 @@ import { collection, query } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, Star, PlayCircle, ShieldCheck } from 'lucide-react';
+import { Search, ChevronDown, Star, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 
 interface Course {
@@ -66,11 +65,11 @@ export default function DashboardPage() {
         {/* Category Header */}
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b pb-4">
-            <h2 className="text-xl font-bold text-slate-900">Artificial Intelligence (AI)</h2>
+            <h2 className="text-xl font-bold text-slate-900">Featured Programs</h2>
             <ChevronDown className="h-5 w-5 text-slate-400" />
           </div>
 
-          <div className="grid grid-cols-1 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {courses && courses.length > 0 ? (
               courses.map((course) => (
                 <CourseUdemyCard key={course.id} course={course} onClick={() => router.push(`/lesson/1`)} />
@@ -118,10 +117,15 @@ export default function DashboardPage() {
 }
 
 function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
-  // Ensure we don't pass an empty string to next/image src
-  const thumbnailSrc = course.imageUrl && course.imageUrl.trim() !== "" 
+  // Enhanced source handling: Ensure non-image URLs don't crash next/image
+  const isValidImageUrl = (url: string) => {
+    if (!url) return false;
+    return url.startsWith('http') && !url.includes('freepik.com/free-photos-vectors');
+  };
+
+  const thumbnailSrc = isValidImageUrl(course.imageUrl)
     ? course.imageUrl 
-    : "https://picsum.photos/seed/course/800/450";
+    : "https://picsum.photos/seed/program/800/450";
 
   return (
     <div 
@@ -132,9 +136,10 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
       <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100">
         <Image
           src={thumbnailSrc}
-          alt={course.title || "Course thumbnail"}
+          alt={course.title || "Program thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
+          unoptimized={thumbnailSrc.includes('www.freepik.com')}
         />
         {course.isBestseller && (
           <div className="absolute top-3 left-3 bg-[#e1f7f1] text-[#1c1d1f] text-[10px] font-bold px-2 py-1 rounded-sm border border-[#acd2cc] shadow-sm">
@@ -146,7 +151,7 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
       {/* Info */}
       <div className="space-y-1">
         <h3 className="font-bold text-[#1c1d1f] text-base leading-snug line-clamp-2">
-          {course.title || "Untitled Course"}
+          {course.title || "Untitled Program"}
         </h3>
         <p className="text-[11px] text-[#6a6f73] line-clamp-1">
           {course.author || "Freedom Magnet Hub"}
