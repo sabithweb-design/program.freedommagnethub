@@ -170,7 +170,7 @@ export default function LessonPage() {
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-10 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" asChild className="rounded-full">
               <Link href="/dashboard">
@@ -184,8 +184,8 @@ export default function LessonPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-6">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-4 sm:gap-8">
+            <div className="flex items-center gap-2">
               <ThemeToggle />
               <div className="flex gap-1">
                 <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full">

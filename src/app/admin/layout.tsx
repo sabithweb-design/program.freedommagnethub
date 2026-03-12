@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Top Navbar */}
       <header className="bg-background/95 backdrop-blur-md border-b sticky top-0 z-50 transition-colors">
-        <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-10 h-20 flex items-center justify-between">
           {/* Logo */}
           <Link href="/admin" className="flex items-center gap-1 group">
             <span className="font-bold text-2xl tracking-tight text-slate-800 dark:text-slate-100">
@@ -65,7 +65,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
 
           {/* Right Icons & Brand Logo */}
-          <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center gap-4 sm:gap-8">
             <Button 
               variant="outline" 
               size="sm" 
@@ -78,7 +78,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
             </Button>
             
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full">
                 <Grid size={20} />

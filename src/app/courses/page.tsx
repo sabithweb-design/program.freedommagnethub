@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -50,7 +49,7 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-6 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-10 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild className="rounded-full">
             <Link href="/dashboard">
@@ -72,15 +71,12 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-6">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center gap-4 sm:gap-8">
+          <div className="flex items-center gap-2">
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="rounded-full text-slate-600 dark:text-slate-400">
               <ShoppingCart className="h-5 w-5" />
             </Button>
-            <div className="font-bold text-foreground hidden sm:block ml-2">
-              freedom<span className="text-primary">magnethub</span>
-            </div>
           </div>
           <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
           <BrandLogo className="h-10 w-10" />
