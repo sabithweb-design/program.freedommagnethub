@@ -42,7 +42,6 @@ import { useToast } from '@/hooks/use-toast';
 import { 
   Users, 
   BookOpen, 
-  Video, 
   Plus, 
   UserCheck, 
   UserMinus, 
@@ -63,17 +62,17 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
 
-// Custom Player Icon to replace YouTube
+/**
+ * Custom Player Icon matching the requested Flaticon style.
+ */
 const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
-    fill="none" 
     xmlns="http://www.w3.org/2000/svg" 
     className={className}
+    fill="currentColor"
   >
-    <rect x="2" y="4" width="20" height="16" rx="4" fill="currentColor" opacity="0.15" />
-    <rect x="2" y="4" width="20" height="16" rx="4" stroke="currentColor" strokeWidth="2" />
-    <path d="M10 9L15 12L10 15V9Z" fill="currentColor" />
+    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
   </svg>
 );
 
@@ -441,7 +440,7 @@ export default function AdminPage() {
             <BookOpen size={16} /> Programs
           </TabsTrigger>
           <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
-            <Video size={16} /> Lessons
+            <PlayerIcon className="h-4 w-4" /> Lessons
           </TabsTrigger>
         </TabsList>
 
@@ -643,7 +642,7 @@ export default function AdminPage() {
             <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Video className="text-primary" /> Add Lesson
+                  <PlayerIcon className="h-5 w-5 text-primary" /> Add Lesson
                 </CardTitle>
                 <CardDescription>Upload a video and resources to a specific program.</CardDescription>
               </CardHeader>
