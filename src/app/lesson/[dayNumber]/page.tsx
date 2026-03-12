@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -20,7 +19,6 @@ import {
   ClipboardList
 } from "lucide-react";
 import Link from "next/link";
-import { BrandLogo } from "@/components/BrandLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -203,7 +201,6 @@ export default function LessonPage() {
               </div>
             </div>
             <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
-            <BrandLogo className="h-8 w-8" />
           </div>
         </div>
       </div>

@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { BrandLogo } from '@/components/BrandLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PlayerIcon } from './page';
 
@@ -64,7 +63,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
           </nav>
 
-          {/* Right Icons & Brand Logo */}
+          {/* Right Icons */}
           <div className="flex items-center gap-2 sm:gap-6">
             <Button 
               variant="outline" 
@@ -88,8 +87,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] sm:text-[10px] text-white flex items-center justify-center border-2 border-white dark:border-slate-900">3</span>
               </Button>
             </div>
-            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 mx-1 hidden sm:block" />
-            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </div>
         </div>
       </header>

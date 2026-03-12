@@ -7,11 +7,9 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Star, PlayCircle, ShieldCheck, Grid, Bell, Menu, Settings, ExternalLink } from 'lucide-react';
+import { Star, PlayCircle, Bell, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BrandLogo } from '@/components/BrandLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Course {
@@ -83,8 +81,6 @@ export default function MyCoursesPage() {
                 <Bell size={20} />
               </Button>
             </div>
-            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block mx-1" />
-            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </div>
         </div>
       </header>

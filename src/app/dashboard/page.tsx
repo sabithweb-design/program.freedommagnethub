@@ -7,10 +7,9 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, Star, ShieldCheck, Lock, Settings, ExternalLink } from 'lucide-react';
+import { Search, ChevronDown, Star, ShieldCheck, Lock, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BrandLogo } from '@/components/BrandLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Course {
@@ -76,8 +75,6 @@ export default function DashboardPage() {
               <Search className="h-5 w-5" />
             </Button>
           </div>
-          <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block mx-1" />
-          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>
       </header>
 
@@ -152,7 +149,7 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           </h3>
           {course.isLocked && <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none shrink-0 font-black text-[8px] sm:text-[9px] uppercase tracking-widest px-1.5 py-0">Locked</Badge>}
         </div>
-        <p className="text-[10px] sm:text-[11px] text-[#6a6f73] dark:text-slate-400 line-clamp-1">
+        <p className="text-[10px] sm:text-11px] text-[#6a6f73] dark:text-slate-400 line-clamp-1">
           {course.author || "Freedom Magnet Hub"}
         </p>
         

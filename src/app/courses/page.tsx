@@ -4,13 +4,12 @@ import React, { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
-import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Settings, ExternalLink } from 'lucide-react';
+import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { BrandLogo } from '@/components/BrandLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Course {
@@ -94,8 +93,6 @@ export default function CoursesPage() {
               <ShoppingCart className="h-5 w-5" />
             </Button>
           </div>
-          <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block mx-1" />
-          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>
       </header>
 
