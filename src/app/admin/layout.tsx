@@ -64,10 +64,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
           </nav>
 
-          {/* Right Section: Icons, Logo, & Action Button */}
+          {/* Right Section: Icons, Action Button & Logo at the end */}
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
-            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
-            
             <div className="flex items-center gap-1 sm:gap-2">
               <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 relative rounded-full h-9 w-9 sm:h-10 sm:w-10">
                 <Bell size={18} className="sm:size-5" />
@@ -90,6 +88,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <span className="text-[10px] sm:text-xs">View Hub</span>
               </Link>
             </Button>
+
+            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </div>
         </div>
       </header>

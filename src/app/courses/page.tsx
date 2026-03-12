@@ -54,9 +54,11 @@ export default function CoursesPage() {
       <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         {/* Brand Label (Left) */}
         <div className="flex items-center gap-2 sm:gap-5 shrink-0">
-          <h1 className="text-sm md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
-            MARKETPLACE
-          </h1>
+          <Link href="/dashboard">
+            <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground uppercase">
+              freedom<span className="text-primary">magnethub</span>
+            </h1>
+          </Link>
         </div>
         
         {/* Search Bar (Centered) */}
@@ -70,10 +72,8 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        {/* Right Section: Logo & Actions */}
+        {/* Right Section: Actions & Logo at the end */}
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
-          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
-
           <Button variant="ghost" size="icon" asChild className="rounded-full h-9 w-9">
             <Link href="/dashboard">
               <ChevronLeft className="h-5 w-5" />
@@ -100,6 +100,8 @@ export default function CoursesPage() {
               <ShoppingCart className="h-5 w-5" />
             </Button>
           </div>
+
+          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>
       </header>
 
