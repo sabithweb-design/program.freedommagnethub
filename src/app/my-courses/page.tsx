@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -9,8 +8,8 @@ import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Star, PlayCircle, ShieldCheck, Grid, Bell, Menu } from 'lucide-react';
-import Image from 'next/image';
+import { Star, PlayCircle, ShieldCheck, Grid, Bell, Menu, Settings } from 'lucide-react';
+import Image from 'image';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/BrandLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -28,7 +27,7 @@ interface Course {
 
 export default function MyCoursesPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth();
   const firestore = useFirestore();
 
   const coursesQuery = useMemo(() => {
@@ -50,7 +49,7 @@ export default function MyCoursesPage() {
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Top Navbar */}
       <header className="bg-background border-b sticky top-0 z-50 transition-colors">
-        <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-10 h-20 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-1 group">
             <span className="font-bold text-2xl tracking-tighter text-foreground">
               freedom<span className="text-primary">magnethub</span>
@@ -63,14 +62,28 @@ export default function MyCoursesPage() {
             <NavItem label="WORKSHOPS" href="#" />
           </nav>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
+          <div className="flex items-center gap-6 sm:gap-10">
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                asChild 
+                className="hidden sm:flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95"
+              >
+                <Link href="/admin">
+                  <Settings size={14} />
+                  Admin Panel
+                </Link>
+              </Button>
+            )}
+            
+            <div className="flex items-center gap-2">
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full">
                 <Bell size={20} />
               </Button>
             </div>
-            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
+            <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
             <BrandLogo className="h-10 w-10" />
           </div>
         </div>

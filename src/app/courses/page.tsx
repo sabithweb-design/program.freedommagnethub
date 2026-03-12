@@ -2,8 +2,9 @@
 
 import React, { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
+import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
-import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search } from 'lucide-react';
+import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Settings } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ interface Course {
 }
 
 export default function CoursesPage() {
+  const { isAdmin } = useAuth();
   const firestore = useFirestore();
 
   const coursesQuery = useMemo(() => {
@@ -49,7 +51,7 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-10 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-12 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild className="rounded-full">
             <Link href="/dashboard">
@@ -71,8 +73,22 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-8">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-6 sm:gap-10">
+          {isAdmin && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              asChild 
+              className="hidden lg:flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95"
+            >
+              <Link href="/admin">
+                <Settings size={14} />
+                Admin Panel
+              </Link>
+            </Button>
+          )}
+
+          <div className="flex items-center gap-4">
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="rounded-full text-slate-600 dark:text-slate-400">
               <ShoppingCart className="h-5 w-5" />
