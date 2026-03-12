@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -8,16 +9,21 @@ import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { 
   ChevronLeft, 
   Search, 
   Play, 
   BookOpen, 
   Clock, 
-  MoreVertical 
+  MoreVertical,
+  Bell,
+  Grid as GridIcon
 } from 'lucide-react';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import Link from 'next/link';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Course {
   id: string;
@@ -29,11 +35,13 @@ interface Course {
   imageUrl: string;
   isLatestLearned?: boolean;
   userId: string;
+  lectures?: number;
+  sections?: number;
 }
 
 export default function MyCoursesPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { user, profile, loading: authLoading } = useAuth();
   const firestore = useFirestore();
 
   // Fetch only courses assigned to/purchased by this user
@@ -44,12 +52,7 @@ export default function MyCoursesPage() {
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
-  const latestLearned = useMemo(() => {
-    return courses?.find((c) => c.isLatestLearned) || courses?.[0];
-  }, [courses]);
-
   const defaultPlaceholder = PlaceHolderImages.find(img => img.id === 'course-default')?.imageUrl || 'https://picsum.photos/seed/course/600/400';
-  const latestPlaceholder = PlaceHolderImages.find(img => img.id === 'latest-lesson')?.imageUrl || 'https://picsum.photos/seed/latest/800/400';
 
   if (authLoading || coursesLoading) {
     return (
@@ -61,156 +64,176 @@ export default function MyCoursesPage() {
 
   return (
     <div className="min-h-screen bg-[#FFFBF5] text-slate-800 pb-20 font-body">
-      {/* Top Header Navigation - High Fidelity */}
+      {/* Top Navbar - Standard TagMango Style */}
       <header className="bg-white border-b sticky top-0 z-50">
-        <div className="max-w-[1200px] mx-auto px-6 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-             <Button 
-               variant="ghost" 
-               size="icon" 
-               onClick={() => router.back()} 
-               className="rounded-full hover:bg-slate-50"
-             >
-               <ChevronLeft className="h-6 w-6 text-slate-600" />
-             </Button>
-             <span className="font-bold text-2xl tracking-tight text-slate-800">
-               freedom<span className="text-[#F28C7F]">magnet</span>
-             </span>
-          </div>
+        <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/dashboard" className="flex items-center gap-1 group">
+            <span className="font-bold text-2xl tracking-tight text-slate-800">
+              freedom<span className="text-[#F28C7F]">magnet</span>
+            </span>
+          </Link>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <button className="text-[11px] font-black tracking-widest text-slate-400 hover:text-slate-600">DASHBOARD</button>
-            <button className="text-[11px] font-black tracking-widest text-[#F28C7F] border-b-2 border-[#F28C7F] pb-1">MY COURSES</button>
-            <button className="text-[11px] font-black tracking-widest text-slate-400 hover:text-slate-600">RESOURCES</button>
+          {/* Centered Menu */}
+          <nav className="hidden lg:flex items-center gap-10 h-full">
+            <NavItem label="DASHBOARD" href="/dashboard" />
+            <NavItem label="FEED" href="#" />
+            <NavItem label="WORKSHOPS" href="#" />
+            <NavItem label="MY COURSES" href="/my-courses" active />
+            <NavItem label="RESOURCES" href="#" />
           </nav>
 
-          <Button variant="ghost" size="icon" className="text-slate-400">
-            <Search size={22} />
-          </Button>
+          {/* Right Icons */}
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" className="text-slate-400">
+              <GridIcon size={20} />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-slate-400 relative">
+              <Bell size={20} />
+              <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white">2</span>
+            </Button>
+            <Avatar className="h-9 w-9 border cursor-pointer">
+              <AvatarImage src={user?.photoURL || "https://picsum.photos/seed/user-avatar/100"} />
+              <AvatarFallback>{user?.email?.substring(0, 2).toUpperCase() || 'FM'}</AvatarFallback>
+            </Avatar>
+          </div>
         </div>
       </header>
 
-      <main className="max-w-[1000px] mx-auto px-6 py-10 space-y-12">
-        {/* Featured Section */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Latest Activity</h2>
-            <button className="text-[#F28C7F] text-sm font-bold hover:underline">View History</button>
+      <main className="max-w-[1200px] mx-auto px-6 py-10 space-y-10">
+        {/* Header Section */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-1">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight">My Learning</h1>
+            <p className="text-slate-500 font-medium">Pick up where you left off and complete your journey.</p>
           </div>
-          
-          {latestLearned ? (
-            <Card 
-              className="overflow-hidden border-none shadow-2xl rounded-[3rem] relative group bg-white cursor-pointer transition-transform hover:scale-[1.01]"
-              onClick={() => router.push(`/lesson/1`)}
-            >
-              <div className="relative aspect-[21/9] w-full">
-                <Image
-                  src={latestLearned.imageUrl || latestPlaceholder}
-                  alt={latestLearned.title || "Featured Course"}
-                  fill
-                  className="object-cover"
-                  data-ai-hint="online learning"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                
-                {/* Play Button Overlay */}
-                <div className="absolute right-10 bottom-10">
-                  <div className="bg-white p-6 rounded-full shadow-2xl group-hover:scale-110 transition-transform">
-                    <Play className="h-8 w-8 text-[#F28C7F] fill-[#F28C7F]" />
-                  </div>
-                </div>
+          <div className="flex gap-4">
+            <button className="px-6 py-2.5 rounded-full text-sm font-bold bg-[#F28C7F]/10 text-[#F28C7F] border border-[#F28C7F]/20 transition-all hover:bg-[#F28C7F]/20">
+              Active Courses
+            </button>
+            <button className="px-6 py-2.5 rounded-full text-sm font-bold bg-slate-50 text-slate-400 hover:bg-slate-100 transition-all">
+              Completed
+            </button>
+          </div>
+        </div>
 
-                <div className="absolute bottom-10 left-10 text-white space-y-2 max-w-lg">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#F28C7F] rounded-lg text-[10px] font-black uppercase tracking-widest mb-2">
-                    RESUME LEARNING
-                  </div>
-                  <h3 className="text-4xl font-black leading-tight">{latestLearned.title}</h3>
-                  <div className="flex items-center gap-4 text-sm font-medium opacity-80">
-                    <span className="flex items-center gap-1.5"><Clock size={16} /> 24m remaining</span>
-                    <span className="flex items-center gap-1.5"><BookOpen size={16} /> Module 4</span>
-                  </div>
-                </div>
-              </div>
-            </Card>
+        {/* Course Grid - 2 bundles per row */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-10 pb-20">
+          {courses && courses.length > 0 ? (
+            courses.map((course) => (
+              <CourseBundleCard key={course.id} course={course} onClick={() => router.push(`/lesson/1`)} />
+            ))
           ) : (
-             <div className="h-64 rounded-[3rem] bg-white flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 shadow-inner">
-               <BookOpen size={48} className="mb-4 opacity-20" />
-               <p className="font-bold">No active enrollments found</p>
+            <div className="col-span-full py-32 flex flex-col items-center justify-center text-center space-y-6 bg-white rounded-[3rem] border-2 border-dashed border-slate-200 shadow-inner">
+               <div className="bg-slate-50 p-8 rounded-full text-slate-200">
+                 <BookOpen size={64} />
+               </div>
+               <div>
+                 <h3 className="text-2xl font-black text-slate-800">No active bundles</h3>
+                 <p className="text-slate-400 max-w-xs mt-2 mx-auto font-medium">
+                   You haven&apos;t enrolled in any courses yet. Visit the dashboard to explore our training programs.
+                 </p>
+               </div>
                <Button 
-                variant="link" 
-                className="text-[#F28C7F] mt-2"
+                className="bg-[#F28C7F] hover:bg-[#E07A6D] text-white rounded-full px-10 h-12 font-black shadow-lg shadow-[#F28C7F]/20"
                 onClick={() => router.push('/dashboard')}
                >
-                 Browse courses to get started
+                 Explore Programs
                </Button>
              </div>
           )}
         </section>
-
-        {/* Course List Grid */}
-        <section className="space-y-6">
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Active Enrollments</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-20">
-            {courses && courses.map((course) => (
-              <Card 
-                key={course.id} 
-                className="border border-slate-100 shadow-sm rounded-[2.5rem] bg-white overflow-hidden p-6 hover:shadow-xl transition-all group cursor-pointer"
-                onClick={() => router.push(`/lesson/1`)}
-              >
-                <div className="flex gap-6">
-                  {/* Thumbnail */}
-                  <div className="relative h-28 w-28 rounded-[2rem] overflow-hidden shrink-0 bg-slate-50 border border-slate-100">
-                    <Image
-                      src={course.imageUrl || defaultPlaceholder}
-                      alt={course.title || "Course Thumbnail"}
-                      fill
-                      className="object-cover group-hover:scale-110 transition-transform duration-500"
-                      data-ai-hint="course thumbnail"
-                    />
-                  </div>
-                  
-                  {/* Course Details */}
-                  <div className="flex-1 flex flex-col justify-between py-1">
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                         <span className="text-[10px] font-black text-[#F28C7F] uppercase tracking-widest">
-                           {course.category || 'TRAINING'}
-                         </span>
-                         <button className="text-slate-300 hover:text-slate-600 transition-colors">
-                           <MoreVertical size={18} />
-                         </button>
-                      </div>
-                      <h3 className="font-black text-slate-800 text-lg leading-tight line-clamp-2">
-                        {course.title}
-                      </h3>
-                      <p className="text-xs text-slate-400 font-bold">
-                        by {course.author || 'Freedom Magnet'}
-                      </p>
-                    </div>
-
-                    {/* Progress Info */}
-                    <div className="space-y-2 mt-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black text-slate-400">
-                          {course.videos || "0/0"} VIDEOS
-                        </span>
-                        <span className="text-[11px] font-black text-[#F28C7F]">
-                          {course.progress || 0}%
-                        </span>
-                      </div>
-                      <Progress
-                        value={course.progress || 0}
-                        className="h-2 bg-slate-100 progress-bar-coral rounded-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
       </main>
     </div>
+  );
+}
+
+function NavItem({ label, href, active = false }: { label: string, href: string, active?: boolean }) {
+  return (
+    <Link href={href} className={`flex flex-col items-center gap-1 cursor-pointer group relative pt-4 h-full`}>
+      <div className={`flex flex-col items-center gap-1.5 transition-colors ${active ? "text-[#F28C7F]" : "text-slate-400 group-hover:text-slate-600"}`}>
+        <span className="text-[11px] font-black tracking-wider">{label}</span>
+      </div>
+      {active && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-[#F28C7F] rounded-t-full" />
+      )}
+    </Link>
+  );
+}
+
+function CourseBundleCard({ course, onClick }: { course: Course, onClick: () => void }) {
+  const defaultPlaceholder = PlaceHolderImages.find(img => img.id === 'course-default')?.imageUrl || 'https://picsum.photos/seed/course/600/400';
+
+  return (
+    <Card 
+      className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden shadow-sm hover:shadow-2xl transition-all duration-500 group cursor-pointer flex flex-col h-full hover:-translate-y-2"
+      onClick={onClick}
+    >
+      {/* Bundle Image */}
+      <div className="relative aspect-[16/9] w-full overflow-hidden">
+        <Image 
+          src={course.imageUrl || defaultPlaceholder} 
+          alt={course.title}
+          fill
+          className="object-cover transition-transform duration-700 group-hover:scale-110"
+          data-ai-hint="learning bundle"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="absolute right-6 bottom-6 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500">
+          <div className="bg-white/90 backdrop-blur p-4 rounded-full shadow-2xl">
+            <Play className="h-6 w-6 text-[#F28C7F] fill-[#F28C7F]" />
+          </div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="p-8 space-y-6 flex flex-col flex-1">
+        <div className="space-y-4 flex-1">
+          <div className="flex items-center justify-between">
+            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none rounded-lg px-3 py-1 text-[10px] font-black tracking-widest shadow-sm">
+              ENROLLED
+            </Badge>
+            <span className="text-xs font-black text-slate-300 uppercase tracking-widest">
+              {course.category || 'ACADEMY'}
+            </span>
+          </div>
+          <h3 className="text-2xl font-black text-slate-800 capitalize leading-tight line-clamp-2">
+            {course.title}
+          </h3>
+          <p className="text-sm text-slate-400 font-bold tracking-tight">
+            by {course.author || 'Freedom Magnet'} • {course.videos || "0/0"} Lessons
+          </p>
+        </div>
+
+        {/* Progress Section */}
+        <div className="space-y-3 pt-6 border-t border-slate-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-[#F28C7F] animate-pulse" />
+              <span className="text-[11px] font-black text-[#F28C7F] tracking-widest uppercase">
+                YOUR PROGRESS
+              </span>
+            </div>
+            <span className="text-sm font-black text-slate-800">{course.progress || 0}%</span>
+          </div>
+          <div className="relative h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+            <div 
+              className="absolute top-0 left-0 h-full bg-[#F28C7F] transition-all duration-1000 ease-out rounded-full"
+              style={{ width: `${course.progress || 0}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Action Bar */}
+        <div className="pt-4 flex items-center justify-between gap-4">
+          <Button variant="outline" className="flex-1 rounded-2xl h-14 text-sm font-black border-slate-200 hover:border-[#F28C7F] hover:text-[#F28C7F] hover:bg-[#F28C7F]/5 transition-all">
+            Go to Course
+          </Button>
+          <Button variant="ghost" size="icon" className="h-14 w-14 rounded-2xl border border-slate-200 text-slate-400 hover:text-slate-600">
+            <MoreVertical size={20} />
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }
