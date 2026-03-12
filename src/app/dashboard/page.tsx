@@ -19,9 +19,9 @@ interface Course {
   title: string;
   author: string;
   category: string;
-  lessonsTotal: number;
-  lessonsCompleted: number;
-  thumbnailUrl: string;
+  videos: string; // e.g. "4/6"
+  progress: number; // e.g. 60
+  imageUrl: string;
   isLatestLearned?: boolean;
 }
 
@@ -43,6 +43,7 @@ export default function DashboardPage() {
 
   const filteredCourses = useMemo(() => {
     if (!courses) return [];
+    // Ensure category filter matches the Firestore 'category' field
     return courses.filter((c) => c.category === activeCategory);
   }, [courses, activeCategory]);
 
@@ -60,7 +61,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] text-slate-800 pb-10">
+    <div className="min-h-screen bg-[#FFFBF5] text-slate-800 pb-10 font-body">
       {/* Header */}
       <header className="px-6 h-16 flex items-center justify-between sticky top-0 bg-[#FFFBF5]/80 backdrop-blur-md z-30">
         <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -ml-2">
@@ -105,7 +106,7 @@ export default function DashboardPage() {
             >
               <div className="relative aspect-[16/9]">
                 <Image
-                  src={latestLearned.thumbnailUrl || 'https://picsum.photos/seed/latest/800/400'}
+                  src={latestLearned.imageUrl || 'https://picsum.photos/seed/latest/800/400'}
                   alt={latestLearned.title || "Latest Lesson"}
                   fill
                   className="object-cover"
@@ -145,7 +146,7 @@ export default function DashboardPage() {
                     {/* Thumbnail */}
                     <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-slate-100">
                       <Image
-                        src={course.thumbnailUrl || 'https://picsum.photos/seed/course/200/200'}
+                        src={course.imageUrl || 'https://picsum.photos/seed/course/200/200'}
                         alt={course.title || "Course Thumbnail"}
                         fill
                         className="object-cover"
@@ -164,15 +165,15 @@ export default function DashboardPage() {
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold text-[#76C8B2]">
-                            {course.lessonsCompleted}/{course.lessonsTotal} Video
+                            {course.videos} Video
                           </span>
                           <span className="text-[10px] font-bold text-slate-300">
-                            {Math.round((course.lessonsCompleted / course.lessonsTotal) * 100)}%
+                            {course.progress}%
                           </span>
                         </div>
                         <Progress
-                          value={(course.lessonsCompleted / course.lessonsTotal) * 100}
-                          className="h-1.5 bg-slate-100 progress-bar-primary"
+                          value={course.progress}
+                          className="h-1.5 bg-slate-100 progress-bar-teal"
                         />
                       </div>
                     </div>

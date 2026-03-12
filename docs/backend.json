@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -28,19 +27,19 @@
     },
     "Course": {
       "title": "Course",
-      "description": "A course available in the hub.",
+      "description": "A course available in the hub with stylized progress tracking.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
         "author": { "type": "string" },
         "category": { "type": "string" },
-        "lessonsTotal": { "type": "number" },
-        "lessonsCompleted": { "type": "number" },
-        "thumbnailUrl": { "type": "string" },
+        "videos": { "type": "string", "description": "e.g., '4/6'" },
+        "progress": { "type": "number", "description": "Percentage value (0-100)" },
+        "imageUrl": { "type": "string" },
         "isLatestLearned": { "type": "boolean" },
         "userId": { "type": "string" }
       },
-      "required": ["title", "author", "category", "lessonsTotal", "lessonsCompleted", "thumbnailUrl", "userId"]
+      "required": ["title", "author", "category", "videos", "progress", "imageUrl"]
     }
   },
   "auth": {
@@ -57,7 +56,7 @@
     },
     "/courses/{courseId}": {
       "schema": "Course",
-      "description": "User specific course progress and enrollments."
+      "description": "Educational courses with progress and metadata."
     }
   }
 }
