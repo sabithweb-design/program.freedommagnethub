@@ -106,16 +106,20 @@ export default function LessonPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Video Section */}
-            <div className="relative aspect-video bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl ring-8 ring-white/50">
+            {/* Video Section with custom protection to hide branding and prevent external navigation */}
+            <div className="relative aspect-video bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl ring-8 ring-white/50 group">
               {lesson.youtubeVideoId ? (
-                <iframe 
-                  src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0`}
-                  className="w-full h-full border-none" 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  title={lesson.title}
-                />
+                <>
+                  <iframe 
+                    src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0`}
+                    className="w-full h-full border-none" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    title={lesson.title}
+                  />
+                  {/* Invisible overlays to block clicks on YouTube branding areas (corners) */}
+                  <div className="absolute top-0 right-0 w-[15%] h-[15%] bg-transparent z-10 pointer-events-auto cursor-default" title="Locked to EduTrail" />
+                  <div className="absolute bottom-0 right-0 w-[20%] h-[15%] bg-transparent z-10 pointer-events-auto cursor-default" title="Locked to EduTrail" />
+                </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800">
                   <PlayCircle size={64} className="mb-4 animate-pulse" />
