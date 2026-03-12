@@ -67,10 +67,6 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 pt-6 space-y-8">
-        <div className="space-y-2">
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">From critical skills to technical topics, Freedom Magnet supports your professional development.</p>
-        </div>
-
         {/* Category Header */}
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
