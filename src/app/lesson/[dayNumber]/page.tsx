@@ -19,7 +19,8 @@ import {
   ShieldAlert, 
   CheckCircle2,
   Download,
-  FileText
+  FileText,
+  ClipboardList
 } from "lucide-react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -32,6 +33,7 @@ interface LessonData {
   id?: string;
   title?: string;
   description?: string;
+  actionPlan?: string;
   youtubeVideoId: string;
   thumbnailUrl?: string;
   pdfUrl?: string;
@@ -43,7 +45,8 @@ const STARTER_LESSONS: Record<number, LessonData> = {
   1: {
     dayNumber: 1,
     title: "Welcome to the 90-Day Training",
-    description: "Welcome to your first day of transformation. In this introductory module, we explore the core principles of the Freedom Magnet methodology. We'll discuss how to shift your mindset from a standard educator to a high-impact mentor, setting the foundation for the next three months of growth.\n\nToday's objectives:\n1. Understand the 'Freedom Magnet' framework.\n2. Set your personal goals for the 90-day journey.\n3. Complete the initial self-assessment worksheet.",
+    description: "Welcome to your first day of transformation. In this introductory module, we explore the core principles of the Freedom Magnet methodology. We'll discuss how to shift your mindset from a standard educator to a high-impact mentor, setting the foundation for the next three months of growth.",
+    actionPlan: "1. Watch the welcome video.\n2. Set your personal goals for the 90-day journey.\n3. Download the self-assessment worksheet.",
     youtubeVideoId: "LXb3EKWsInQ",
     isLocked: false
   }
@@ -231,11 +234,6 @@ export default function LessonPage() {
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     title={lesson.title || `Day ${day}`}
                   />
-                  <div className="absolute top-0 left-0 w-full h-24 bg-transparent z-10 pointer-events-none" /> 
-                  <div className="absolute bottom-0 right-0 w-48 h-16 bg-transparent z-10 pointer-events-none" />
-                  <div className="absolute bottom-4 left-4 w-40 h-8 bg-black/40 rounded-md backdrop-blur-sm z-10 flex items-center justify-center pointer-events-none">
-                     <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Freedom Magnet Player</span>
-                  </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800">
@@ -246,7 +244,7 @@ export default function LessonPage() {
             </div>
 
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
-              <div className="flex-1 space-y-6">
+              <div className="flex-1 space-y-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title || `Day ${day} Training`}</h1>
@@ -261,17 +259,6 @@ export default function LessonPage() {
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    {lesson.pdfUrl && (
-                      <Button 
-                        variant="outline"
-                        asChild
-                        className="rounded-full h-12 px-6 font-bold border-2 border-slate-200 dark:border-slate-800 flex gap-2"
-                      >
-                        <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                          <Download size={18} /> Resources
-                        </a>
-                      </Button>
-                    )}
                     <Button 
                       onClick={handleToggleComplete}
                       disabled={completing}
@@ -297,27 +284,41 @@ export default function LessonPage() {
                     </p>
                   </div>
                 )}
+
+                {lesson.actionPlan && (
+                  <Card className="border-none shadow-sm rounded-3xl bg-primary/5 dark:bg-primary/10 p-8 border-l-4 border-primary">
+                    <h3 className="font-black text-primary text-xl mb-4 flex items-center gap-3">
+                      <ClipboardList size={24} />
+                      Action Plan
+                    </h3>
+                    <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">
+                      {lesson.actionPlan}
+                    </div>
+                  </Card>
+                )}
               </div>
 
-              {lesson.pdfUrl && (
+              {(lesson.pdfUrl) && (
                 <div className="md:w-72 shrink-0 space-y-4">
-                  <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
-                    <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-                      <FileText size={18} className="text-primary" />
-                      Study Material
-                    </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium">
-                      Download the day's specialized worksheet and roadmap.
-                    </p>
-                    <Button 
-                      className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold"
-                      asChild
-                    >
-                      <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                        Download PDF
-                      </a>
-                    </Button>
-                  </Card>
+                  {lesson.pdfUrl && (
+                    <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
+                      <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                        <FileText size={18} className="text-primary" />
+                        Study Material
+                      </h3>
+                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium">
+                        Download the day's specialized worksheet and roadmap.
+                      </p>
+                      <Button 
+                        className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold"
+                        asChild
+                      >
+                        <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                          Download PDF
+                        </a>
+                      </Button>
+                    </Card>
+                  )}
                 </div>
               )}
             </div>

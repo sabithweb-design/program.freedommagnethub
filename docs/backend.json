@@ -24,6 +24,7 @@
         "dayNumber": { "type": "number" },
         "title": { "type": "string" },
         "description": { "type": "string" },
+        "actionPlan": { "type": "string", "description": "Specific action steps for the student" },
         "youtubeVideoId": { "type": "string" },
         "thumbnailUrl": { "type": "string", "description": "URL for the lesson preview image" },
         "pdfUrl": { "type": "string", "description": "URL for downloadable PDF resources" },
@@ -52,7 +53,7 @@
         "rating": { "type": "number", "description": "Star rating (0-5)" },
         "reviewCount": { "type": "number", "description": "Total number of reviews" }
       },
-      "required": ["title", "category", "videos", "progress"]
+      "required": ["category", "videos", "progress"]
     },
     "UserLessonProgress": {
       "title": "User Lesson Progress",

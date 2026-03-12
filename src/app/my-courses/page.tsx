@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useMemo } from 'react';
@@ -78,7 +79,6 @@ export default function MyCoursesPage() {
       <main className="max-w-4xl mx-auto px-4 py-10 space-y-10">
         <div className="space-y-1">
           <h1 className="text-3xl font-black text-foreground tracking-tight">My courses</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-medium">Continue your professional development journey.</p>
         </div>
 
         <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
@@ -114,7 +114,6 @@ function NavItem({ label, href, active = false }: { label: string; href: string;
 }
 
 function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
-  // Robust image check
   const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
     : "https://picsum.photos/seed/course/800/450";

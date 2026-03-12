@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -87,11 +88,8 @@ export default function CoursesPage() {
       </header>
 
       <main className="max-w-xl mx-auto px-4 py-8 space-y-8">
-        <div className="space-y-2">
+        <div className="space-y-2 text-center">
           <h2 className="text-3xl font-black text-foreground tracking-tight">Expand your horizon</h2>
-          <p className="text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
-            The most comprehensive training curriculum for the modern educator.
-          </p>
         </div>
 
         {/* Course Stack */}
@@ -112,7 +110,6 @@ export default function CoursesPage() {
 }
 
 function MarketplaceCard({ course }: { course: Course }) {
-  // Ensure the image URL is valid and handles relative paths or missing data correctly
   const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
     : "https://picsum.photos/seed/course/800/450";

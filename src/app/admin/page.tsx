@@ -57,7 +57,8 @@ import {
   Unlock,
   Star,
   Image as ImageIcon,
-  FileText
+  FileText,
+  ClipboardList
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -89,7 +90,7 @@ export default function AdminPage() {
     rating: 4.5,
     reviewCount: 0
   });
-  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', courseId: '' });
+  const [lessonForm, setLessonForm] = useState({ title: '', description: '', actionPlan: '', dayNumber: 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', courseId: '' });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
@@ -298,6 +299,7 @@ export default function AdminPage() {
       courseId: lessonForm.courseId,
       title: lessonForm.title || '',
       description: lessonForm.description || '',
+      actionPlan: lessonForm.actionPlan || '',
       dayNumber: Number(lessonForm.dayNumber),
       youtubeVideoId: extractId(lessonForm.youtubeUrl),
       thumbnailUrl: lessonForm.thumbnailUrl || '',
@@ -307,7 +309,7 @@ export default function AdminPage() {
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', actionPlan: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '' });
       toast({ title: "Lesson Published", description: `Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData });
@@ -361,7 +363,7 @@ export default function AdminPage() {
                   <Input 
                     type="password"
                     value={newUserForm.password} 
-                    onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
+                    onChange={e => setPassword(e.target.value)}
                     placeholder="••••••••" 
                     required 
                     className="rounded-xl h-12"
@@ -651,6 +653,10 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     <Label className="font-bold">Lesson Title (Optional)</Label>
                     <Input placeholder="Key Concepts" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold">Action Plan (Optional)</Label>
+                    <Textarea className="min-h-[80px] rounded-xl" placeholder="Step 1: ..., Step 2: ..." value={lessonForm.actionPlan} onChange={e => setLessonForm({...lessonForm, actionPlan: e.target.value})} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Description (Optional)</Label>
