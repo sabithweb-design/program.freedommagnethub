@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -8,7 +7,7 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, Star, ShieldCheck, Lock, ExternalLink, Grid } from 'lucide-react';
+import { Search, ChevronDown, Star, ShieldCheck, Lock, Grid } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -51,21 +50,28 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-4 sm:px-8 md:px-10 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center flex-row-reverse justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground">
             freedom<span className="text-primary">magnethub</span>
           </h1>
+          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>
         
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+          <div className="flex items-center gap-1 sm:gap-3">
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10">
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
+
           {isAdmin && (
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5 shadow-sm"
             >
               <Link href="/admin">
                 <Grid size={14} className="sm:size-4" />
@@ -73,13 +79,6 @@ export default function DashboardPage() {
               </Link>
             </Button>
           )}
-          
-          <div className="flex items-center gap-1 sm:gap-3">
-            <ThemeToggle />
-            <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10">
-              <Search className="h-5 w-5" />
-            </Button>
-          </div>
         </div>
       </header>
 

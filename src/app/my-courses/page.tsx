@@ -7,7 +7,7 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Star, PlayCircle, Bell, Grid } from 'lucide-react';
+import { PlayCircle, Bell, Grid } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -47,13 +47,13 @@ export default function MyCoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Top Navbar */}
-      <header className="bg-background border-b sticky top-0 z-50 transition-colors px-4 sm:px-8 md:px-20">
-        <div className="max-w-[1400px] mx-auto h-20 flex items-center justify-between gap-4">
+      <header className="bg-background border-b sticky top-0 z-50 transition-colors px-6 sm:px-12 md:px-20">
+        <div className="max-w-[1400px] mx-auto h-20 flex items-center flex-row-reverse justify-between gap-4">
           <Link href="/dashboard" className="flex items-center gap-2 group shrink-0">
-            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
             <span className="font-bold text-lg sm:text-2xl tracking-tighter text-foreground">
               freedom<span className="text-primary">magnethub</span>
             </span>
+            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-10 h-full">
@@ -63,12 +63,19 @@ export default function MyCoursesPage() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-8">
+            <div className="flex items-center gap-1 sm:gap-3">
+              <ThemeToggle />
+              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full h-9 w-9 sm:h-10 sm:w-10">
+                <Bell size={20} />
+              </Button>
+            </div>
+
             {isAdmin && (
               <Button 
                 variant="outline" 
                 size="sm" 
                 asChild 
-                className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5"
+                className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5 shadow-sm"
               >
                 <Link href="/admin">
                   <Grid size={14} className="sm:size-4" />
@@ -76,13 +83,6 @@ export default function MyCoursesPage() {
                 </Link>
               </Button>
             )}
-            
-            <div className="flex items-center gap-1 sm:gap-3">
-              <ThemeToggle />
-              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full h-9 w-9 sm:h-10 sm:w-10">
-                <Bell size={20} />
-              </Button>
-            </div>
           </div>
         </div>
       </header>

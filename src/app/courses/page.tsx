@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -52,18 +51,13 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-4 sm:px-8 md:px-10 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center flex-row-reverse justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <div className="flex items-center gap-2 sm:gap-5 shrink-0">
-          <Button variant="ghost" size="icon" asChild className="rounded-full h-9 w-9">
-            <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5" />
-            </Link>
-          </Button>
           <div className="flex items-center gap-2">
-            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
             <h1 className="text-sm md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
               MARKETPLACE
             </h1>
+            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </div>
         </div>
         
@@ -78,12 +72,18 @@ export default function CoursesPage() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+          <Button variant="ghost" size="icon" asChild className="rounded-full h-9 w-9">
+            <Link href="/dashboard">
+              <ChevronLeft className="h-5 w-5" />
+            </Link>
+          </Button>
+
           {isAdmin && (
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5 shadow-sm"
             >
               <Link href="/admin">
                 <Grid size={14} className="sm:size-4" />
