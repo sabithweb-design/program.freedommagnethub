@@ -119,7 +119,7 @@ export default function DashboardPage() {
               <div className="relative aspect-[16/9] md:aspect-[21/9]">
                 <Image
                   src={latestLearned.thumbnailUrl || 'https://picsum.photos/seed/latest/800/400'}
-                  alt={latestLearned.title}
+                  alt={latestLearned.title || "Featured Course"}
                   fill
                   className="object-cover"
                   data-ai-hint="learning hub"
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                     <div className="relative h-24 w-24 rounded-2xl overflow-hidden shrink-0 bg-[#E8F5F1]">
                       <Image
                         src={course.thumbnailUrl || 'https://picsum.photos/seed/course/200/200'}
-                        alt={course.title}
+                        alt={course.title || "Course Thumbnail"}
                         fill
                         className="object-cover"
                         data-ai-hint="course icon"

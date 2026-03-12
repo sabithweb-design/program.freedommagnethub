@@ -102,8 +102,8 @@ export default function MyCoursesPage() {
             <Card className="overflow-hidden border-none shadow-xl rounded-[2.5rem] relative group bg-white">
               <div className="relative aspect-[16/9]">
                 <Image
-                  src={latestLearned.thumbnailUrl}
-                  alt={latestLearned.title}
+                  src={latestLearned.thumbnailUrl || 'https://picsum.photos/seed/latest/800/400'}
+                  alt={latestLearned.title || "Featured Course"}
                   fill
                   className="object-cover"
                   data-ai-hint="coding illustration"
@@ -137,8 +137,8 @@ export default function MyCoursesPage() {
                   <div className="flex gap-4">
                     <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-[#E8F5F1]">
                       <Image
-                        src={course.thumbnailUrl}
-                        alt={course.title}
+                        src={course.thumbnailUrl || 'https://picsum.photos/seed/course/200/200'}
+                        alt={course.title || "Course Thumbnail"}
                         fill
                         className="object-cover"
                         data-ai-hint="course icon"
@@ -162,7 +162,6 @@ export default function MyCoursesPage() {
                       <Progress
                         value={(course.lessonsCompleted / course.lessonsTotal) * 100}
                         className="h-1.5 bg-slate-100 mt-1"
-                        style={{'--primary': '250 70% 40%'} as any} // Adjusting primary variable local to progress if needed or rely on globals
                       />
                     </div>
                   </div>
