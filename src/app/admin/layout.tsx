@@ -15,6 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Link from 'next/link';
+import { BrandLogo } from '@/components/BrandLogo';
 
 /**
  * ADMIN CONFIGURATION
@@ -66,19 +67,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
           </nav>
 
-          {/* Right Icons */}
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="text-slate-400">
-              <Grid size={20} />
-            </Button>
-            <Button variant="ghost" size="icon" className="text-slate-400 relative">
-              <Bell size={20} />
-              <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white">3</span>
-            </Button>
-            <Avatar className="h-9 w-9 border cursor-pointer">
-              <AvatarImage src="https://picsum.photos/seed/admin-avatar/100" />
-              <AvatarFallback>FM</AvatarFallback>
-            </Avatar>
+          {/* Right Icons & Brand Logo */}
+          <div className="flex items-center gap-6">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="icon" className="text-slate-400">
+                <Grid size={20} />
+              </Button>
+              <Button variant="ghost" size="icon" className="text-slate-400 relative">
+                <Bell size={20} />
+                <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white">3</span>
+              </Button>
+              <Avatar className="h-9 w-9 border cursor-pointer">
+                <AvatarImage src="https://picsum.photos/seed/admin-avatar/100" />
+                <AvatarFallback>FM</AvatarFallback>
+              </Avatar>
+            </div>
+            <div className="h-10 w-px bg-slate-100 mx-2 hidden sm:block" />
+            <BrandLogo className="h-14 w-14" />
           </div>
         </div>
       </header>

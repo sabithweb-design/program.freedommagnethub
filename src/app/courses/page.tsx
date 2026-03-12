@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface Course {
   id: string;
@@ -69,13 +70,17 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" className="rounded-full text-slate-600">
-            <ShoppingCart className="h-5 w-5" />
-          </Button>
-          <div className="font-bold text-slate-800 hidden sm:block">
-            Freedom<span className="text-primary">Magnet</span>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" className="rounded-full text-slate-600">
+              <ShoppingCart className="h-5 w-5" />
+            </Button>
+            <div className="font-bold text-slate-800 hidden sm:block">
+              Freedom<span className="text-primary">Magnet</span>
+            </div>
           </div>
+          <div className="h-10 w-px bg-slate-100 hidden sm:block" />
+          <BrandLogo className="h-12 w-12" />
         </div>
       </header>
 

@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, ChevronDown, Star, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface Course {
   id: string;
@@ -46,14 +47,19 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#FFFBF5] text-slate-900 pb-20 font-body">
       {/* Header */}
-      <header className="px-6 h-16 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-30 border-b">
+      <header className="px-6 h-20 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-30 border-b">
         <h1 className="text-xl font-black tracking-tighter text-slate-900">
           freedom<span className="text-primary">magnet</span>
         </h1>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Search className="h-5 w-5" />
-          </Button>
+        
+        <div className="flex items-center gap-6">
+          <div className="flex gap-2">
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Search className="h-5 w-5" />
+            </Button>
+          </div>
+          <div className="h-10 w-px bg-slate-100 hidden sm:block" />
+          <BrandLogo className="h-12 w-12" />
         </div>
       </header>
 
@@ -117,7 +123,6 @@ export default function DashboardPage() {
 }
 
 function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
-  // Enhanced source handling: Ensure non-image URLs don't crash next/image
   const isValidImageUrl = (url: string) => {
     if (!url) return false;
     return url.startsWith('http') && !url.includes('freepik.com/free-photos-vectors');
@@ -132,14 +137,12 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
       className="group cursor-pointer flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
       onClick={onClick}
     >
-      {/* Thumbnail */}
       <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100">
         <Image
           src={thumbnailSrc}
           alt={course.title || "Program thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
-          unoptimized={thumbnailSrc.includes('www.freepik.com')}
         />
         {course.isBestseller && (
           <div className="absolute top-3 left-3 bg-[#e1f7f1] text-[#1c1d1f] text-[10px] font-bold px-2 py-1 rounded-sm border border-[#acd2cc] shadow-sm">
@@ -148,7 +151,6 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
         )}
       </div>
 
-      {/* Info */}
       <div className="space-y-1">
         <h3 className="font-bold text-[#1c1d1f] text-base leading-snug line-clamp-2">
           {course.title || "Untitled Program"}
@@ -157,7 +159,6 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           {course.author || "Freedom Magnet Hub"}
         </p>
         
-        {/* Rating */}
         <div className="flex items-center gap-1">
           <span className="text-xs font-bold text-[#b4690e]">{course.rating || 4.5}</span>
           <div className="flex">
@@ -172,14 +173,12 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           <span className="text-[10px] text-[#6a6f73]">({(course.reviewCount || 0).toLocaleString()})</span>
         </div>
 
-        {/* Badge */}
         <div className="flex items-center gap-2">
           <Badge className="bg-[#5022c3] hover:bg-[#5022c3] text-white text-[10px] font-bold h-5 px-2 rounded-sm gap-1 flex items-center border-none">
             <ShieldCheck size={10} /> Premium
           </Badge>
         </div>
 
-        {/* Price */}
         <div className="flex items-center gap-2 pt-1">
           <span className="font-bold text-lg text-[#1c1d1f]">₹{course.price || 519}</span>
           {course.originalPrice && (

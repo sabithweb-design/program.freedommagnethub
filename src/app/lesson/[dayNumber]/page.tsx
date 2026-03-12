@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle, GraduationCap } from "lucide-react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 
 interface LessonData {
   title: string;
@@ -75,27 +76,34 @@ export default function LessonPage() {
     <div className="min-h-screen bg-[#FFFBF5] pb-20 font-body">
       <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-20">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Button variant="ghost" size="sm" asChild className="rounded-full">
-            <Link href="/dashboard">
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              Back
-            </Link>
-          </Button>
-          <div className="font-bold text-slate-800 flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-[#F28C7F]" />
-            Day {day}
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" asChild className="rounded-full">
+              <Link href="/dashboard">
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                Back
+              </Link>
+            </Button>
+            <div className="font-bold text-slate-800 flex items-center gap-2">
+              <GraduationCap className="h-5 w-5 text-[#F28C7F]" />
+              Day {day}
+            </div>
           </div>
-          <div className="flex gap-1">
-            <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full">
-              <Link href={day > 1 ? `/lesson/${day - 1}` : "#"}>
-                <ChevronLeft className="h-5 w-5" />
-              </Link>
-            </Button>
-            <Button variant="ghost" size="icon" asChild disabled={day >= 90} className="rounded-full">
-              <Link href={day < 90 ? `/lesson/${day + 1}` : "#"}>
-                <ChevronRight className="h-5 w-5" />
-              </Link>
-            </Button>
+
+          <div className="flex items-center gap-6">
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full">
+                <Link href={day > 1 ? `/lesson/${day - 1}` : "#"}>
+                  <ChevronLeft className="h-5 w-5" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="icon" asChild disabled={day >= 90} className="rounded-full">
+                <Link href={day < 90 ? `/lesson/${day + 1}` : "#"}>
+                  <ChevronRight className="h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
+            <div className="h-8 w-px bg-slate-100 hidden sm:block" />
+            <BrandLogo className="h-10 w-10" />
           </div>
         </div>
       </div>
