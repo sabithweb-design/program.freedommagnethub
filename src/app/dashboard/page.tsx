@@ -132,7 +132,7 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
       <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100">
         <Image
           src={thumbnailSrc}
-          alt={course.title}
+          alt={course.title || "Course thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -146,10 +146,10 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
       {/* Info */}
       <div className="space-y-1">
         <h3 className="font-bold text-[#1c1d1f] text-base leading-snug line-clamp-2">
-          {course.title}
+          {course.title || "Untitled Course"}
         </h3>
         <p className="text-[11px] text-[#6a6f73] line-clamp-1">
-          {course.author}
+          {course.author || "Freedom Magnet Hub"}
         </p>
         
         {/* Rating */}

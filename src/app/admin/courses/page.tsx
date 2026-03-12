@@ -133,7 +133,7 @@ function CourseCard({ course }: { course: any }) {
       <div className="relative aspect-[16/10] w-full bg-slate-100">
         <Image 
           src={course.imageUrl || 'https://picsum.photos/seed/course/600/400'} 
-          alt={course.title}
+          alt={course.title || "Course image"}
           fill
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />

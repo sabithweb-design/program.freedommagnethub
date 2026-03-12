@@ -146,7 +146,7 @@ function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () =>
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
         <Image 
           src={thumbnailSrc} 
-          alt={course.title}
+          alt={course.title || "Enrolled course thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-700"
         />
@@ -158,10 +158,10 @@ function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () =>
       <div className="p-6 space-y-4 flex flex-col flex-1">
         <div className="space-y-2 flex-1">
           <h3 className="text-lg font-black text-slate-800 leading-tight line-clamp-2">
-            {course.title}
+            {course.title || "Untitled Course"}
           </h3>
           <p className="text-xs text-slate-400 font-bold">
-            {course.author}
+            {course.author || "Freedom Magnet Hub"}
           </p>
         </div>
 

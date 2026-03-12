@@ -149,7 +149,7 @@ function MarketplaceCard({ course }: { course: Course }) {
       <div className="relative aspect-video w-full overflow-hidden">
         <Image
           src={thumbnailSrc}
-          alt={course.title}
+          alt={course.title || "Course thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-1000"
         />
@@ -164,7 +164,7 @@ function MarketplaceCard({ course }: { course: Course }) {
       <div className="p-7 space-y-4">
         <div className="space-y-1.5">
           <h3 className="font-black text-[#1c1d1f] text-xl leading-[1.2] line-clamp-2 hover:text-primary transition-colors cursor-pointer">
-            {course.title}
+            {course.title || "Untitled Course"}
           </h3>
           <p className="text-[11px] text-[#6a6f73] font-bold line-clamp-1">
             {instructorName}
