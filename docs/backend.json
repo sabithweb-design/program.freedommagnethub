@@ -25,6 +25,22 @@
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },
       "required": ["dayNumber", "title", "description", "youtubeVideoId"]
+    },
+    "Course": {
+      "title": "Course",
+      "description": "A course available in the hub.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "category": { "type": "string" },
+        "lessonsTotal": { "type": "number" },
+        "lessonsCompleted": { "type": "number" },
+        "thumbnailUrl": { "type": "string" },
+        "isLatestLearned": { "type": "boolean" },
+        "userId": { "type": "string" }
+      },
+      "required": ["title", "author", "category", "lessonsTotal", "lessonsCompleted", "thumbnailUrl", "userId"]
     }
   },
   "auth": {
@@ -38,6 +54,10 @@
     "/lessons/{lessonId}": {
       "schema": "Lesson",
       "description": "Lessons in the training program."
+    },
+    "/courses/{courseId}": {
+      "schema": "Course",
+      "description": "User specific course progress and enrollments."
     }
   }
 }
