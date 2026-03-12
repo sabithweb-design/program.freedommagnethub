@@ -83,8 +83,11 @@ export default function AdminPage() {
 
   const isSuperAdmin = currentUser?.email === SUPER_ADMIN_EMAIL;
 
-  // Queries
-  const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'users')) : null, [firestore]);
+  // Queries - only fetch global user list if user is Super Admin
+  const usersQuery = useMemo(() => {
+    if (!firestore || !isSuperAdmin) return null;
+    return query(collection(firestore, 'users'));
+  }, [firestore, isSuperAdmin]);
   
   // Courses query: Scoped admins only see what they are assigned to
   const coursesQuery = useMemo(() => {
@@ -407,9 +410,9 @@ export default function AdminPage() {
         )}
       </header>
 
-      <Tabs defaultValue="users" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs defaultValue={isSuperAdmin ? "users" : "courses"} value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-white dark:bg-slate-900 border dark:border-slate-800 p-1 rounded-2xl h-14 w-full md:w-auto grid grid-cols-3">
-          <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
+          <TabsTrigger value="users" disabled={!isSuperAdmin} className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all disabled:opacity-50">
             <Users size={16} /> Admins & Members
           </TabsTrigger>
           <TabsTrigger value="courses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
@@ -421,63 +424,71 @@ export default function AdminPage() {
         </TabsList>
 
         <TabsContent value="users">
-          <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-            <CardHeader className="border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-              <CardTitle>Directory</CardTitle>
-              <CardDescription>Grant specific admin privileges or manage student access status.</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-transparent border-slate-100 dark:border-slate-800">
-                    <TableHead className="pl-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Name & Email</TableHead>
-                    <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Role</TableHead>
-                    <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Status</TableHead>
-                    <TableHead className="text-right pr-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Control</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {usersLoading ? (
-                    <TableRow><TableCell colSpan={4} className="text-center py-20 text-slate-400">Syncing member records...</TableCell></TableRow>
-                  ) : users?.map((u: any) => (
-                    <TableRow key={u.id} className="group transition-colors border-slate-50 dark:border-slate-800/50">
-                      <TableCell className="pl-6 py-5">
-                        <div className="flex flex-col">
-                          <span className="font-black text-slate-800 dark:text-slate-200 text-base">{u.displayName || "Unknown"}</span>
-                          <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">{u.email}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={`rounded-lg px-2.5 py-1 text-[10px] font-black tracking-widest uppercase border-none ${
-                          u.role === 'admin' ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "bg-rose-50 dark:bg-rose-950 text-primary"
-                        }`}>
-                          {u.email === SUPER_ADMIN_EMAIL ? "Super Admin" : u.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <div className={`flex items-center gap-2 text-xs font-black uppercase tracking-tight ${u.status === false ? "text-slate-300 dark:text-slate-700" : "text-emerald-500"}`}>
-                          {u.status === false ? <UserMinus size={14} /> : <UserCheck size={14} />}
-                          {u.status === false ? "Restricted" : "Active"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right pr-6">
-                        {isSuperAdmin && u.email !== SUPER_ADMIN_EMAIL && (
-                          <div className="flex items-center justify-end gap-3">
-                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{u.status === false ? "Enable" : "Disable"}</span>
-                            <Switch 
-                              checked={u.status !== false} 
-                              onCheckedChange={() => handleToggleUserStatus(u.id, u.status !== false)}
-                              className="data-[state=checked]:bg-emerald-500"
-                            />
-                          </div>
-                        )}
-                      </TableCell>
+          {isSuperAdmin ? (
+            <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+              <CardHeader className="border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
+                <CardTitle>Directory</CardTitle>
+                <CardDescription>Grant specific admin privileges or manage student access status.</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent border-slate-100 dark:border-slate-800">
+                      <TableHead className="pl-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Name & Email</TableHead>
+                      <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Role</TableHead>
+                      <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Status</TableHead>
+                      <TableHead className="text-right pr-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Control</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {usersLoading ? (
+                      <TableRow><TableCell colSpan={4} className="text-center py-20 text-slate-400">Syncing member records...</TableCell></TableRow>
+                    ) : users?.map((u: any) => (
+                      <TableRow key={u.id} className="group transition-colors border-slate-50 dark:border-slate-800/50">
+                        <TableCell className="pl-6 py-5">
+                          <div className="flex flex-col">
+                            <span className="font-black text-slate-800 dark:text-slate-200 text-base">{u.displayName || "Unknown"}</span>
+                            <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">{u.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={`rounded-lg px-2.5 py-1 text-[10px] font-black tracking-widest uppercase border-none ${
+                            u.role === 'admin' ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "bg-rose-50 dark:bg-rose-950 text-primary"
+                          }`}>
+                            {u.email === SUPER_ADMIN_EMAIL ? "Super Admin" : u.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className={`flex items-center gap-2 text-xs font-black uppercase tracking-tight ${u.status === false ? "text-slate-300 dark:text-slate-700" : "text-emerald-500"}`}>
+                            {u.status === false ? <UserMinus size={14} /> : <UserCheck size={14} />}
+                            {u.status === false ? "Restricted" : "Active"}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right pr-6">
+                          {isSuperAdmin && u.email !== SUPER_ADMIN_EMAIL && (
+                            <div className="flex items-center justify-end gap-3">
+                              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{u.status === false ? "Enable" : "Disable"}</span>
+                              <Switch 
+                                checked={u.status !== false} 
+                                onCheckedChange={() => handleToggleUserStatus(u.id, u.status !== false)}
+                                className="data-[state=checked]:bg-emerald-500"
+                              />
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed">
+              <ShieldAlert className="mx-auto h-12 w-12 text-slate-300 mb-4" />
+              <h3 className="text-xl font-bold">Access Restricted</h3>
+              <p className="text-slate-400 max-w-sm mx-auto">Only the Super Admin can view and manage the global member directory.</p>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="courses">
