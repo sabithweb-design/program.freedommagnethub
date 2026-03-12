@@ -2,31 +2,31 @@
 
 import React from 'react';
 import { useAuth } from '@/context/auth-context';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
-  Users, 
-  BookOpen, 
-  Video, 
   LayoutDashboard, 
-  LogOut,
-  ShieldCheck
+  Compass, 
+  Video, 
+  BookOpen, 
+  MessageCircle,
+  Bell, 
+  Grid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { auth } from '@/lib/firebase';
-import { signOut } from 'firebase/auth';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Link from 'next/link';
 
 /**
  * ADMIN CONFIGURATION
- * Set your master admin email here. 
- * Ensure you create this user in the Firebase Console.
+ * Primary Top-Navigation Layout based on TagMango design.
  */
 const ADMIN_EMAIL = "admin@freedommagnethub.com";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
-  // Primary security guard: Check by hardcoded email or Firestore role
   const isAuthorized = user?.email === ADMIN_EMAIL || profile?.role === 'admin';
 
   React.useEffect(() => {
@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]">
+      <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -46,59 +46,61 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   if (!isAuthorized) return null;
 
   return (
-    <div className="flex min-h-screen bg-[#F8FAFC]">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r hidden md:flex flex-col sticky top-0 h-screen">
-        <div className="p-6 border-b flex items-center gap-2">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
-            <ShieldCheck size={20} />
-          </div>
-          <span className="font-bold text-xl tracking-tight text-slate-800">Freedom Admin</span>
-        </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          <AdminNavLink icon={<LayoutDashboard size={18} />} label="Dashboard" href="/admin" active />
-          <AdminNavLink icon={<Users size={18} />} label="Users" href="/admin?tab=users" />
-          <AdminNavLink icon={<BookOpen size={18} />} label="Courses" href="/admin?tab=courses" />
-          <AdminNavLink icon={<Video size={18} />} label="Lessons" href="/admin?tab=lessons" />
-        </nav>
+    <div className="min-h-screen bg-white">
+      {/* Top Navbar */}
+      <header className="bg-white border-b sticky top-0 z-50">
+        <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
+          {/* Logo */}
+          <Link href="/admin" className="flex items-center gap-1 group">
+            <span className="font-bold text-2xl tracking-tight text-slate-800">
+              freedom<span className="text-primary">magnet</span>
+            </span>
+          </Link>
 
-        <div className="p-4 border-t space-y-2">
-          <div className="px-4 py-2 bg-slate-50 rounded-lg">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged in as</p>
-            <p className="text-xs font-semibold text-slate-600 truncate">{user?.email}</p>
+          {/* Centered Menu */}
+          <nav className="hidden lg:flex items-center gap-10 h-full">
+            <NavItem icon={<LayoutDashboard size={20} />} label="DASHBOARD" href="/admin" active={pathname === '/admin'} />
+            <NavItem icon={<Compass size={20} />} label="FEED" href="#" />
+            <NavItem icon={<Video size={20} />} label="WORKSHOPS" href="#" />
+            <NavItem icon={<BookOpen size={20} />} label="COURSES" href="/admin/courses" active={pathname === '/admin/courses'} />
+            <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
+          </nav>
+
+          {/* Right Icons */}
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" className="text-slate-400">
+              <Grid size={20} />
+            </Button>
+            <Button variant="ghost" size="icon" className="text-slate-400 relative">
+              <Bell size={20} />
+              <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white">3</span>
+            </Button>
+            <Avatar className="h-9 w-9 border cursor-pointer">
+              <AvatarImage src="https://picsum.photos/seed/admin-avatar/100" />
+              <AvatarFallback>FM</AvatarFallback>
+            </Avatar>
           </div>
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-slate-500 hover:text-destructive hover:bg-destructive/5"
-            onClick={() => signOut(auth)}
-          >
-            <LogOut size={18} className="mr-2" />
-            Sign Out
-          </Button>
         </div>
-      </aside>
+      </header>
 
       {/* Main Content */}
-      <main className="flex-1 p-8 overflow-y-auto">
+      <main className="bg-white min-h-[calc(100vh-80px)]">
         {children}
       </main>
     </div>
   );
 }
 
-function AdminNavLink({ icon, label, href, active = false }: { icon: React.ReactNode, label: string, href: string, active?: boolean }) {
+function NavItem({ icon, label, href, active = false }: { icon: React.ReactNode, label: string, href: string, active?: boolean }) {
   return (
-    <a 
-      href={href}
-      className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
-        active 
-          ? "bg-primary text-white" 
-          : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
-      }`}
-    >
-      {icon}
-      {label}
-    </a>
+    <Link href={href} className={`flex flex-col items-center gap-1 cursor-pointer group relative pt-4 h-full`}>
+      <div className={`flex flex-col items-center gap-1.5 transition-colors ${active ? "text-primary" : "text-slate-400 group-hover:text-slate-600"}`}>
+        {icon}
+        <span className="text-[11px] font-bold tracking-wider">{label}</span>
+      </div>
+      {active && (
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-primary rounded-t-full" />
+      )}
+    </Link>
   );
 }
