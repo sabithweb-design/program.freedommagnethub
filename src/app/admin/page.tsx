@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -28,7 +27,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Dialog, 
   DialogContent, 
@@ -69,7 +68,7 @@ export default function AdminPage() {
   const [editTitle, setEditTitle] = useState('');
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
-    const userRef = doc(firestore, 'users', userId);
+    const userRef = doc(firestore!, 'users', userId);
     updateDoc(userRef, { status: !currentStatus })
       .then(() => {
         toast({
@@ -516,4 +515,3 @@ export default function AdminPage() {
     </div>
   );
 }
-
