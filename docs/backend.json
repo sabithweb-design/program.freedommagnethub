@@ -29,7 +29,7 @@
         "isLocked": { "type": "boolean", "default": false },
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },
-      "required": ["dayNumber", "title", "description", "youtubeVideoId", "courseId"]
+      "required": ["dayNumber", "youtubeVideoId", "courseId"]
     },
     "Course": {
       "title": "Course",

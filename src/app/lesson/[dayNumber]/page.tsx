@@ -18,8 +18,8 @@ import { FirestorePermissionError } from "@/firebase/errors";
 
 interface LessonData {
   id?: string;
-  title: string;
-  description: string;
+  title?: string;
+  description?: string;
   youtubeVideoId: string;
   thumbnailUrl?: string;
   dayNumber: number;
@@ -216,7 +216,7 @@ export default function LessonPage() {
                     src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
                     className="video-iframe border-none" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    title={lesson.title}
+                    title={lesson.title || `Day ${day}`}
                   />
                   <div className="absolute top-0 left-0 w-full h-24 bg-transparent z-10 pointer-events-none" /> 
                   <div className="absolute bottom-0 right-0 w-48 h-16 bg-transparent z-10 pointer-events-none" />
@@ -236,7 +236,7 @@ export default function LessonPage() {
               <div className="flex-1 space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title}</h1>
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title || `Day ${day} Training`}</h1>
                     <div className="flex gap-4 mt-4">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
                         <BookOpen size={14} /> Module {Math.floor((day - 1) / 30) + 1}
@@ -264,11 +264,13 @@ export default function LessonPage() {
                   </Button>
                 </div>
 
-                <div className="prose prose-slate dark:prose-invert max-w-none">
-                  <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg whitespace-pre-wrap">
-                    {lesson.description}
-                  </p>
-                </div>
+                {lesson.description && (
+                  <div className="prose prose-slate dark:prose-invert max-w-none">
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg whitespace-pre-wrap">
+                      {lesson.description}
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="md:w-72 shrink-0 space-y-4">

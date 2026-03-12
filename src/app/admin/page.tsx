@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -293,8 +294,8 @@ export default function AdminPage() {
 
     const lessonData = {
       courseId: lessonForm.courseId,
-      title: lessonForm.title,
-      description: lessonForm.description,
+      title: lessonForm.title || '',
+      description: lessonForm.description || '',
       dayNumber: Number(lessonForm.dayNumber),
       youtubeVideoId: extractId(lessonForm.youtubeUrl),
       thumbnailUrl: lessonForm.thumbnailUrl,
@@ -631,12 +632,12 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Lesson Title</Label>
-                    <Input placeholder="Key Concepts" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} required className="h-12 rounded-xl" />
+                    <Label className="font-bold">Lesson Title (Optional)</Label>
+                    <Input placeholder="Key Concepts" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Description</Label>
-                    <Textarea className="min-h-[120px] rounded-xl" placeholder="Detailed lesson content..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} required />
+                    <Label className="font-bold">Description (Optional)</Label>
+                    <Textarea className="min-h-[120px] rounded-xl" placeholder="Detailed lesson content..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
                   </div>
                   <Button type="submit" className="w-full h-12 rounded-xl font-bold flex gap-2">
                     <Save size={18} /> Publish Lesson
@@ -660,7 +661,7 @@ export default function AdminPage() {
                         <div className="relative w-16 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800">
                           <Image 
                             src={l.thumbnailUrl || `https://picsum.photos/seed/${l.id}/200/120`}
-                            alt={l.title}
+                            alt={l.title || "Lesson Thumbnail"}
                             fill
                             className="object-cover"
                           />
@@ -676,7 +677,7 @@ export default function AdminPage() {
                           </div>
                           <div>
                             <div className="flex items-center gap-2">
-                               <h4 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{l.title}</h4>
+                               <h4 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{l.title || `Lesson ${l.dayNumber}`}</h4>
                                {course && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded font-black uppercase whitespace-nowrap">{course.title}</span>}
                             </div>
                             <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
