@@ -48,12 +48,12 @@ export default function MyCoursesPage() {
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Top Navbar */}
       <header className="bg-background border-b sticky top-0 z-50 transition-colors px-6 sm:px-12 md:px-20">
-        <div className="max-w-[1400px] mx-auto h-20 flex items-center flex-row-reverse justify-between gap-4">
+        <div className="max-w-[1400px] mx-auto h-20 flex items-center justify-between gap-4">
+          {/* Brand Name (Left) */}
           <Link href="/dashboard" className="flex items-center gap-2 group shrink-0">
             <span className="font-bold text-lg sm:text-2xl tracking-tighter text-foreground">
               freedom<span className="text-primary">magnethub</span>
             </span>
-            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </Link>
 
           <nav className="hidden lg:flex items-center gap-10 h-full">
@@ -62,7 +62,10 @@ export default function MyCoursesPage() {
             <NavItem label="WORKSHOPS" href="#" />
           </nav>
 
+          {/* Right Section: Logo & Actions */}
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-8">
+            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
+
             <div className="flex items-center gap-1 sm:gap-3">
               <ThemeToggle />
               <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full h-9 w-9 sm:h-10 sm:w-10">

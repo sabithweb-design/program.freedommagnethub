@@ -50,15 +50,18 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center flex-row-reverse justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+        {/* Brand Name (Left) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground">
             freedom<span className="text-primary">magnethub</span>
           </h1>
-          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>
         
+        {/* Right Section: Logo & Icons */}
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
+
           <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10">

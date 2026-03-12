@@ -51,16 +51,15 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center flex-row-reverse justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+        {/* Brand Label (Left) */}
         <div className="flex items-center gap-2 sm:gap-5 shrink-0">
-          <div className="flex items-center gap-2">
-            <h1 className="text-sm md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
-              MARKETPLACE
-            </h1>
-            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
-          </div>
+          <h1 className="text-sm md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
+            MARKETPLACE
+          </h1>
         </div>
         
+        {/* Search Bar (Centered) */}
         <div className="hidden md:flex items-center flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -71,7 +70,10 @@ export default function CoursesPage() {
           </div>
         </div>
 
+        {/* Right Section: Logo & Actions */}
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
+
           <Button variant="ghost" size="icon" asChild className="rounded-full h-9 w-9">
             <Link href="/dashboard">
               <ChevronLeft className="h-5 w-5" />

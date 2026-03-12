@@ -47,13 +47,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Top Navbar */}
       <header className="bg-background/95 backdrop-blur-md border-b sticky top-0 z-50 transition-colors">
-        <div className="max-w-[1400px] mx-auto px-6 sm:px-12 md:px-20 h-20 flex items-center flex-row-reverse justify-between gap-4">
-          {/* Logo Section (Now on the Right) */}
+        <div className="max-w-[1400px] mx-auto px-6 sm:px-12 md:px-20 h-20 flex items-center justify-between gap-4">
+          {/* Brand Name Section (Left) */}
           <Link href="/admin" className="flex items-center gap-2 group shrink-0">
             <span className="font-bold text-lg sm:text-2xl tracking-tight text-slate-800 dark:text-slate-100">
               freedom<span className="text-primary">magnethub</span>
             </span>
-            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </Link>
 
           {/* Centered Menu (Desktop) */}
@@ -65,8 +64,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
           </nav>
 
-          {/* Right Icons & Action Button (Now on the Left) */}
+          {/* Right Section: Icons, Logo, & Action Button */}
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
+            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
+            
             <div className="flex items-center gap-1 sm:gap-2">
               <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 relative rounded-full h-9 w-9 sm:h-10 sm:w-10">
                 <Bell size={18} className="sm:size-5" />
