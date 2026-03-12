@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -55,6 +56,11 @@
           "type": "array", 
           "items": { "type": "string" },
           "description": "List of Admin UIDs who have permission to manage this specific program."
+        },
+        "studentIds": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of Student UIDs enrolled in this program."
         }
       },
       "required": ["category", "videos", "progress"]

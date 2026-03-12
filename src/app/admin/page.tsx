@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where } from 'firebase/firestore';
+import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
@@ -56,7 +57,9 @@ import {
   Image as ImageIcon,
   Share2,
   ShieldCheck,
-  ShieldAlert
+  ShieldAlert,
+  Search,
+  UserGroup
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -79,7 +82,7 @@ export default function AdminPage() {
   const firestore = useFirestore();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState('users');
+  const [activeTab, setActiveTab] = useState('courses');
 
   const isSuperAdmin = currentUser?.email === SUPER_ADMIN_EMAIL;
 
@@ -130,6 +133,10 @@ export default function AdminPage() {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
+  // Enrollment State
+  const [enrollmentEmail, setEnrollmentEmail] = useState('');
+  const [enrolling, setEnrolling] = useState(false);
+
   // Edit State
   const [editingProgram, setEditingProgram] = useState<any | null>(null);
   const [editFields, setEditFields] = useState({ 
@@ -142,7 +149,8 @@ export default function AdminPage() {
     originalPrice: 0,
     rating: 4.5,
     reviewCount: 0,
-    adminIds: [] as string[]
+    adminIds: [] as string[],
+    studentIds: [] as string[]
   });
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
@@ -202,6 +210,43 @@ export default function AdminPage() {
     }
   };
 
+  const handleEnrollStudent = async () => {
+    if (!firestore || !editingProgram || !enrollmentEmail) return;
+    setEnrolling(true);
+
+    try {
+      const q = query(collection(firestore, 'users'), where('email', '==', enrollmentEmail));
+      const snap = await getDocs(q);
+      
+      if (snap.empty) {
+        toast({ variant: "destructive", title: "User Not Found", description: "Please register the user first." });
+        return;
+      }
+
+      const studentUid = snap.docs[0].id;
+      if (editFields.studentIds.includes(studentUid)) {
+        toast({ title: "Already Enrolled", description: "This user is already a member of this program." });
+        return;
+      }
+
+      const newStudentIds = [...editFields.studentIds, studentUid];
+      setEditFields({ ...editFields, studentIds: newStudentIds });
+      setEnrollmentEmail('');
+      toast({ title: "Member Added", description: "Successfully enrolled user in the session." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Enrollment Error", description: err.message });
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
+  const removeStudent = (uid: string) => {
+    setEditFields(prev => ({
+      ...prev,
+      studentIds: prev.studentIds.filter(id => id !== uid)
+    }));
+  };
+
   const handleAddCourse = (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore) return;
@@ -217,6 +262,7 @@ export default function AdminPage() {
       progress: 0,
       isLocked: false,
       adminIds: [currentUser?.uid], // By default, the creator is an admin
+      studentIds: [],
       createdAt: serverTimestamp()
     }).then(() => {
       setCourseForm({ 
@@ -250,7 +296,8 @@ export default function AdminPage() {
       originalPrice: Number(editFields.originalPrice),
       rating: Number(editFields.rating),
       reviewCount: Number(editFields.reviewCount),
-      adminIds: editFields.adminIds
+      adminIds: editFields.adminIds,
+      studentIds: editFields.studentIds
     };
 
     updateDoc(programRef, updateData)
@@ -339,87 +386,85 @@ export default function AdminPage() {
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Management Suite</h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            {isSuperAdmin ? "Super Admin: Full system control and admin assignment." : "Scoped Admin: Manage your assigned training folders."}
+            {isSuperAdmin ? "Super Admin: Full system control and admin assignment." : "Scoped Admin: Manage your assigned training folders and members."}
           </p>
         </div>
-        {isSuperAdmin && activeTab === 'users' && (
-          <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="rounded-full h-12 px-6 flex gap-2 font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all">
-                <UserPlus size={18} /> Register New Account
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="rounded-3xl max-w-md">
-              <DialogHeader>
-                <DialogTitle>Register New Account</DialogTitle>
-                <DialogDescription>Create a student or specific admin account.</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleCreateUser} className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label className="font-bold">Full Name</Label>
-                  <Input 
-                    value={newUserForm.displayName} 
-                    onChange={e => setNewUserForm({...newUserForm, displayName: e.target.value})}
-                    placeholder="Name" 
-                    required 
-                    className="rounded-xl h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">Email Address</Label>
-                  <Input 
-                    type="email"
-                    value={newUserForm.email} 
-                    onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
-                    placeholder="email@example.com" 
-                    required 
-                    className="rounded-xl h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">Password</Label>
-                  <Input 
-                    type="password"
-                    value={newUserForm.password} 
-                    onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
-                    placeholder="••••••••" 
-                    required 
-                    className="rounded-xl h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold">System Role</Label>
-                  <Select value={newUserForm.role} onValueChange={(val: any) => setNewUserForm({...newUserForm, role: val})}>
-                    <SelectTrigger className="h-12 rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">Student (Hub Access)</SelectItem>
-                      <SelectItem value="admin">Admin (Management Access)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <DialogFooter className="pt-4">
-                  <Button type="submit" className="w-full rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 dark:text-slate-900" disabled={isAddingUser}>
-                    {isAddingUser ? "Registering..." : "Complete Registration"}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
-        )}
+        <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="rounded-full h-12 px-6 flex gap-2 font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all">
+              <UserPlus size={18} /> Register Member
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="rounded-3xl max-w-md">
+            <DialogHeader>
+              <DialogTitle>Register Account</DialogTitle>
+              <DialogDescription>Create a student account. Only Super Admins can create other admins.</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateUser} className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className="font-bold">Full Name</Label>
+                <Input 
+                  value={newUserForm.displayName} 
+                  onChange={e => setNewUserForm({...newUserForm, displayName: e.target.value})}
+                  placeholder="Name" 
+                  required 
+                  className="rounded-xl h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Email Address</Label>
+                <Input 
+                  type="email"
+                  value={newUserForm.email} 
+                  onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
+                  placeholder="email@example.com" 
+                  required 
+                  className="rounded-xl h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Password</Label>
+                <Input 
+                  type="password"
+                  value={newUserForm.password} 
+                  onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
+                  placeholder="••••••••" 
+                  required 
+                  className="rounded-xl h-12"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Role</Label>
+                <Select value={newUserForm.role} onValueChange={(val: any) => setNewUserForm({...newUserForm, role: val})}>
+                  <SelectTrigger className="h-12 rounded-xl">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student (Hub Access)</SelectItem>
+                    {isSuperAdmin && <SelectItem value="admin">Admin (Scoped Access)</SelectItem>}
+                  </SelectContent>
+                </Select>
+              </div>
+              <DialogFooter className="pt-4">
+                <Button type="submit" className="w-full rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 dark:text-slate-900" disabled={isAddingUser}>
+                  {isAddingUser ? "Registering..." : "Complete Registration"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
       </header>
 
-      <Tabs defaultValue={isSuperAdmin ? "users" : "courses"} value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs defaultValue="courses" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-white dark:bg-slate-900 border dark:border-slate-800 p-1 rounded-2xl h-14 w-full md:w-auto grid grid-cols-3">
-          <TabsTrigger value="users" disabled={!isSuperAdmin} className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all disabled:opacity-50">
-            <Users size={16} /> Admins & Members
+          <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
+            <Users size={16} /> Directory
           </TabsTrigger>
           <TabsTrigger value="courses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
-            <BookOpen size={16} /> Manage Programs
+            <BookOpen size={16} /> Programs
           </TabsTrigger>
           <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
-            <PlayerIcon className="h-4 w-4" /> Content Upload
+            <PlayerIcon className="h-4 w-4" /> Content
           </TabsTrigger>
         </TabsList>
 
@@ -427,8 +472,8 @@ export default function AdminPage() {
           {isSuperAdmin ? (
             <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-                <CardTitle>Directory</CardTitle>
-                <CardDescription>Grant specific admin privileges or manage student access status.</CardDescription>
+                <CardTitle>Member Directory</CardTitle>
+                <CardDescription>Full access list for the entire hub.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -483,10 +528,11 @@ export default function AdminPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed">
-              <ShieldAlert className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-xl font-bold">Access Restricted</h3>
-              <p className="text-slate-400 max-w-sm mx-auto">Only the Super Admin can view and manage the global member directory.</p>
+            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed flex flex-col items-center">
+              <ShieldAlert className="h-12 w-12 text-slate-300 mb-4" />
+              <h3 className="text-xl font-bold">Scoped Management</h3>
+              <p className="text-slate-400 max-w-sm mx-auto mb-6">You have limited directory access. You can register new members, and manage enrollment directly within your assigned program folders.</p>
+              <Button variant="outline" onClick={() => setIsUserDialogOpen(true)} className="rounded-full px-8">Register New Student</Button>
             </div>
           )}
         </TabsContent>
@@ -575,7 +621,8 @@ export default function AdminPage() {
                             originalPrice: c.originalPrice || 0,
                             rating: c.rating || 4.5,
                             reviewCount: c.reviewCount || 0,
-                            adminIds: c.adminIds || []
+                            adminIds: c.adminIds || [],
+                            studentIds: c.studentIds || []
                           }); 
                         }}
                       >
@@ -694,38 +741,77 @@ export default function AdminPage() {
 
       {/* Edit Program Dialog */}
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
-        <DialogContent className="rounded-3xl max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-3xl max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Management Config</DialogTitle>
-            <DialogDescription>Modify program details and assign specific admin access.</DialogDescription>
+            <DialogDescription>Modify program details and assign specific admin access or enroll students.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Title</Label>
-                  <Input 
-                    value={editFields.title} 
-                    onChange={(e) => setEditFields({...editFields, title: e.target.value})}
-                    className="rounded-xl h-12"
-                  />
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Title</Label>
+                    <Input 
+                      value={editFields.title} 
+                      onChange={(e) => setEditFields({...editFields, title: e.target.value})}
+                      className="rounded-xl h-12"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Description</Label>
+                    <Textarea 
+                      value={editFields.description} 
+                      onChange={(e) => setEditFields({...editFields, description: e.target.value})}
+                      className="rounded-xl min-h-[120px]"
+                    />
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Category</Label>
-                  <Input 
-                    value={editFields.category} 
-                    onChange={(e) => setEditFields({...editFields, category: e.target.value})}
-                    className="rounded-xl h-12"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Description</Label>
-                  <Textarea 
-                    value={editFields.description} 
-                    onChange={(e) => setEditFields({...editFields, description: e.target.value})}
-                    className="rounded-xl min-h-[120px]"
-                  />
-                </div>
+
+                {/* Enrollment Section */}
+                <Card className="border shadow-none rounded-2xl bg-white dark:bg-slate-900">
+                  <CardHeader className="p-5 pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Users size={18} className="text-primary" /> Session Enrollment
+                    </CardTitle>
+                    <CardDescription className="text-xs">Add members to this specific program session.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-5 pt-4 space-y-4">
+                    <div className="flex gap-2">
+                      <Input 
+                        placeholder="Student Email" 
+                        value={enrollmentEmail}
+                        onChange={(e) => setEnrollmentEmail(e.target.value)}
+                        className="rounded-xl h-11"
+                      />
+                      <Button onClick={handleEnrollStudent} disabled={enrolling} className="rounded-xl h-11 px-4">
+                        {enrolling ? "..." : "Enroll"}
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2 mt-4 max-h-[200px] overflow-y-auto pr-2">
+                      {editFields.studentIds.length === 0 ? (
+                        <div className="text-[10px] text-slate-400 text-center py-4 border border-dashed rounded-lg font-bold">
+                          No members enrolled yet.
+                        </div>
+                      ) : editFields.studentIds.map(sid => (
+                        <div key={sid} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border group">
+                          <div className="flex flex-col">
+                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">ID: {sid.substring(0, 8)}...</span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            onClick={() => removeStudent(sid)}
+                            className="h-7 w-7 text-slate-400 hover:text-red-500 rounded-full"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
               <div className="space-y-6">
@@ -746,7 +832,7 @@ export default function AdminPage() {
                   <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
                     <CardHeader className="p-4 pb-2">
                       <CardTitle className="text-sm flex items-center gap-2">
-                        <ShieldCheck size={16} className="text-primary" /> Admin Assignment
+                        <ShieldCheck size={16} className="text-primary" /> Manager Access
                       </CardTitle>
                       <CardDescription className="text-[10px]">Grant specific admins access to manage this folder.</CardDescription>
                     </CardHeader>
@@ -754,7 +840,7 @@ export default function AdminPage() {
                       <div className="space-y-3 mt-2">
                         {adminUsers.filter(u => u.email !== SUPER_ADMIN_EMAIL).length === 0 ? (
                           <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
-                            No secondary admin accounts found.<br/>Register an admin in the Members tab first.
+                            No secondary admin accounts found.
                           </div>
                         ) : adminUsers.filter(u => u.email !== SUPER_ADMIN_EMAIL).map((u: any) => (
                           <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
@@ -780,7 +866,7 @@ export default function AdminPage() {
                   <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
                     <ShieldAlert size={20} className="text-amber-500 shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                      You are a Scoped Admin for this program. You can edit content and lessons, but only the Super Admin can assign additional managers.
+                      As a Scoped Admin, you can edit content and enroll students, but only the Super Admin can assign additional management roles.
                     </p>
                   </div>
                 )}

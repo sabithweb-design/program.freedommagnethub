@@ -1,8 +1,9 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -25,17 +26,22 @@ interface Course {
   imageUrl: string;
   isBestseller?: boolean;
   isLocked?: boolean;
+  studentIds?: string[];
 }
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { loading: authLoading, isAdmin } = useAuth();
+  const { user, loading: authLoading, isAdmin } = useAuth();
   const firestore = useFirestore();
 
   const coursesQuery = useMemo(() => {
-    if (!firestore) return null;
-    return query(collection(firestore, "courses"));
-  }, [firestore]);
+    if (!firestore || !user) return null;
+    // Admins see all for monitoring. Students only see enrolled programs.
+    if (isAdmin) {
+      return query(collection(firestore, "courses"));
+    }
+    return query(collection(firestore, "courses"), where("studentIds", "array-contains", user.uid));
+  }, [firestore, user, isAdmin]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
@@ -62,7 +68,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
           <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10">
+            <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10">
               <Search className="h-5 w-5" />
             </Button>
           </div>
@@ -89,7 +95,7 @@ export default function DashboardPage() {
         {/* Category Header */}
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
-            <h2 className="text-lg sm:text-xl font-bold text-foreground">My courses</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-foreground">My Training Tracks</h2>
             <ChevronDown className="h-5 w-5 text-slate-400" />
           </div>
 
@@ -104,7 +110,11 @@ export default function DashboardPage() {
               ))
             ) : (
                <div className="col-span-full text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] sm:rounded-[3rem]">
-                <p className="text-slate-400 font-bold px-4">No courses found. Start exploring the marketplace!</p>
+                <p className="text-slate-400 font-bold px-4">
+                  {isAdmin 
+                    ? "No programs found in the database. Use the Admin Panel to create one." 
+                    : "You aren't enrolled in any program sessions yet. Please contact your instructor."}
+                </p>
               </div>
             )}
           </div>
