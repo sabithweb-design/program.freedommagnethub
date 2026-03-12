@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -51,7 +52,7 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="px-6 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <h1 className="text-xl font-black tracking-tighter text-foreground">
-          freedommagnet<span className="text-primary">hub</span>
+          freedom<span className="text-primary">magnethub</span>
         </h1>
         
         <div className="flex items-center gap-4 sm:gap-6">

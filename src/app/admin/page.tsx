@@ -58,7 +58,8 @@ import {
   Star,
   Image as ImageIcon,
   FileText,
-  ClipboardList
+  ClipboardList,
+  Share2
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -317,6 +318,15 @@ export default function AdminPage() {
     });
   };
 
+  const handleShareLesson = (dayNumber: number) => {
+    const url = `${window.location.origin}/lesson/${dayNumber}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copied",
+      description: `Direct link to Day ${dayNumber} has been copied to your clipboard.`,
+    });
+  };
+
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
       <header className="flex justify-between items-end">
@@ -363,7 +373,7 @@ export default function AdminPage() {
                   <Input 
                     type="password"
                     value={newUserForm.password} 
-                    onChange={e => setPassword(e.target.value)}
+                    onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
                     placeholder="••••••••" 
                     required 
                     className="rounded-xl h-12"
@@ -707,7 +717,15 @@ export default function AdminPage() {
                           </div>
                         </div>
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-full text-slate-400 hover:text-primary"
+                          onClick={() => handleShareLesson(l.dayNumber)}
+                        >
+                          <Share2 size={16} />
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
