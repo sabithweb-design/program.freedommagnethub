@@ -33,13 +33,13 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const [activeCategory, setActiveCategory] = useState("Coding");
 
-  // Fetch ALL courses without userId filter as requested
+  // Fetch all courses without filtering by userId
   const coursesQuery = useMemo(() => {
     if (!firestore) return null;
     return query(collection(firestore, "courses"));
   }, [firestore]);
 
-  const { data: courses, loading: coursesLoading, error } = useCollection<Course>(coursesQuery);
+  const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
   const filteredCourses = useMemo(() => {
     if (!courses) return [];
