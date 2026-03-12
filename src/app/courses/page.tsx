@@ -4,13 +4,14 @@ import React, { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
-import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, ExternalLink } from 'lucide-react';
+import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Grid } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface Course {
   id: string;
@@ -51,15 +52,18 @@ export default function CoursesPage() {
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
       <header className="px-4 sm:px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
-        <div className="flex items-center gap-2 sm:gap-4">
-          <Button variant="ghost" size="icon" asChild className="rounded-full">
+        <div className="flex items-center gap-2 sm:gap-5 shrink-0">
+          <Button variant="ghost" size="icon" asChild className="rounded-full h-9 w-9">
             <Link href="/dashboard">
-              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
+              <ChevronLeft className="h-5 w-5" />
             </Link>
           </Button>
-          <h1 className="text-sm md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
-            MARKETPLACE
-          </h1>
+          <div className="flex items-center gap-2">
+            <BrandLogo className="h-7 w-7 sm:h-8 sm:w-8" />
+            <h1 className="text-sm md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
+              MARKETPLACE
+            </h1>
+          </div>
         </div>
         
         <div className="hidden md:flex items-center flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8">
@@ -72,22 +76,22 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 sm:gap-8">
+        <div className="flex items-center gap-2 sm:gap-4 lg:gap-8">
           {isAdmin && (
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-3 sm:px-4 h-9 sm:h-10"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5"
             >
               <Link href="/admin">
-                <ExternalLink size={14} />
+                <Grid size={14} className="sm:size-4" />
                 <span className="text-[10px] sm:text-xs">Admin Panel</span>
               </Link>
             </Button>
           )}
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="rounded-full text-slate-600 dark:text-slate-400 h-9 w-9 sm:h-10 sm:w-10">
               <ShoppingCart className="h-5 w-5" />

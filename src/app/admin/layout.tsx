@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { PlayerIcon } from './page';
+import { BrandLogo } from '@/components/BrandLogo';
 
 const ADMIN_EMAIL = "admin@freedommagnethub.com";
 
@@ -46,15 +47,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Top Navbar */}
       <header className="bg-background/95 backdrop-blur-md border-b sticky top-0 z-50 transition-colors">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-10 h-20 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/admin" className="flex items-center gap-1 group shrink-0">
-            <span className="font-bold text-xl sm:text-2xl tracking-tight text-slate-800 dark:text-slate-100">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-10 h-20 flex items-center justify-between gap-4">
+          {/* Logo Section */}
+          <Link href="/admin" className="flex items-center gap-2 group shrink-0">
+            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
+            <span className="font-bold text-lg sm:text-2xl tracking-tight text-slate-800 dark:text-slate-100">
               freedom<span className="text-primary">magnethub</span>
             </span>
           </Link>
 
-          {/* Centered Menu */}
+          {/* Centered Menu (Desktop) */}
           <nav className="hidden lg:flex items-center gap-10 h-full">
             <NavItem icon={<LayoutDashboard size={20} />} label="DASHBOARD" href="/admin" active={pathname === '/admin'} />
             <NavItem icon={<Compass size={20} />} label="FEED" href="#" />
@@ -63,13 +65,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
           </nav>
 
-          {/* Right Icons */}
-          <div className="flex items-center gap-2 sm:gap-6">
+          {/* Right Icons & Action Button */}
+          <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-3 sm:px-4 h-9 sm:h-10"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5"
             >
               <Link href="/dashboard">
                 <ExternalLink size={14} />

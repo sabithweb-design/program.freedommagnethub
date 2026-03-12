@@ -7,10 +7,11 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, Star, ShieldCheck, Lock, ExternalLink } from 'lucide-react';
+import { Search, ChevronDown, Star, ShieldCheck, Lock, ExternalLink, Grid } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { BrandLogo } from '@/components/BrandLogo';
 
 interface Course {
   id: string;
@@ -50,26 +51,29 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
       <header className="px-4 sm:px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
-        <h1 className="text-lg sm:text-xl font-black tracking-tighter text-foreground shrink-0">
-          freedom<span className="text-primary">magnethub</span>
-        </h1>
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          <BrandLogo className="h-8 w-8 sm:h-9 sm:w-9" />
+          <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground">
+            freedom<span className="text-primary">magnethub</span>
+          </h1>
+        </div>
         
-        <div className="flex items-center gap-3 sm:gap-6 lg:gap-10">
+        <div className="flex items-center gap-2 sm:gap-4 lg:gap-8">
           {isAdmin && (
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-3 sm:px-4 h-9 sm:h-10"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 h-9 sm:h-10 px-3 sm:px-5"
             >
               <Link href="/admin">
-                <ExternalLink size={14} />
+                <Grid size={14} className="sm:size-4" />
                 <span className="text-[10px] sm:text-xs">Admin Panel</span>
               </Link>
             </Button>
           )}
           
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
             <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10">
               <Search className="h-5 w-5" />
