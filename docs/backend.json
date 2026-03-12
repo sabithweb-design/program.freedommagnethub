@@ -25,6 +25,7 @@
         "title": { "type": "string" },
         "description": { "type": "string" },
         "youtubeVideoId": { "type": "string" },
+        "isLocked": { "type": "boolean", "default": false },
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },
       "required": ["dayNumber", "title", "description", "youtubeVideoId", "courseId"]
@@ -44,7 +45,8 @@
         "userId": { "type": "string" },
         "description": { "type": "string" },
         "price": { "type": "number" },
-        "originalPrice": { "type": "number" }
+        "originalPrice": { "type": "number" },
+        "isLocked": { "type": "boolean", "default": false }
       },
       "required": ["title", "author", "category", "videos", "progress", "imageUrl"]
     }

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -7,7 +8,7 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, Star, ShieldCheck } from 'lucide-react';
+import { Search, ChevronDown, Star, ShieldCheck, Lock } from 'lucide-react';
 import Image from 'next/image';
 import { BrandLogo } from '@/components/BrandLogo';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -23,6 +24,7 @@ interface Course {
   originalPrice?: number;
   imageUrl: string;
   isBestseller?: boolean;
+  isLocked?: boolean;
 }
 
 export default function DashboardPage() {
@@ -80,7 +82,11 @@ export default function DashboardPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {courses && courses.length > 0 ? (
               courses.map((course) => (
-                <CourseUdemyCard key={course.id} course={course} onClick={() => router.push(`/lesson/1`)} />
+                <CourseUdemyCard 
+                  key={course.id} 
+                  course={course} 
+                  onClick={() => !course.isLocked && router.push(`/lesson/1`)} 
+                />
               ))
             ) : (
               // Hardcoded placeholder for demo purposes if DB is empty
@@ -135,7 +141,7 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
 
   return (
     <div 
-      className="group cursor-pointer flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
+      className={`group flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500 ${course.isLocked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'}`}
       onClick={onClick}
     >
       <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-slate-100 dark:bg-slate-900">
@@ -143,9 +149,16 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           src={thumbnailSrc}
           alt={course.title || "Program thumbnail"}
           fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          className={`object-cover transition-transform duration-500 ${!course.isLocked && 'group-hover:scale-105'}`}
         />
-        {course.isBestseller && (
+        {course.isLocked && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
+            <div className="bg-white/90 p-3 rounded-full">
+              <Lock size={24} className="text-slate-900" />
+            </div>
+          </div>
+        )}
+        {course.isBestseller && !course.isLocked && (
           <div className="absolute top-3 left-3 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[10px] font-bold px-2 py-1 rounded-sm border border-[#acd2cc] dark:border-emerald-800 shadow-sm">
             Bestseller
           </div>
@@ -153,26 +166,31 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
       </div>
 
       <div className="space-y-1">
-        <h3 className="font-bold text-[#1c1d1f] dark:text-slate-100 text-base leading-snug line-clamp-2">
-          {course.title || "Untitled Program"}
-        </h3>
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="font-bold text-[#1c1d1f] dark:text-slate-100 text-base leading-snug line-clamp-2">
+            {course.title || "Untitled Program"}
+          </h3>
+          {course.isLocked && <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none shrink-0 font-black text-[9px] uppercase tracking-widest">Locked</Badge>}
+        </div>
         <p className="text-[11px] text-[#6a6f73] dark:text-slate-400 line-clamp-1">
           {course.author || "Freedom Magnet Hub"}
         </p>
         
-        <div className="flex items-center gap-1">
-          <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue}</span>
-          <div className="flex">
-            {[...Array(5)].map((_, i) => (
-              <Star 
-                key={i} 
-                size={10} 
-                className={i < Math.floor(ratingValue) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500" : "text-slate-200 dark:text-slate-700"} 
-              />
-            ))}
+        {!course.isLocked && (
+          <div className="flex items-center gap-1">
+            <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue}</span>
+            <div className="flex">
+              {[...Array(5)].map((_, i) => (
+                <Star 
+                  key={i} 
+                  size={10} 
+                  className={i < Math.floor(ratingValue) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500" : "text-slate-200 dark:text-slate-700"} 
+                />
+              ))}
+            </div>
+            {reviewCountValue > 0 && <span className="text-[10px] text-[#6a6f73] dark:text-slate-500">({reviewCountValue.toLocaleString()})</span>}
           </div>
-          {reviewCountValue > 0 && <span className="text-[10px] text-[#6a6f73] dark:text-slate-500">({reviewCountValue.toLocaleString()})</span>}
-        </div>
+        )}
 
         <div className="flex items-center gap-2">
           <Badge className="bg-[#5022c3] dark:bg-[#4338ca] hover:bg-[#5022c3] text-white text-[10px] font-bold h-5 px-2 rounded-sm gap-1 flex items-center border-none">
@@ -180,7 +198,7 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           </Badge>
         </div>
 
-        {course.price && course.price > 0 ? (
+        {course.price && course.price > 0 && !course.isLocked ? (
           <div className="flex items-center gap-2 pt-1">
             <span className="font-bold text-lg text-[#1c1d1f] dark:text-slate-100">₹{course.price}</span>
             {course.originalPrice && course.originalPrice > course.price && (

@@ -1,13 +1,14 @@
+
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle, GraduationCap } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle, GraduationCap, Lock, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -17,6 +18,7 @@ interface LessonData {
   description: string;
   youtubeVideoId: string;
   dayNumber: number;
+  isLocked?: boolean;
 }
 
 const STARTER_LESSONS: Record<number, LessonData> = {
@@ -25,6 +27,7 @@ const STARTER_LESSONS: Record<number, LessonData> = {
     title: "Welcome to the 90-Day Training",
     description: "Welcome to your first day of transformation. In this introductory module, we explore the core principles of the Freedom Magnet methodology. We'll discuss how to shift your mindset from a standard educator to a high-impact mentor, setting the foundation for the next three months of growth.\n\nToday's objectives:\n1. Understand the 'Freedom Magnet' framework.\n2. Set your personal goals for the 90-day journey.\n3. Complete the initial self-assessment worksheet.",
     youtubeVideoId: "LXb3EKWsInQ",
+    isLocked: false
   }
 };
 
@@ -69,6 +72,33 @@ export default function LessonPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  // Handle Locked State
+  if (lesson?.isLocked) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
+        <div className="bg-slate-50 dark:bg-slate-900 w-24 h-24 rounded-full flex items-center justify-center mb-8 shadow-xl">
+          <Lock size={48} className="text-primary" />
+        </div>
+        <h1 className="text-3xl font-black text-foreground mb-4">Day {day}: Content Locked</h1>
+        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8 leading-relaxed font-medium">
+          This lesson is currently restricted by your mentors. Please complete previous milestones or contact support for access.
+        </p>
+        <div className="flex gap-4">
+          <Button variant="outline" asChild className="rounded-full px-8 h-12">
+            <Link href="/dashboard">Return to Hub</Link>
+          </Button>
+          <Button variant="default" asChild className="rounded-full px-8 h-12 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 font-bold">
+            <Link href={`/lesson/${day - 1}`}>Previous Lesson</Link>
+          </Button>
+        </div>
+        <div className="mt-12 flex items-center gap-2 text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">
+          <ShieldAlert size={14} />
+          Access Protection Enabled
+        </div>
       </div>
     );
   }

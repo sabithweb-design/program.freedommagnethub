@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -39,7 +40,22 @@ import {
   DialogTrigger
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Users, BookOpen, Video, Plus, UserCheck, UserMinus, Youtube, Save, Edit2, UserPlus, Shield, Trash2, IndianRupee } from 'lucide-react';
+import { 
+  Users, 
+  BookOpen, 
+  Video, 
+  Plus, 
+  UserCheck, 
+  UserMinus, 
+  Youtube, 
+  Save, 
+  Edit2, 
+  UserPlus, 
+  Trash2, 
+  IndianRupee, 
+  Lock, 
+  Unlock 
+} from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -79,6 +95,38 @@ export default function AdminPage() {
       })
       .catch(async (err) => {
         const pErr = new FirestorePermissionError({ path: userRef.path, operation: 'update', requestResourceData: { status: !currentStatus } });
+        errorEmitter.emit('permission-error', pErr);
+      });
+  };
+
+  const handleToggleProgramLock = (programId: string, currentLocked: boolean) => {
+    if (!firestore) return;
+    const programRef = doc(firestore, 'courses', programId);
+    updateDoc(programRef, { isLocked: !currentLocked })
+      .then(() => {
+        toast({
+          title: !currentLocked ? "Program Locked" : "Program Unlocked",
+          description: `Access status updated successfully.`,
+        });
+      })
+      .catch(async (err) => {
+        const pErr = new FirestorePermissionError({ path: programRef.path, operation: 'update', requestResourceData: { isLocked: !currentLocked } });
+        errorEmitter.emit('permission-error', pErr);
+      });
+  };
+
+  const handleToggleLessonLock = (lessonId: string, currentLocked: boolean) => {
+    if (!firestore) return;
+    const lessonRef = doc(firestore, 'lessons', lessonId);
+    updateDoc(lessonRef, { isLocked: !currentLocked })
+      .then(() => {
+        toast({
+          title: !currentLocked ? "Lesson Locked" : "Lesson Unlocked",
+          description: `Access status updated successfully.`,
+        });
+      })
+      .catch(async (err) => {
+        const pErr = new FirestorePermissionError({ path: lessonRef.path, operation: 'update', requestResourceData: { isLocked: !currentLocked } });
         errorEmitter.emit('permission-error', pErr);
       });
   };
@@ -135,6 +183,7 @@ export default function AdminPage() {
       originalPrice: Number(courseForm.originalPrice),
       videos: "0",
       progress: 0,
+      isLocked: false,
       createdAt: serverTimestamp()
     }).then(() => {
       setCourseForm({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin', price: 0, originalPrice: 0 });
@@ -208,6 +257,7 @@ export default function AdminPage() {
       description: lessonForm.description,
       dayNumber: Number(lessonForm.dayNumber),
       youtubeVideoId: extractId(lessonForm.youtubeUrl),
+      isLocked: false,
       createdAt: serverTimestamp()
     };
 
@@ -417,20 +467,30 @@ export default function AdminPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {courses?.map((c: any) => (
                   <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden p-3 flex gap-4 hover:shadow-md transition-shadow items-center relative group">
-                    <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800">
+                    <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800 relative">
                       <img src={c.imageUrl || 'https://picsum.photos/seed/program/200'} className="w-full h-full object-cover" alt={c.title} />
+                      {c.isLocked && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                          <Lock size={16} className="text-white" />
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col justify-center flex-1 min-w-0">
                       <h4 className="font-bold text-slate-800 dark:text-slate-200 leading-tight line-clamp-1">{c.title}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{c.category}</span>
                         {c.price > 0 && <span className="text-[10px] text-emerald-500 font-black">₹{c.price}</span>}
-                        {c.originalPrice > c.price && (
-                          <span className="text-[10px] text-slate-300 dark:text-slate-600 line-through font-bold">₹{c.originalPrice}</span>
-                        )}
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className={`rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 ${c.isLocked ? 'text-primary' : 'text-slate-400'}`}
+                        onClick={() => handleToggleProgramLock(c.id, !!c.isLocked)}
+                      >
+                        {c.isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                      </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -524,16 +584,27 @@ export default function AdminPage() {
                   return (
                     <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-4 flex items-center justify-between group">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${l.isLocked ? 'bg-slate-100 text-slate-400' : 'bg-primary/10 text-primary'}`}>
                           {l.dayNumber}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                              <h4 className="font-bold text-slate-800 dark:text-slate-200">{l.title}</h4>
                              {course && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded font-black uppercase">{course.title}</span>}
+                             {l.isLocked && <Lock size={12} className="text-slate-400" />}
                           </div>
                           <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
                         </div>
+                      </div>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className={`rounded-full ${l.isLocked ? 'text-primary' : 'text-slate-400'}`}
+                          onClick={() => handleToggleLessonLock(l.id, !!l.isLocked)}
+                        >
+                          {l.isLocked ? <Lock size={16} /> : <Unlock size={16} />}
+                        </Button>
                       </div>
                     </Card>
                   );
