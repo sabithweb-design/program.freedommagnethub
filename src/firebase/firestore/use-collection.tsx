@@ -25,7 +25,12 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
     const unsubscribe = onSnapshot(
       query,
       (snapshot: QuerySnapshot<T>) => {
-        setData(snapshot.docs.map((doc) => doc.data()));
+        setData(
+          snapshot.docs.map((doc) => ({
+            ...(doc.data() as any),
+            id: doc.id,
+          })) as T[]
+        );
         setLoading(false);
       },
       async (serverError) => {

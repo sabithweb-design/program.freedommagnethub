@@ -25,7 +25,8 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
     const unsubscribe = onSnapshot(
       ref,
       (snapshot: DocumentSnapshot<T>) => {
-        setData(snapshot.data() || null);
+        const docData = snapshot.data();
+        setData(docData ? ({ ...docData, id: snapshot.id } as T) : null);
         setLoading(false);
       },
       async (serverError) => {
