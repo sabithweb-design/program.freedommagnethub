@@ -45,7 +45,7 @@ export default function MyCoursesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 pb-20 font-body">
+    <div className="min-h-screen bg-[#FFFBF5] text-slate-900 pb-20 font-body">
       {/* Top Navbar */}
       <header className="bg-white border-b sticky top-0 z-50">
         <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
@@ -133,14 +133,19 @@ function NavItem({ label, href, active = false }: { label: string; href: string;
 }
 
 function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
+  // Ensure we don't pass an empty string to next/image src
+  const thumbnailSrc = course.imageUrl && course.imageUrl.trim() !== "" 
+    ? course.imageUrl 
+    : "https://picsum.photos/seed/course/800/450";
+
   return (
     <Card 
       className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 group cursor-pointer flex flex-col h-full"
       onClick={onClick}
     >
-      <div className="relative aspect-video w-full overflow-hidden">
+      <div className="relative aspect-video w-full overflow-hidden bg-slate-100">
         <Image 
-          src={course.imageUrl} 
+          src={thumbnailSrc} 
           alt={course.title}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-700"

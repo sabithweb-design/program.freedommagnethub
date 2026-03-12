@@ -45,7 +45,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white text-slate-900 pb-20 font-body">
+    <div className="min-h-screen bg-[#FFFBF5] text-slate-900 pb-20 font-body">
       {/* Header */}
       <header className="px-6 h-16 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-30 border-b">
         <h1 className="text-xl font-black tracking-tighter text-slate-900">
@@ -118,15 +118,20 @@ export default function DashboardPage() {
 }
 
 function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
+  // Ensure we don't pass an empty string to next/image src
+  const thumbnailSrc = course.imageUrl && course.imageUrl.trim() !== "" 
+    ? course.imageUrl 
+    : "https://picsum.photos/seed/course/800/450";
+
   return (
     <div 
       className="group cursor-pointer flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
       onClick={onClick}
     >
       {/* Thumbnail */}
-      <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+      <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 shadow-sm bg-slate-100">
         <Image
-          src={course.imageUrl}
+          src={thumbnailSrc}
           alt={course.title}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
