@@ -7,6 +7,7 @@
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
+        "displayName": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "role": { "type": "string", "enum": ["student", "admin"] },
         "status": { "type": "boolean", "description": "Active or deactivated status" },
