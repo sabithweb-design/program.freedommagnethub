@@ -46,7 +46,6 @@ import {
   Plus, 
   UserCheck, 
   UserMinus, 
-  Youtube, 
   Save, 
   Edit2, 
   UserPlus, 
@@ -57,11 +56,26 @@ import {
   Star,
   Image as ImageIcon,
   FileText,
-  Share2
+  Share2,
+  ClipboardList
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
+
+// Custom Player Icon to replace YouTube
+const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
+  <svg 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg" 
+    className={className}
+  >
+    <rect x="2" y="4" width="20" height="16" rx="4" fill="currentColor" opacity="0.15" />
+    <rect x="2" y="4" width="20" height="16" rx="4" stroke="currentColor" strokeWidth="2" />
+    <path d="M10 9L15 12L10 15V9Z" fill="currentColor" />
+  </svg>
+);
 
 export default function AdminPage() {
   const firestore = useFirestore();
@@ -89,7 +103,16 @@ export default function AdminPage() {
     rating: 4.5,
     reviewCount: 0
   });
-  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', courseId: '' });
+  const [lessonForm, setLessonForm] = useState({ 
+    title: '', 
+    description: '', 
+    dayNumber: 1, 
+    youtubeUrl: '', 
+    thumbnailUrl: '', 
+    pdfUrl: '', 
+    courseId: '',
+    actionPlan: '' 
+  });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
@@ -298,6 +321,7 @@ export default function AdminPage() {
       courseId: lessonForm.courseId,
       title: lessonForm.title || '',
       description: lessonForm.description || '',
+      actionPlan: lessonForm.actionPlan || '',
       dayNumber: Number(lessonForm.dayNumber),
       youtubeVideoId: extractId(lessonForm.youtubeUrl),
       thumbnailUrl: lessonForm.thumbnailUrl || '',
@@ -307,7 +331,7 @@ export default function AdminPage() {
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', actionPlan: '' });
       toast({ title: "Lesson Published", description: `Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData });
@@ -680,7 +704,11 @@ export default function AdminPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Description (Optional)</Label>
-                    <Textarea className="min-h-[120px] rounded-xl" placeholder="Detailed lesson content..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
+                    <Textarea className="min-h-[80px] rounded-xl" placeholder="Detailed lesson content..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
+                  </div>
+                   <div className="space-y-2">
+                    <Label className="font-bold">Action Plan (Optional)</Label>
+                    <Textarea className="min-h-[80px] rounded-xl" placeholder="Specific steps for the student..." value={lessonForm.actionPlan} onChange={e => setLessonForm({...lessonForm, actionPlan: e.target.value})} />
                   </div>
                   <Button type="submit" className="w-full h-12 rounded-xl font-bold flex gap-2">
                     <Save size={18} /> Publish Lesson
@@ -691,7 +719,7 @@ export default function AdminPage() {
 
             <div className="lg:col-span-2 space-y-4">
               <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2">
-                <Youtube size={18} className="text-red-600" /> Lesson Timeline
+                <PlayerIcon className="h-5 w-5 text-primary" /> Lesson Timeline
               </h3>
               <div className="space-y-3">
                 {lessonsLoading ? (
