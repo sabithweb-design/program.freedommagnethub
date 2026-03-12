@@ -56,7 +56,7 @@ export default function CoursesPage() {
               <ChevronLeft className="h-6 w-6" />
             </Link>
           </Button>
-          <h1 className="text-xl font-black tracking-tighter text-foreground">
+          <h1 className="text-xl font-black tracking-tighter text-foreground uppercase">
             MARKETPLACE
           </h1>
         </div>
@@ -78,7 +78,7 @@ export default function CoursesPage() {
               <ShoppingCart className="h-5 w-5" />
             </Button>
             <div className="font-bold text-foreground hidden sm:block ml-2">
-              Freedom<span className="text-primary">MagnetHub</span>
+              freedommagnet<span className="text-primary">hub</span>
             </div>
           </div>
           <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
@@ -101,37 +101,9 @@ export default function CoursesPage() {
               <MarketplaceCard key={course.id} course={course} />
             ))
           ) : (
-            // Fallback demo items if database is empty
-            <>
-              <MarketplaceCard 
-                course={{
-                  id: '1',
-                  title: "Ultimate AWS Certified Solutions Architect Associate 2026",
-                  author: "Stephane Maarek | AWS Certified Cloud Practitioner,Solutions...",
-                  category: "Cloud",
-                  rating: 4.7,
-                  ratingCount: 284118,
-                  price: 559,
-                  oldPrice: 3379,
-                  imageUrl: "https://picsum.photos/seed/aws/800/450",
-                  isBestseller: true
-                }}
-              />
-              <MarketplaceCard 
-                course={{
-                  id: '2',
-                  title: "CompTIA Security+ (SY0-701) Complete Course & Practice Exam",
-                  author: "Jason Dion • 2.8 Million+ Enrollments Worldwide, Dion Training...",
-                  category: "Security",
-                  rating: 4.7,
-                  ratingCount: 115071,
-                  price: 759,
-                  oldPrice: 4559,
-                  imageUrl: "https://picsum.photos/seed/security/800/450",
-                  isBestseller: true
-                }}
-              />
-            </>
+            <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+              <p className="text-slate-400 font-bold">No programs available in the marketplace yet.</p>
+            </div>
           )}
         </div>
       </main>
@@ -140,15 +112,16 @@ export default function CoursesPage() {
 }
 
 function MarketplaceCard({ course }: { course: Course }) {
-  const thumbnailSrc = course.imageUrl && course.imageUrl.trim() !== "" 
+  // Ensure the image URL is valid and handles relative paths or missing data correctly
+  const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
     : "https://picsum.photos/seed/course/800/450";
 
   const instructorName = course.instructor || course.author || "Freedom Magnet Hub";
   const displayRating = course.rating || 4.7;
-  const displayRatingCount = course.ratingCount || course.reviewCount || 1000;
-  const displayPrice = course.price || 559;
-  const displayOldPrice = course.oldPrice || course.originalPrice || 3379;
+  const displayRatingCount = course.ratingCount || course.reviewCount || 0;
+  const displayPrice = course.price || 0;
+  const displayOldPrice = course.originalPrice || 0;
 
   return (
     <div className="bg-card text-card-foreground rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-500 group">
@@ -159,6 +132,7 @@ function MarketplaceCard({ course }: { course: Course }) {
           alt={course.title || "Course thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-1000"
+          data-ai-hint="course thumbnail"
         />
         {course.isBestseller !== false && (
           <div className="absolute top-4 left-4 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[11px] font-black px-3 py-1 rounded-md border border-[#acd2cc] dark:border-emerald-800 shadow-sm uppercase tracking-wider">
@@ -192,11 +166,13 @@ function MarketplaceCard({ course }: { course: Course }) {
               ))}
             </div>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800">
-            <span className="text-[10px] text-slate-500 dark:text-slate-400 font-black">
-              {displayRatingCount.toLocaleString()} ratings
-            </span>
-          </div>
+          {displayRatingCount > 0 && (
+            <div className="bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800">
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-black">
+                {displayRatingCount.toLocaleString()} reviews
+              </span>
+            </div>
+          )}
           <Badge className="bg-[#5022c3] dark:bg-[#4338ca] hover:bg-[#5022c3] text-white text-[10px] font-black h-5 px-2 rounded-sm gap-1 flex items-center border-none">
             <ShieldCheck size={10} /> PREMIUM
           </Badge>
@@ -206,7 +182,7 @@ function MarketplaceCard({ course }: { course: Course }) {
         <div className="flex items-center justify-between pt-2">
           <div className="flex items-center gap-3">
             <span className="font-black text-2xl text-foreground">₹{displayPrice.toLocaleString()}</span>
-            {displayOldPrice && (
+            {displayOldPrice > displayPrice && (
               <span className="text-sm text-slate-400 dark:text-slate-500 line-through font-bold">
                 ₹{displayOldPrice.toLocaleString()}
               </span>

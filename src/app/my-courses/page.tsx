@@ -52,7 +52,7 @@ export default function MyCoursesPage() {
         <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-1 group">
             <span className="font-bold text-2xl tracking-tighter text-foreground">
-              freedom<span className="text-primary">magnethub</span>
+              freedommagnet<span className="text-primary">hub</span>
             </span>
           </Link>
 
@@ -87,33 +87,12 @@ export default function MyCoursesPage() {
               <EnrolledUdemyCard key={course.id} course={course} onClick={() => router.push(`/lesson/1`)} />
             ))
           ) : (
-            // Demo data if empty
-            <>
-              <EnrolledUdemyCard 
-                course={{
-                  id: '1',
-                  title: "Complete AI Automation And Agentic AI Bootcamp With n8n",
-                  author: "KRISHAI Technologies Private Limited, Mayank Aggarwal",
-                  category: "AI",
-                  rating: 4.4,
-                  imageUrl: "https://picsum.photos/seed/ai-bootcamp/800/450",
-                  progress: 45
-                }} 
-                onClick={() => router.push(`/lesson/1`)}
-              />
-              <EnrolledUdemyCard 
-                course={{
-                  id: '2',
-                  title: "Intro to AI Agents and Agentic AI",
-                  author: "365 Careers",
-                  category: "AI",
-                  rating: 4.5,
-                  imageUrl: "https://picsum.photos/seed/ai-agents/800/450",
-                  progress: 10
-                }} 
-                onClick={() => router.push(`/lesson/1`)}
-              />
-            </>
+             <div className="col-span-full text-center py-24 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+              <p className="text-slate-400 font-bold">You are not enrolled in any programs yet.</p>
+              <Button asChild className="mt-6 rounded-full px-8" variant="outline">
+                <Link href="/courses">Browse Marketplace</Link>
+              </Button>
+            </div>
           )}
         </section>
       </main>
@@ -135,7 +114,8 @@ function NavItem({ label, href, active = false }: { label: string; href: string;
 }
 
 function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
-  const thumbnailSrc = course.imageUrl && course.imageUrl.trim() !== "" 
+  // Robust image check
+  const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
     : "https://picsum.photos/seed/course/800/450";
 
@@ -150,6 +130,7 @@ function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () =>
           alt={course.title || "Enrolled course thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-700"
+          data-ai-hint="course thumbnail"
         />
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <PlayCircle size={48} className="text-white fill-white/20" />

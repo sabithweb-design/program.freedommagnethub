@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -52,7 +51,7 @@ export default function DashboardPage() {
       {/* Header */}
       <header className="px-6 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <h1 className="text-xl font-black tracking-tighter text-foreground">
-          freedom<span className="text-primary">magnethub</span>
+          freedommagnet<span className="text-primary">hub</span>
         </h1>
         
         <div className="flex items-center gap-4 sm:gap-6">
@@ -85,35 +84,9 @@ export default function DashboardPage() {
                 />
               ))
             ) : (
-              // Hardcoded placeholder for demo purposes if DB is empty
-              <>
-                <CourseUdemyCard 
-                  course={{
-                    id: '1',
-                    title: "Complete AI Automation And Agentic AI Bootcamp With n8n",
-                    author: "KRISHAI Technologies Private Limited, Mayank Aggarwal",
-                    category: "AI",
-                    rating: 4.4,
-                    reviewCount: 595,
-                    imageUrl: "https://picsum.photos/seed/ai-bootcamp/800/450",
-                    isBestseller: true
-                  }} 
-                  onClick={() => router.push(`/lesson/1`)}
-                />
-                <CourseUdemyCard 
-                  course={{
-                    id: '2',
-                    title: "Intro to AI Agents and Agentic AI",
-                    author: "365 Careers",
-                    category: "AI",
-                    rating: 4.5,
-                    reviewCount: 40800,
-                    imageUrl: "https://picsum.photos/seed/ai-agents/800/450",
-                    isBestseller: true
-                  }} 
-                  onClick={() => router.push(`/lesson/1`)}
-                />
-              </>
+               <div className="col-span-full text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
+                <p className="text-slate-400 font-bold">No courses found. Start exploring the marketplace!</p>
+              </div>
             )}
           </div>
         </section>
@@ -123,9 +96,10 @@ export default function DashboardPage() {
 }
 
 function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
-  const thumbnailSrc = course.imageUrl && course.imageUrl.trim() !== "" 
+  // Robust image source check
+  const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
-    : "https://picsum.photos/seed/program/800/450";
+    : "https://picsum.photos/seed/course/800/450";
 
   const ratingValue = course.rating || 4.5;
   const reviewCountValue = course.reviewCount || 0;
@@ -141,10 +115,11 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           alt={course.title || "Program thumbnail"}
           fill
           className={`object-cover transition-transform duration-500 ${!course.isLocked && 'group-hover:scale-105'}`}
+          data-ai-hint="course thumbnail"
         />
         {course.isLocked && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
-            <div className="bg-white/90 p-3 rounded-full">
+            <div className="bg-white/90 p-3 rounded-full shadow-lg">
               <Lock size={24} className="text-slate-900" />
             </div>
           </div>
@@ -167,7 +142,7 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           {course.author || "Freedom Magnet Hub"}
         </p>
         
-        {/* Rating Stars Section - Now Always Visible if Not Locked */}
+        {/* Rating Stars */}
         <div className="flex items-center gap-1">
           <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue.toFixed(1)}</span>
           <div className="flex">
@@ -188,11 +163,11 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           </Badge>
         </div>
 
-        {course.price && course.price > 0 && !course.isLocked ? (
+        {(course.price !== undefined && course.price > 0) && !course.isLocked ? (
           <div className="flex items-center gap-2 pt-1">
-            <span className="font-bold text-lg text-[#1c1d1f] dark:text-slate-100">₹{course.price}</span>
+            <span className="font-bold text-lg text-[#1c1d1f] dark:text-slate-100">₹{course.price.toLocaleString()}</span>
             {course.originalPrice && course.originalPrice > course.price && (
-              <span className="text-sm text-[#6a6f73] dark:text-slate-500 line-through">₹{course.originalPrice}</span>
+              <span className="text-sm text-[#6a6f73] dark:text-slate-500 line-through">₹{course.originalPrice.toLocaleString()}</span>
             )}
           </div>
         ) : null}
