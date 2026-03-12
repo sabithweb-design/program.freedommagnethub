@@ -7,20 +7,21 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Search, Play, BookOpen, ChevronLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Search, ChevronDown, Star, PlayCircle, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface Course {
   id: string;
   title: string;
   author: string;
   category: string;
-  videos: string; // e.g. "4/6"
-  progress: number; // e.g. 60
+  rating?: number;
+  reviewCount?: number;
+  price?: number;
+  originalPrice?: number;
   imageUrl: string;
-  isLatestLearned?: boolean;
+  isBestseller?: boolean;
 }
 
 export default function DashboardPage() {
@@ -35,139 +36,147 @@ export default function DashboardPage() {
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
-  const latestLearned = useMemo(() => {
-    if (!courses || courses.length === 0) return null;
-    return courses.find((c) => c.isLatestLearned) || courses[0];
-  }, [courses]);
-
-  const defaultPlaceholder = PlaceHolderImages.find(img => img.id === 'course-default')?.imageUrl || 'https://picsum.photos/seed/course/600/400';
-  const latestPlaceholder = PlaceHolderImages.find(img => img.id === 'latest-lesson')?.imageUrl || 'https://picsum.photos/seed/latest/800/400';
-
   if (authLoading || coursesLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F28C7F]"></div>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] text-slate-800 pb-10 font-body">
+    <div className="min-h-screen bg-white text-slate-900 pb-20 font-body">
       {/* Header */}
-      <header className="px-6 h-16 flex items-center justify-between sticky top-0 bg-[#FFFBF5]/80 backdrop-blur-md z-30">
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -ml-2" onClick={() => router.back()}>
-          <ChevronLeft className="h-6 w-6 text-slate-700" />
-        </Button>
-        <h1 className="text-xl font-bold text-slate-800 text-center flex-1">My Courses</h1>
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -mr-2">
-          <Search className="h-6 w-6 text-slate-700" />
-        </Button>
+      <header className="px-6 h-16 flex items-center justify-between sticky top-0 bg-white/95 backdrop-blur-md z-30 border-b">
+        <h1 className="text-xl font-black tracking-tighter text-slate-900">
+          freedom<span className="text-primary">magnet</span>
+        </h1>
+        <div className="flex gap-2">
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Search className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
 
-      <main className="px-6 space-y-8 max-w-xl mx-auto pt-4">
-        {/* Featured Card Section */}
-        <section className="space-y-4">
-          <h2 className="text-lg font-bold text-slate-800">Latest Learned</h2>
-          {latestLearned ? (
-            <Card 
-              className="overflow-hidden border-none shadow-xl rounded-[2.5rem] relative group bg-white cursor-pointer"
-              onClick={() => router.push(`/lesson/1`)}
-            >
-              <div className="relative aspect-[16/9]">
-                <Image
-                  src={latestLearned.imageUrl || latestPlaceholder}
-                  alt={latestLearned.title || "Latest Lesson"}
-                  fill
-                  className="object-cover"
-                  data-ai-hint="learning course"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-                
-                {/* Play Button Overlay */}
-                <div className="absolute right-6 bottom-6">
-                  <div className="bg-white/90 backdrop-blur p-4 rounded-full shadow-lg group-hover:scale-110 transition-transform">
-                    <Play className="h-6 w-6 text-[#F28C7F] fill-[#F28C7F]" />
-                  </div>
-                </div>
+      <main className="max-w-4xl mx-auto px-4 pt-6 space-y-8">
+        <div className="space-y-2">
+          <p className="text-sm text-slate-500 font-medium">From critical skills to technical topics, Freedom Magnet supports your professional development.</p>
+        </div>
 
-                <div className="absolute bottom-6 left-6 text-white space-y-1">
-                  <h3 className="text-2xl font-bold">{latestLearned.title}</h3>
-                  <p className="text-sm opacity-90 font-medium">Continue where you left off</p>
-                </div>
-              </div>
-            </Card>
-          ) : (
-             <div className="h-48 rounded-[2.5rem] bg-white flex items-center justify-center text-slate-400 border border-dashed border-slate-200">
-               <p>Start learning to see your progress here</p>
-             </div>
-          )}
-        </section>
+        {/* Category Header */}
+        <section className="space-y-6">
+          <div className="flex items-center justify-between border-b pb-4">
+            <h2 className="text-xl font-bold text-slate-900">Artificial Intelligence (AI)</h2>
+            <ChevronDown className="h-5 w-5 text-slate-400" />
+          </div>
 
-        {/* Course List Section */}
-        <div className="space-y-4 pb-12">
-          <h2 className="text-lg font-bold text-slate-800">All Courses</h2>
-          {courses && courses.length > 0 ? (
-            <div className="grid gap-4">
-              {courses.map((course) => (
-                <Card 
-                  key={course.id} 
-                  className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden p-4 hover:shadow-md transition-shadow cursor-pointer"
+          <div className="grid grid-cols-1 gap-8">
+            {courses && courses.length > 0 ? (
+              courses.map((course) => (
+                <CourseUdemyCard key={course.id} course={course} onClick={() => router.push(`/lesson/1`)} />
+              ))
+            ) : (
+              // Hardcoded placeholder for demo purposes if DB is empty
+              <>
+                <CourseUdemyCard 
+                  course={{
+                    id: '1',
+                    title: "Complete AI Automation And Agentic AI Bootcamp With n8n",
+                    author: "KRISHAI Technologies Private Limited, Mayank Aggarwal",
+                    category: "AI",
+                    rating: 4.4,
+                    reviewCount: 595,
+                    price: 519,
+                    originalPrice: 799,
+                    imageUrl: "https://picsum.photos/seed/ai-bootcamp/800/450",
+                    isBestseller: true
+                  }} 
                   onClick={() => router.push(`/lesson/1`)}
-                >
-                  <div className="flex gap-4">
-                    {/* Thumbnail */}
-                    <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-slate-100">
-                      <Image
-                        src={course.imageUrl || defaultPlaceholder}
-                        alt={course.title || "Course Thumbnail"}
-                        fill
-                        className="object-cover"
-                        data-ai-hint="course thumbnail"
-                      />
-                    </div>
-                    {/* Course Details */}
-                    <div className="flex-1 flex flex-col justify-between py-0.5">
-                      <div>
-                        <h3 className="font-bold text-slate-800 text-sm leading-tight">{course.title}</h3>
-                        <p className="text-[11px] text-slate-400 mt-1">
-                          Author by {course.author}
-                        </p>
-                      </div>
-                      {/* Progress Info */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-[#F28C7F]">
-                            {course.videos} Video
-                          </span>
-                          <span className="text-[10px] font-bold text-slate-300">
-                            {course.progress}%
-                          </span>
-                        </div>
-                        <Progress
-                          value={course.progress}
-                          className="h-1.5 bg-slate-100 progress-bar-coral"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="py-20 flex flex-col items-center justify-center text-center space-y-4 bg-white rounded-[2.5rem] border border-dashed border-slate-200">
-              <div className="bg-slate-50 p-6 rounded-full text-slate-300">
-                <BookOpen size={40} />
-              </div>
-              <div>
-                <h3 className="font-bold text-slate-800">No courses available</h3>
-                <p className="text-xs text-slate-400 max-w-[200px] mt-1 mx-auto">
-                  Courses will appear here once they are added by the administrator.
-                </p>
-              </div>
-            </div>
+                />
+                <CourseUdemyCard 
+                  course={{
+                    id: '2',
+                    title: "Intro to AI Agents and Agentic AI",
+                    author: "365 Careers",
+                    category: "AI",
+                    rating: 4.5,
+                    reviewCount: 40800,
+                    price: 519,
+                    originalPrice: 799,
+                    imageUrl: "https://picsum.photos/seed/ai-agents/800/450",
+                    isBestseller: true
+                  }} 
+                  onClick={() => router.push(`/lesson/1`)}
+                />
+              </>
+            )}
+          </div>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
+  return (
+    <div 
+      className="group cursor-pointer flex flex-col gap-3 animate-in fade-in slide-in-from-bottom-2 duration-500"
+      onClick={onClick}
+    >
+      {/* Thumbnail */}
+      <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+        <Image
+          src={course.imageUrl}
+          alt={course.title}
+          fill
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        {course.isBestseller && (
+          <div className="absolute top-3 left-3 bg-[#e1f7f1] text-[#1c1d1f] text-[10px] font-bold px-2 py-1 rounded-sm border border-[#acd2cc] shadow-sm">
+            Bestseller
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="space-y-1">
+        <h3 className="font-bold text-[#1c1d1f] text-base leading-snug line-clamp-2">
+          {course.title}
+        </h3>
+        <p className="text-[11px] text-[#6a6f73] line-clamp-1">
+          {course.author}
+        </p>
+        
+        {/* Rating */}
+        <div className="flex items-center gap-1">
+          <span className="text-xs font-bold text-[#b4690e]">{course.rating || 4.5}</span>
+          <div className="flex">
+            {[...Array(5)].map((_, i) => (
+              <Star 
+                key={i} 
+                size={10} 
+                className={i < Math.floor(course.rating || 4.5) ? "fill-[#b4690e] text-[#b4690e]" : "text-slate-200"} 
+              />
+            ))}
+          </div>
+          <span className="text-[10px] text-[#6a6f73]">({(course.reviewCount || 0).toLocaleString()})</span>
+        </div>
+
+        {/* Badge */}
+        <div className="flex items-center gap-2">
+          <Badge className="bg-[#5022c3] hover:bg-[#5022c3] text-white text-[10px] font-bold h-5 px-2 rounded-sm gap-1 flex items-center border-none">
+            <ShieldCheck size={10} /> Premium
+          </Badge>
+        </div>
+
+        {/* Price */}
+        <div className="flex items-center gap-2 pt-1">
+          <span className="font-bold text-lg text-[#1c1d1f]">₹{course.price || 519}</span>
+          {course.originalPrice && (
+            <span className="text-sm text-[#6a6f73] line-through">₹{course.originalPrice}</span>
           )}
         </div>
-      </main>
+      </div>
     </div>
   );
 }
