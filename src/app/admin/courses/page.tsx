@@ -6,7 +6,8 @@ import {
   Plus, 
   MoreVertical, 
   ChevronDown,
-  Edit2
+  Edit2,
+  Share2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -73,17 +74,23 @@ export default function ProgramManagementPage() {
       });
   };
 
+  const handleShare = (programId: string) => {
+    const url = `${window.location.origin}/courses`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copied",
+      description: "Program link copied to clipboard. Share this with your clients.",
+    });
+  };
+
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
       {/* Sub-Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Programs</h1>
         <div className="flex items-center gap-6">
-          <button className="text-primary font-bold text-sm hover:underline tracking-wide">
-            Comments
-          </button>
           <Button className="bg-[#FF4D4D] hover:bg-[#E63E3E] text-white rounded-xl px-7 h-11 flex gap-2 font-bold shadow-md transition-all active:scale-95">
-            <Plus size={20} strokeWidth={3} /> Create
+            <Plus size={20} strokeWidth={3} /> Create Program
           </Button>
         </div>
       </div>
@@ -93,12 +100,12 @@ export default function ProgramManagementPage() {
         <TabButton 
           active={activeTab === 'by-me'} 
           onClick={() => setActiveTab('by-me')}
-          label="Programs by me" 
+          label="My Programs" 
         />
         <TabButton 
           active={activeTab === 'purchased'} 
           onClick={() => setActiveTab('purchased')}
-          label="Purchased programs" 
+          label="Purchased" 
         />
       </div>
 
@@ -113,18 +120,6 @@ export default function ProgramManagementPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="h-14 rounded-2xl border-slate-200 px-8 flex gap-10 bg-white justify-between min-w-[160px] text-slate-700 font-bold shadow-sm hover:bg-slate-50">
-              Filter <ChevronDown size={18} className="text-slate-400" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="rounded-xl p-2 min-w-[160px]">
-            <DropdownMenuItem className="rounded-lg font-medium">Workshop</DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg font-medium">Program</DropdownMenuItem>
-            <DropdownMenuItem className="rounded-lg font-medium">Drip Content</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {/* Grid */}
@@ -139,21 +134,9 @@ export default function ProgramManagementPage() {
               key={program.id} 
               program={program} 
               onEdit={() => handleOpenEdit(program)}
+              onShare={() => handleShare(program.id)}
             />
           ))
-        )}
-        
-        {/* Placeholder if empty */}
-        {(!programs || programs.length === 0) && !loading && (
-           <ProgramCard 
-            program={{
-              title: "magnetic digital marketing formula",
-              sections: 6,
-              lectures: 7,
-              imageUrl: "https://picsum.photos/seed/digital-marketing/600/400"
-            }} 
-            onEdit={() => {}}
-           />
         )}
       </div>
 
@@ -199,7 +182,7 @@ function TabButton({ active, label, onClick }: { active: boolean, label: string,
   );
 }
 
-function ProgramCard({ program, onEdit }: { program: any, onEdit: () => void }) {
+function ProgramCard({ program, onEdit, onShare }: { program: any, onEdit: () => void, onShare: () => void }) {
   return (
     <div className="bg-white rounded-3xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col h-full hover:-translate-y-1">
       {/* Image */}
@@ -221,24 +204,31 @@ function ProgramCard({ program, onEdit }: { program: any, onEdit: () => void }) 
             </Badge>
           </div>
           <h3 className="text-xl font-black text-slate-800 capitalize leading-tight line-clamp-2">
-            {program.title || "magnetic digital marketing formula"}
+            {program.title || "Untitled Program"}
           </h3>
           <p className="text-sm text-slate-400 font-bold tracking-tight">
-            {program.sections || 6} sections • {program.lectures || 7} lectures
+            {program.category || "Training"} • Access Enabled
           </p>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-5 border-t border-slate-100 gap-3">
+        <div className="flex items-center justify-between pt-5 border-t border-slate-100 gap-2">
           <Button 
             variant="ghost" 
             onClick={onEdit}
-            className="flex-1 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 h-12 text-sm font-black border border-slate-200 hover:border-slate-300 transition-all flex gap-2"
+            className="flex-1 rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 h-11 text-xs font-black border border-slate-200 hover:border-slate-300 transition-all flex gap-2"
           >
             <Edit2 size={14} /> Rename
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-2xl text-slate-400 hover:bg-slate-50 h-12 w-12 border border-slate-200">
-            <MoreVertical size={20} />
+          <Button 
+            variant="ghost" 
+            onClick={onShare}
+            className="flex-1 rounded-2xl text-primary hover:text-primary hover:bg-rose-50 h-11 text-xs font-black border border-rose-100 transition-all flex gap-2"
+          >
+            <Share2 size={14} /> Share
+          </Button>
+          <Button variant="ghost" size="icon" className="rounded-2xl text-slate-400 hover:bg-slate-50 h-11 w-11 border border-slate-200">
+            <MoreVertical size={18} />
           </Button>
         </div>
       </div>
