@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -18,13 +19,14 @@
       "description": "Educational lesson content for the 90-day program in Freedom Magnet Hub.",
       "type": "object",
       "properties": {
+        "courseId": { "type": "string", "description": "Reference to the parent Course ID" },
         "dayNumber": { "type": "number" },
         "title": { "type": "string" },
         "description": { "type": "string" },
         "youtubeVideoId": { "type": "string" },
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },
-      "required": ["dayNumber", "title", "description", "youtubeVideoId"]
+      "required": ["dayNumber", "title", "description", "youtubeVideoId", "courseId"]
     },
     "Course": {
       "title": "Course",

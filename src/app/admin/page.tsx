@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -10,6 +11,13 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { 
   Table, 
   TableBody, 
   TableCell, 
@@ -19,7 +27,7 @@ import {
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Users, BookOpen, Video, Plus, UserCheck, UserMinus, Youtube, Save, Wand2 } from 'lucide-react';
+import { Users, BookOpen, Video, Plus, UserCheck, UserMinus, Youtube, Save, Wand2, ArrowRight } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -38,8 +46,8 @@ export default function AdminPage() {
   const { data: lessons, loading: lessonsLoading } = useCollection<any>(lessonsQuery);
 
   // Form States
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', category: 'Coding', imageUrl: '', author: 'Samuel' });
-  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '' });
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin' });
+  const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', courseId: '' });
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
     const userRef = doc(firestore, 'users', userId);
@@ -61,11 +69,11 @@ export default function AdminPage() {
 
     addDoc(collection(firestore, 'courses'), {
       ...courseForm,
-      videos: "0/0",
+      videos: "0",
       progress: 0,
       createdAt: serverTimestamp()
     }).then(() => {
-      setCourseForm({ title: '', description: '', category: 'Coding', imageUrl: '', author: 'Samuel' });
+      setCourseForm({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin' });
       toast({ title: "Course Created", description: "Successfully added a new course to the curriculum." });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm });
@@ -75,7 +83,10 @@ export default function AdminPage() {
 
   const handleAddLesson = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore) return;
+    if (!firestore || !lessonForm.courseId) {
+      toast({ variant: "destructive", title: "Missing Information", description: "Please select a course for this lesson." });
+      return;
+    }
 
     // Helper to extract YouTube ID
     const extractId = (url: string) => {
@@ -85,6 +96,7 @@ export default function AdminPage() {
     };
 
     const lessonData = {
+      courseId: lessonForm.courseId,
       title: lessonForm.title,
       description: lessonForm.description,
       dayNumber: Number(lessonForm.dayNumber),
@@ -93,7 +105,7 @@ export default function AdminPage() {
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '' });
       toast({ title: "Lesson Published", description: `Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       const pErr = new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData });
@@ -102,21 +114,23 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <header>
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight">Management Suite</h1>
-        <p className="text-slate-500 mt-2 font-medium">Configure your 90-day elite training hub.</p>
+    <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
+      <header className="flex justify-between items-end">
+        <div>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Management Suite</h1>
+          <p className="text-slate-500 mt-2 font-medium">Configure your 90-day elite training hub.</p>
+        </div>
       </header>
 
       <Tabs defaultValue="users" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-white border p-1 rounded-2xl h-14 w-full md:w-auto grid grid-cols-3">
-          <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2">
+          <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold">
             <Users size={16} /> Users
           </TabsTrigger>
-          <TabsTrigger value="courses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2">
+          <TabsTrigger value="courses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold">
             <BookOpen size={16} /> Courses
           </TabsTrigger>
-          <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2">
+          <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold">
             <Video size={16} /> Lessons
           </TabsTrigger>
         </TabsList>
@@ -175,7 +189,7 @@ export default function AdminPage() {
         {/* Courses Section */}
         <TabsContent value="courses">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white">
+            <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white h-fit">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="text-primary" /> New Course
@@ -185,22 +199,22 @@ export default function AdminPage() {
               <CardContent>
                 <form onSubmit={handleAddCourse} className="space-y-4">
                   <div className="space-y-2">
-                    <Label>Title</Label>
-                    <Input placeholder="e.g. Master React Native" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} required />
+                    <Label className="font-bold">Title</Label>
+                    <Input placeholder="e.g. Master React Native" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} required className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Thumbnail URL</Label>
-                    <Input placeholder="https://picsum.photos/..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} required />
+                    <Label className="font-bold">Thumbnail URL</Label>
+                    <Input placeholder="https://picsum.photos/..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} required className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Category</Label>
-                    <Input placeholder="Coding" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required />
+                    <Label className="font-bold">Category</Label>
+                    <Input placeholder="Coding" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Description</Label>
-                    <Textarea placeholder="Quick course overview..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} />
+                    <Label className="font-bold">Description</Label>
+                    <Textarea placeholder="Quick course overview..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px]" />
                   </div>
-                  <Button type="submit" className="w-full rounded-xl py-6">Add Course</Button>
+                  <Button type="submit" className="w-full rounded-xl h-12 font-bold">Create Course</Button>
                 </form>
               </CardContent>
             </Card>
@@ -211,13 +225,13 @@ export default function AdminPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {courses?.map((c: any) => (
-                  <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white overflow-hidden p-3 flex gap-4">
+                  <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white overflow-hidden p-3 flex gap-4 hover:shadow-md transition-shadow">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 shrink-0 overflow-hidden">
                       <img src={c.imageUrl} className="w-full h-full object-cover" />
                     </div>
-                    <div>
-                      <h4 className="font-bold text-slate-800 leading-tight">{c.title}</h4>
-                      <p className="text-xs text-slate-400 mt-1">{c.category} • {c.author}</p>
+                    <div className="flex flex-col justify-center">
+                      <h4 className="font-bold text-slate-800 leading-tight line-clamp-1">{c.title}</h4>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">{c.category} • {c.author}</p>
                     </div>
                   </Card>
                 ))}
@@ -229,34 +243,47 @@ export default function AdminPage() {
         {/* Lessons Section */}
         <TabsContent value="lessons">
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white">
+            <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white h-fit">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Video className="text-primary" /> Add Lesson
                 </CardTitle>
-                <CardDescription>Publish to the 90-day drip.</CardDescription>
+                <CardDescription>Upload a video to a specific course.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddLesson} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="font-bold">Select Course</Label>
+                    <Select value={lessonForm.courseId} onValueChange={(val) => setLessonForm({...lessonForm, courseId: val})}>
+                      <SelectTrigger className="h-12 rounded-xl">
+                        <SelectValue placeholder="Choose a course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {courses?.map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label>Day Number</Label>
-                      <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required />
+                      <Label className="font-bold">Day Number</Label>
+                      <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl" />
                     </div>
                     <div className="space-y-2">
-                      <Label>YouTube URL</Label>
-                      <Input placeholder="https://youtube.com/..." value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required />
+                      <Label className="font-bold">YouTube URL</Label>
+                      <Input placeholder="https://youtube.com/..." value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Lesson Title</Label>
-                    <Input placeholder="Key Concepts of Day X" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} required />
+                    <Label className="font-bold">Lesson Title</Label>
+                    <Input placeholder="Key Concepts" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} required className="h-12 rounded-xl" />
                   </div>
                   <div className="space-y-2">
-                    <Label>Rich Description</Label>
-                    <Textarea className="min-h-[150px]" placeholder="Detailed lesson content..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} required />
+                    <Label className="font-bold">Description</Label>
+                    <Textarea className="min-h-[120px] rounded-xl" placeholder="Detailed lesson content..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} required />
                   </div>
-                  <Button type="submit" className="w-full rounded-xl py-6 flex gap-2">
+                  <Button type="submit" className="w-full h-12 rounded-xl font-bold flex gap-2">
                     <Save size={18} /> Publish Lesson
                   </Button>
                 </form>
@@ -265,25 +292,33 @@ export default function AdminPage() {
 
             <div className="lg:col-span-2 space-y-4">
               <h3 className="font-bold text-slate-800 flex items-center gap-2 px-2">
-                <Youtube size={18} className="text-red-600" /> Curriculum Timeline
+                <Youtube size={18} className="text-red-600" /> Lesson Timeline
               </h3>
               <div className="space-y-3">
-                {lessons?.map((l: any) => (
-                  <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white p-4 flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
-                        {l.dayNumber}
+                {lessonsLoading ? (
+                  <div className="text-center py-10 text-slate-400">Loading lessons...</div>
+                ) : lessons?.map((l: any) => {
+                  const course = courses?.find(c => c.id === l.courseId);
+                  return (
+                    <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white p-4 flex items-center justify-between group">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary">
+                          {l.dayNumber}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                             <h4 className="font-bold text-slate-800">{l.title}</h4>
+                             {course && <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded font-black uppercase">{course.title}</span>}
+                          </div>
+                          <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
+                        </div>
                       </div>
-                      <div>
-                        <h4 className="font-bold text-slate-800">{l.title}</h4>
-                        <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Wand2 size={16} />
-                    </Button>
-                  </Card>
-                ))}
+                      <Button variant="ghost" size="icon" className="rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Wand2 size={16} />
+                      </Button>
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           </div>
