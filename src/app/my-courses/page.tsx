@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useMemo } from "react";
@@ -14,6 +13,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { ChevronLeft, Search, Play, BookOpen } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 interface Course {
   id: string;
@@ -22,7 +22,7 @@ interface Course {
   category: string;
   lessonsTotal: number;
   lessonsCompleted: number;
-  thumbnailUrl: string;
+  imageUrl: string;
   isLatestLearned?: boolean;
   userId: string;
 }
@@ -50,6 +50,9 @@ export default function MyCoursesPage() {
   const latestLearned = useMemo(() => {
     return courses?.find((c) => c.isLatestLearned) || courses?.[0];
   }, [courses]);
+
+  const defaultPlaceholder = PlaceHolderImages.find(img => img.id === 'course-default')?.imageUrl || '';
+  const latestPlaceholder = PlaceHolderImages.find(img => img.id === 'latest-lesson')?.imageUrl || '';
 
   if (authLoading || coursesLoading) {
     return (
@@ -102,11 +105,11 @@ export default function MyCoursesPage() {
             <Card className="overflow-hidden border-none shadow-xl rounded-[2.5rem] relative group bg-white">
               <div className="relative aspect-[16/9]">
                 <Image
-                  src={latestLearned.thumbnailUrl || 'https://picsum.photos/seed/latest/800/400'}
+                  src={latestLearned.imageUrl || latestPlaceholder}
                   alt={latestLearned.title || "Featured Course"}
                   fill
                   className="object-cover"
-                  data-ai-hint="coding illustration"
+                  data-ai-hint="learning illustration"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
                 
@@ -137,7 +140,7 @@ export default function MyCoursesPage() {
                   <div className="flex gap-4">
                     <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-[#E8F5F1]">
                       <Image
-                        src={course.thumbnailUrl || 'https://picsum.photos/seed/course/200/200'}
+                        src={course.imageUrl || defaultPlaceholder}
                         alt={course.title || "Course Thumbnail"}
                         fill
                         className="object-cover"
@@ -156,11 +159,11 @@ export default function MyCoursesPage() {
                           {course.lessonsCompleted}/{course.lessonsTotal} Video
                         </span>
                         <span className="text-[10px] font-bold text-slate-300">
-                          {Math.round((course.lessonsCompleted / course.lessonsTotal) * 100)}%
+                          {course.lessonsTotal > 0 ? Math.round((course.lessonsCompleted / course.lessonsTotal) * 100) : 0}%
                         </span>
                       </div>
                       <Progress
-                        value={(course.lessonsCompleted / course.lessonsTotal) * 100}
+                        value={course.lessonsTotal > 0 ? (course.lessonsCompleted / course.lessonsTotal) * 100 : 0}
                         className="h-1.5 bg-slate-100 mt-1"
                       />
                     </div>

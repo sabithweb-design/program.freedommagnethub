@@ -13,6 +13,7 @@ import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Search, Play, BookOpen, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 interface Course {
   id: string;
@@ -33,7 +34,6 @@ export default function DashboardPage() {
   const firestore = useFirestore();
   const [activeCategory, setActiveCategory] = useState("Coding");
 
-  // Fetch all courses from the collection without filtering by userId
   const coursesQuery = useMemo(() => {
     if (!firestore) return null;
     return query(collection(firestore, "courses"));
@@ -43,14 +43,15 @@ export default function DashboardPage() {
 
   const filteredCourses = useMemo(() => {
     if (!courses) return [];
-    // Ensure category filter matches the Firestore 'category' field
     return courses.filter((c) => c.category === activeCategory);
   }, [courses, activeCategory]);
 
   const latestLearned = useMemo(() => {
-    // Find course marked as latest or default to the first one available
     return courses?.find((c) => c.isLatestLearned) || courses?.[0];
   }, [courses]);
+
+  const defaultPlaceholder = PlaceHolderImages.find(img => img.id === 'course-default')?.imageUrl || '';
+  const latestPlaceholder = PlaceHolderImages.find(img => img.id === 'latest-lesson')?.imageUrl || '';
 
   if (authLoading || coursesLoading) {
     return (
@@ -106,7 +107,7 @@ export default function DashboardPage() {
             >
               <div className="relative aspect-[16/9]">
                 <Image
-                  src={latestLearned.imageUrl || 'https://picsum.photos/seed/latest/800/400'}
+                  src={latestLearned.imageUrl || latestPlaceholder}
                   alt={latestLearned.title || "Latest Lesson"}
                   fill
                   className="object-cover"
@@ -146,7 +147,7 @@ export default function DashboardPage() {
                     {/* Thumbnail */}
                     <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-slate-100">
                       <Image
-                        src={course.imageUrl || 'https://picsum.photos/seed/course/200/200'}
+                        src={course.imageUrl || defaultPlaceholder}
                         alt={course.title || "Course Thumbnail"}
                         fill
                         className="object-cover"

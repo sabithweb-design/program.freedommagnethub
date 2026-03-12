@@ -1,0 +1,34 @@
+{
+  "placeholderImages": [
+    {
+      "id": "js-expert",
+      "description": "JavaScript Code on Screen",
+      "imageUrl": "https://picsum.photos/seed/js/600/400",
+      "imageHint": "coding javascript"
+    },
+    {
+      "id": "design-ui",
+      "description": "UI Design Tools",
+      "imageUrl": "https://picsum.photos/seed/ui/600/400",
+      "imageHint": "design interface"
+    },
+    {
+      "id": "app-dev",
+      "description": "Mobile App Development",
+      "imageUrl": "https://picsum.photos/seed/dev/600/400",
+      "imageHint": "development software"
+    },
+    {
+      "id": "course-default",
+      "description": "Course Illustration",
+      "imageUrl": "https://picsum.photos/seed/course/600/400",
+      "imageHint": "education learning"
+    },
+    {
+      "id": "latest-lesson",
+      "description": "Featured Lesson Thumbnail",
+      "imageUrl": "https://picsum.photos/seed/latest/800/400",
+      "imageHint": "learning classroom"
+    }
+  ]
+}
