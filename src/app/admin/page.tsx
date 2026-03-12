@@ -25,8 +25,16 @@ import {
   TableRow 
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter,
+  DialogDescription
+} from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { Users, BookOpen, Video, Plus, UserCheck, UserMinus, Youtube, Save, Wand2 } from 'lucide-react';
+import { Users, BookOpen, Video, Plus, UserCheck, UserMinus, Youtube, Save, Edit2 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 
@@ -47,6 +55,10 @@ export default function AdminPage() {
   // Form States
   const [courseForm, setCourseForm] = useState({ title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin' });
   const [lessonForm, setLessonForm] = useState({ title: '', description: '', dayNumber: 1, youtubeUrl: '', courseId: '' });
+
+  // Edit State
+  const [editingProgram, setEditingProgram] = useState<any | null>(null);
+  const [editTitle, setEditTitle] = useState('');
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
     const userRef = doc(firestore, 'users', userId);
@@ -78,6 +90,25 @@ export default function AdminPage() {
       const pErr = new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm });
       errorEmitter.emit('permission-error', pErr);
     });
+  };
+
+  const handleRenameProgram = () => {
+    if (!firestore || !editingProgram) return;
+
+    const programRef = doc(firestore, 'courses', editingProgram.id);
+    updateDoc(programRef, { title: editTitle })
+      .then(() => {
+        toast({ title: "Program Renamed", description: "The program title has been updated." });
+        setEditingProgram(null);
+      })
+      .catch(async (err) => {
+        const pErr = new FirestorePermissionError({ 
+          path: programRef.path, 
+          operation: 'update', 
+          requestResourceData: { title: editTitle } 
+        });
+        errorEmitter.emit('permission-error', pErr);
+      });
   };
 
   const handleAddLesson = (e: React.FormEvent) => {
@@ -223,14 +254,22 @@ export default function AdminPage() {
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {courses?.map((c: any) => (
-                  <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white overflow-hidden p-3 flex gap-4 hover:shadow-md transition-shadow">
+                  <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white overflow-hidden p-3 flex gap-4 hover:shadow-md transition-shadow items-center">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 shrink-0 overflow-hidden">
-                      <img src={c.imageUrl} className="w-full h-full object-cover" />
+                      <img src={c.imageUrl || 'https://picsum.photos/seed/program/200'} className="w-full h-full object-cover" alt={c.title} />
                     </div>
-                    <div className="flex flex-col justify-center">
+                    <div className="flex flex-col justify-center flex-1 min-w-0">
                       <h4 className="font-bold text-slate-800 leading-tight line-clamp-1">{c.title}</h4>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">{c.category} • {c.author}</p>
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="rounded-full hover:bg-slate-50 text-slate-400 hover:text-primary"
+                      onClick={() => { setEditingProgram(c); setEditTitle(c.title); }}
+                    >
+                      <Edit2 size={16} />
+                    </Button>
                   </Card>
                 ))}
               </div>
@@ -319,6 +358,31 @@ export default function AdminPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Rename Dialog */}
+      <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
+        <DialogContent className="rounded-3xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Rename Program</DialogTitle>
+            <DialogDescription>Change the public title of this training program.</DialogDescription>
+          </DialogHeader>
+          <div className="py-4 space-y-4">
+            <div className="space-y-2">
+              <Label className="font-bold">Program Title</Label>
+              <Input 
+                value={editTitle} 
+                onChange={(e) => setEditTitle(e.target.value)}
+                className="rounded-xl h-12"
+                placeholder="Enter new title..."
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditingProgram(null)} className="rounded-xl h-12 font-bold">Cancel</Button>
+            <Button onClick={handleRenameProgram} className="rounded-xl h-12 font-bold bg-primary text-white">Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
