@@ -63,14 +63,22 @@
   @apply transition-all duration-300 hover:scale-105 active:scale-95;
 }
 
+/* Privacy-Enhanced Video Container */
 .video-container {
   position: relative;
   overflow: hidden;
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: 2rem;
+  background-color: #000;
 }
 
+/* 
+  The "Stealth Clip" technique: 
+  We make the iframe slightly larger (115%) and center it. 
+  This crops out the top bar (where YouTube shows the title) 
+  and the bottom bar (where they show the logo).
+*/
 .video-iframe {
   position: absolute;
   top: 50%;
@@ -79,4 +87,12 @@
   height: 115%;
   transform: translate(-50%, -50%);
   pointer-events: auto;
+}
+
+/* Deterrent class to prevent selection (applied to non-admins) */
+.content-protected {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }

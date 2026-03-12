@@ -43,8 +43,7 @@ const STARTER_LESSONS: Record<number, LessonData> = {
   1: {
     dayNumber: 1,
     title: "Welcome to the 90-Day Training",
-    description: "Welcome to your first day of transformation. In this introductory module, we explore the core principles of the Freedom Magnet methodology. We'll discuss how to shift your mindset from a standard educator to a high-impact mentor, setting the foundation for the next three months of growth.",
-    actionPlan: "1. Watch the welcome video.\n2. Set your personal goals for the 90-day journey.\n3. Download the self-assessment worksheet.",
+    description: "Welcome to your first day of transformation. In this introductory module, we explore the core principles of the Freedom Magnet methodology.",
     youtubeVideoId: "LXb3EKWsInQ",
     isLocked: false
   }
@@ -54,13 +53,22 @@ export default function LessonPage() {
   const { dayNumber } = useParams();
   const day = parseInt(dayNumber as string);
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, profile, loading, isAdmin } = useAuth();
   const { toast } = useToast();
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
+
+  useEffect(() => {
+    // Prevent right-click to protect video content (deterrent only)
+    if (!isAdmin) {
+      const handleContextMenu = (e: MouseEvent) => e.preventDefault();
+      document.addEventListener("contextmenu", handleContextMenu);
+      return () => document.removeEventListener("contextmenu", handleContextMenu);
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -88,7 +96,6 @@ export default function LessonPage() {
           setLessonId(currentLessonId);
           setLesson(currentLesson);
 
-          // Check completion status
           if (currentLessonId) {
             const progressRef = doc(db, 'users', user.uid, 'completedLessons', currentLessonId);
             const docSnap = await getDoc(progressRef);
@@ -116,7 +123,7 @@ export default function LessonPage() {
           setIsCompleted(false);
           toast({
             title: "Lesson Unmarked",
-            description: "Lesson has been removed from your completed list.",
+            description: "Lesson removed from completed list.",
           });
         })
         .catch(async (err) => {
@@ -133,7 +140,7 @@ export default function LessonPage() {
           setIsCompleted(true);
           toast({
             title: "Great Job!",
-            description: "Day " + day + " marked as complete. Keep going!",
+            description: "Day " + day + " marked as complete.",
           });
         })
         .catch(async (err) => {
@@ -163,26 +170,19 @@ export default function LessonPage() {
         </div>
         <h1 className="text-3xl font-black text-foreground mb-4">Day {day}: Content Locked</h1>
         <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8 leading-relaxed font-medium">
-          This lesson is currently restricted by your mentors. Please complete previous milestones or contact support for access.
+          Access to this lesson is currently restricted.
         </p>
         <div className="flex gap-4">
           <Button variant="outline" asChild className="rounded-full px-8 h-12">
             <Link href="/dashboard">Return to Hub</Link>
           </Button>
-          <Button variant="default" asChild className="rounded-full px-8 h-12 bg-slate-900 dark:bg-slate-100 dark:text-slate-900 font-bold">
-            <Link href={`/lesson/${day - 1}`}>Previous Lesson</Link>
-          </Button>
-        </div>
-        <div className="mt-12 flex items-center gap-2 text-[10px] font-black text-slate-300 dark:text-slate-700 uppercase tracking-widest">
-          <ShieldAlert size={14} />
-          Access Protection Enabled
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
+    <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-20 transition-colors">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -223,15 +223,26 @@ export default function LessonPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative">
+            {/* Privacy-Enhanced Video Embed */}
+            <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative group">
               {lesson.youtubeVideoId ? (
                 <>
                   <iframe 
+                    /* 
+                      Parameters:
+                      - modestbranding=1: Removes YT logo from bottom bar
+                      - rel=0: Shows related videos only from your channel
+                      - iv_load_policy=3: Hides annotations
+                      - disablekb=1: Disables keyboard navigation
+                      - fs=0: Disables full screen (to keep them in your UI)
+                    */
                     src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
                     className="video-iframe border-none" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     title={lesson.title || `Day ${day}`}
                   />
+                  {/* Deterrent: Transparent overlay that blocks clicks on the top "Title" area if not an admin */}
+                  {!isAdmin && <div className="absolute top-0 left-0 right-0 h-20 z-10 bg-transparent" />}
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800">
@@ -296,27 +307,25 @@ export default function LessonPage() {
                 )}
               </div>
 
-              {(lesson.pdfUrl) && (
+              {lesson.pdfUrl && (
                 <div className="md:w-72 shrink-0 space-y-4">
-                  {lesson.pdfUrl && (
-                    <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
-                      <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
-                        <FileText size={18} className="text-primary" />
-                        Study Material
-                      </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium">
-                        Download the day's specialized worksheet and roadmap.
-                      </p>
-                      <Button 
-                        className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold"
-                        asChild
-                      >
-                        <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                          Download PDF
-                        </a>
-                      </Button>
-                    </Card>
-                  )}
+                  <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
+                    <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
+                      <FileText size={18} className="text-primary" />
+                      Study Material
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium">
+                      Download the day's roadmap.
+                    </p>
+                    <Button 
+                      className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold"
+                      asChild
+                    >
+                      <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                        Download PDF
+                      </a>
+                    </Button>
+                  </Card>
                 </div>
               )}
             </div>
@@ -327,7 +336,7 @@ export default function LessonPage() {
                <PlayerIcon className="h-12 w-12 text-primary" />
             </div>
             <h2 className="text-2xl font-bold text-foreground mb-2">Lesson Coming Soon</h2>
-            <p className="text-slate-400 mb-8 max-w-xs mx-auto">This module is currently being finalized by your mentors.</p>
+            <p className="text-slate-400 mb-8 max-w-xs mx-auto">This module is currently being finalized.</p>
             <Button asChild variant="outline" className="rounded-full px-8">
               <Link href="/dashboard">Return to Dashboard</Link>
             </Button>
