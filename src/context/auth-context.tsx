@@ -6,6 +6,8 @@ import { User, onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { useAuth as useFirebaseAuth, useFirestore } from "@/firebase";
 
+const ADMIN_EMAIL = "admin@freedommagnethub.com";
+
 interface UserProfile {
   uid: string;
   email: string | null;
@@ -65,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         user,
         profile,
         loading,
-        isAdmin: profile?.role === "admin",
+        isAdmin: user?.email === ADMIN_EMAIL || profile?.role === "admin",
       }}
     >
       {children}

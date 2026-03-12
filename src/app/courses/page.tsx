@@ -1,10 +1,11 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
 import { collection, query } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
-import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Settings } from 'lucide-react';
+import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Settings, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -79,10 +80,10 @@ export default function CoursesPage() {
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-primary/20 text-primary font-bold gap-2 hover:bg-primary/5 transition-all active:scale-95 px-4 h-10"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-4 h-10"
             >
               <Link href="/admin">
-                <Settings size={14} />
+                <ExternalLink size={14} />
                 <span className="inline text-[10px] sm:text-xs">Admin Panel</span>
               </Link>
             </Button>
