@@ -47,10 +47,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Top Navbar */}
       <header className="bg-background/95 backdrop-blur-md border-b sticky top-0 z-50 transition-colors">
-        <div className="max-w-[1400px] mx-auto px-10 h-20 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-10 h-20 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/admin" className="flex items-center gap-1 group">
-            <span className="font-bold text-2xl tracking-tight text-slate-800 dark:text-slate-100">
+          <Link href="/admin" className="flex items-center gap-1 group shrink-0">
+            <span className="font-bold text-xl sm:text-2xl tracking-tight text-slate-800 dark:text-slate-100">
               freedom<span className="text-primary">magnethub</span>
             </span>
           </Link>
@@ -65,31 +65,31 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </nav>
 
           {/* Right Icons & Brand Logo */}
-          <div className="flex items-center gap-4 sm:gap-8">
+          <div className="flex items-center gap-2 sm:gap-6">
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="hidden sm:flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-3 sm:px-4 h-9 sm:h-10"
             >
               <Link href="/dashboard">
                 <ExternalLink size={14} />
-                View Hub
+                <span className="text-[10px] sm:text-xs">View Hub</span>
               </Link>
             </Button>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               <ThemeToggle />
-              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full">
-                <Grid size={20} />
+              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full h-9 w-9 sm:h-10 sm:w-10">
+                <Grid size={18} className="sm:size-5" />
               </Button>
-              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 relative rounded-full">
-                <Bell size={20} />
-                <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white dark:border-slate-900">3</span>
+              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 relative rounded-full h-9 w-9 sm:h-10 sm:w-10">
+                <Bell size={18} className="sm:size-5" />
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] sm:text-[10px] text-white flex items-center justify-center border-2 border-white dark:border-slate-900">3</span>
               </Button>
             </div>
-            <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 mx-2 hidden sm:block" />
-            <BrandLogo className="h-10 w-10" />
+            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 mx-1 hidden sm:block" />
+            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </div>
         </div>
       </header>

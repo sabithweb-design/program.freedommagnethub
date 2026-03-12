@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -49,10 +48,10 @@ export default function MyCoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Top Navbar */}
-      <header className="bg-background border-b sticky top-0 z-50 transition-colors px-8 md:px-20">
+      <header className="bg-background border-b sticky top-0 z-50 transition-colors px-4 sm:px-8 md:px-20">
         <div className="max-w-[1400px] mx-auto h-20 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-1 group">
-            <span className="font-bold text-2xl tracking-tighter text-foreground">
+          <Link href="/dashboard" className="flex items-center gap-1 group shrink-0">
+            <span className="font-bold text-lg sm:text-2xl tracking-tighter text-foreground">
               freedom<span className="text-primary">magnethub</span>
             </span>
           </Link>
@@ -63,47 +62,47 @@ export default function MyCoursesPage() {
             <NavItem label="WORKSHOPS" href="#" />
           </nav>
 
-          <div className="flex items-center gap-4 sm:gap-8">
+          <div className="flex items-center gap-2 sm:gap-6 lg:gap-8">
             {isAdmin && (
               <Button 
                 variant="outline" 
                 size="sm" 
                 asChild 
-                className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-4 h-10"
+                className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-3 sm:px-4 h-9 sm:h-10"
               >
                 <Link href="/admin">
                   <ExternalLink size={14} />
-                  <span className="inline text-[10px] sm:text-xs">Admin Panel</span>
+                  <span className="text-[10px] sm:text-xs">Admin Panel</span>
                 </Link>
               </Button>
             )}
             
-            <div className="flex items-center gap-3 md:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <ThemeToggle />
-              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full">
+              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full h-9 w-9 sm:h-10 sm:w-10">
                 <Bell size={20} />
               </Button>
             </div>
-            <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
-            <BrandLogo className="h-10 w-10" />
+            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block mx-1" />
+            <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           </div>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-10 space-y-10">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-foreground tracking-tight">My courses</h1>
+          <h1 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">My courses</h1>
         </div>
 
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
           {courses && courses.length > 0 ? (
             courses.map((course) => (
               <EnrolledUdemyCard key={course.id} course={course} onClick={() => router.push(`/lesson/1`)} />
             ))
           ) : (
-             <div className="col-span-full text-center py-24 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
-              <p className="text-slate-400 font-bold">You are not enrolled in any programs yet.</p>
-              <Button asChild className="mt-6 rounded-full px-8" variant="outline">
+             <div className="col-span-full text-center py-20 sm:py-24 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] sm:rounded-[3rem]">
+              <p className="text-slate-400 font-bold px-4">You are not enrolled in any programs yet.</p>
+              <Button asChild className="mt-6 rounded-full px-8 h-12" variant="outline">
                 <Link href="/courses">Browse Marketplace</Link>
               </Button>
             </div>
@@ -134,7 +133,7 @@ function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () =>
 
   return (
     <Card 
-      className="bg-card text-card-foreground rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-500 group cursor-pointer flex flex-col h-full"
+      className="bg-card text-card-foreground rounded-xl sm:rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-500 group cursor-pointer flex flex-col h-full"
       onClick={onClick}
     >
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
@@ -146,22 +145,22 @@ function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () =>
           data-ai-hint="course thumbnail"
         />
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-          <PlayCircle size={48} className="text-white fill-white/20" />
+          <PlayCircle size={40} className="text-white fill-white/20 sm:size-[48px]" />
         </div>
       </div>
 
-      <div className="p-6 space-y-4 flex flex-col flex-1">
+      <div className="p-5 sm:p-6 space-y-4 flex flex-col flex-1">
         <div className="space-y-2 flex-1">
-          <h3 className="text-lg font-black text-foreground leading-tight line-clamp-2">
+          <h3 className="text-base sm:text-lg font-black text-foreground leading-tight line-clamp-2">
             {course.title || "Untitled Course"}
           </h3>
-          <p className="text-xs text-slate-400 dark:text-slate-500 font-bold">
+          <p className="text-[10px] sm:text-xs text-slate-400 dark:text-slate-500 font-bold">
             {course.author || "Freedom Magnet Hub"}
           </p>
         </div>
 
         <div className="space-y-2 pt-4 border-t border-slate-50 dark:border-slate-800">
-          <div className="flex items-center justify-between text-[10px] font-black tracking-widest text-slate-400 dark:text-slate-500">
+          <div className="flex items-center justify-between text-[9px] sm:text-[10px] font-black tracking-widest text-slate-400 dark:text-slate-500">
             <span>PROGRESS</span>
             <span className="text-primary">{course.progress || 0}%</span>
           </div>

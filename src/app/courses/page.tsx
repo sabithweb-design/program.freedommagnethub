@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useMemo } from 'react';
@@ -52,14 +51,14 @@ export default function CoursesPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
-        <div className="flex items-center gap-4">
+      <header className="px-4 sm:px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Button variant="ghost" size="icon" asChild className="rounded-full">
             <Link href="/dashboard">
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-5 w-5 sm:h-6 sm:w-6" />
             </Link>
           </Button>
-          <h1 className="text-lg md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
+          <h1 className="text-sm md:text-xl font-black tracking-tighter text-foreground uppercase hidden sm:block">
             MARKETPLACE
           </h1>
         </div>
@@ -74,35 +73,35 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-4 sm:gap-8">
+        <div className="flex items-center gap-3 sm:gap-8">
           {isAdmin && (
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-4 h-10"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-3 sm:px-4 h-9 sm:h-10"
             >
               <Link href="/admin">
                 <ExternalLink size={14} />
-                <span className="inline text-[10px] sm:text-xs">Admin Panel</span>
+                <span className="text-[10px] sm:text-xs">Admin Panel</span>
               </Link>
             </Button>
           )}
 
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="rounded-full text-slate-600 dark:text-slate-400">
+            <Button variant="ghost" size="icon" className="rounded-full text-slate-600 dark:text-slate-400 h-9 w-9 sm:h-10 sm:w-10">
               <ShoppingCart className="h-5 w-5" />
             </Button>
           </div>
-          <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
-          <BrandLogo className="h-10 w-10" />
+          <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block mx-1" />
+          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>
       </header>
 
       <main className="max-w-xl mx-auto px-4 py-8 space-y-8">
         <div className="space-y-2 text-center">
-          <h2 className="text-3xl font-black text-foreground tracking-tight">Expand your horizon</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Expand your horizon</h2>
         </div>
 
         {/* Course Stack */}
@@ -112,8 +111,8 @@ export default function CoursesPage() {
               <MarketplaceCard key={course.id} course={course} />
             ))
           ) : (
-            <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
-              <p className="text-slate-400 font-bold">No programs available in the marketplace yet.</p>
+            <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] sm:rounded-[3rem]">
+              <p className="text-slate-400 font-bold px-4">No programs available in the marketplace yet.</p>
             </div>
           )}
         </div>
@@ -134,7 +133,7 @@ function MarketplaceCard({ course }: { course: Course }) {
   const displayOldPrice = course.originalPrice || 0;
 
   return (
-    <div className="bg-card text-card-foreground rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-500 group">
+    <div className="bg-card text-card-foreground rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-500 group">
       {/* Image Section */}
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
         <Image
@@ -145,26 +144,26 @@ function MarketplaceCard({ course }: { course: Course }) {
           data-ai-hint="course thumbnail"
         />
         {course.isBestseller !== false && (
-          <div className="absolute top-4 left-4 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[11px] font-black px-3 py-1 rounded-md border border-[#acd2cc] dark:border-emerald-800 shadow-sm uppercase tracking-wider">
+          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[10px] sm:text-[11px] font-black px-2 sm:px-3 py-1 rounded-md border border-[#acd2cc] dark:border-emerald-800 shadow-sm uppercase tracking-wider">
             Bestseller
           </div>
         )}
       </div>
 
       {/* Content Section */}
-      <div className="p-7 space-y-4">
+      <div className="p-5 sm:p-7 space-y-4">
         <div className="space-y-1.5">
-          <h3 className="font-black text-foreground text-xl leading-[1.2] line-clamp-2 hover:text-primary transition-colors cursor-pointer">
+          <h3 className="font-black text-foreground text-lg sm:text-xl leading-[1.2] line-clamp-2 hover:text-primary transition-colors cursor-pointer">
             {course.title || "Untitled Course"}
           </h3>
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-bold line-clamp-1">
+          <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-bold line-clamp-1">
             {instructorName}
           </p>
         </div>
 
         {/* Rating Row */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
+        <div className="flex items-center flex-wrap gap-2">
+          <div className="flex items-center gap-2">
             <span className="text-sm font-black text-[#b4690e] dark:text-amber-500">{displayRating.toFixed(1)}</span>
             <div className="flex">
               {[...Array(5)].map((_, i) => (
@@ -178,27 +177,27 @@ function MarketplaceCard({ course }: { course: Course }) {
           </div>
           {displayRatingCount > 0 && (
             <div className="bg-slate-50 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-100 dark:border-slate-800">
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 font-black">
+              <span className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400 font-black">
                 {displayRatingCount.toLocaleString()} reviews
               </span>
             </div>
           )}
-          <Badge className="bg-[#5022c3] dark:bg-[#4338ca] hover:bg-[#5022c3] text-white text-[10px] font-black h-5 px-2 rounded-sm gap-1 flex items-center border-none">
+          <Badge className="bg-[#5022c3] dark:bg-[#4338ca] hover:bg-[#5022c3] text-white text-[9px] sm:text-[10px] font-black h-5 px-2 rounded-sm gap-1 flex items-center border-none">
             <ShieldCheck size={10} /> PREMIUM
           </Badge>
         </div>
 
         {/* Price Section */}
-        <div className="flex items-center justify-between pt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 gap-4">
           <div className="flex items-center gap-3">
-            <span className="font-black text-2xl text-foreground">₹{displayPrice.toLocaleString()}</span>
+            <span className="font-black text-xl sm:text-2xl text-foreground">₹{displayPrice.toLocaleString()}</span>
             {displayOldPrice > displayPrice && (
-              <span className="text-sm text-slate-400 dark:text-slate-500 line-through font-bold">
+              <span className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 line-through font-bold">
                 ₹{displayOldPrice.toLocaleString()}
               </span>
             )}
           </div>
-          <Button className="rounded-xl px-8 h-12 font-black text-sm uppercase tracking-widest bg-slate-900 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors">
+          <Button className="w-full sm:w-auto rounded-xl px-8 h-12 font-black text-sm uppercase tracking-widest bg-slate-900 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors">
             Enroll Now
           </Button>
         </div>

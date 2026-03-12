@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -51,34 +50,34 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
-        <h1 className="text-xl font-black tracking-tighter text-foreground">
+      <header className="px-4 sm:px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+        <h1 className="text-lg sm:text-xl font-black tracking-tighter text-foreground shrink-0">
           freedom<span className="text-primary">magnethub</span>
         </h1>
         
-        <div className="flex items-center gap-4 sm:gap-10">
+        <div className="flex items-center gap-3 sm:gap-6 lg:gap-10">
           {isAdmin && (
             <Button 
               variant="outline" 
               size="sm" 
               asChild 
-              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-4 h-10"
+              className="flex rounded-full border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-bold gap-1 sm:gap-2 hover:bg-slate-50 dark:hover:bg-slate-900 transition-all active:scale-95 px-3 sm:px-4 h-9 sm:h-10"
             >
               <Link href="/admin">
                 <ExternalLink size={14} />
-                <span className="inline text-[10px] sm:text-xs">Admin Panel</span>
+                <span className="text-[10px] sm:text-xs">Admin Panel</span>
               </Link>
             </Button>
           )}
           
-          <div className="flex items-center gap-3 md:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500">
+            <Button variant="ghost" size="icon" className="rounded-full text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10">
               <Search className="h-5 w-5" />
             </Button>
           </div>
-          <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
-          <BrandLogo className="h-10 w-10" />
+          <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block mx-1" />
+          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>
       </header>
 
@@ -86,7 +85,7 @@ export default function DashboardPage() {
         {/* Category Header */}
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
-            <h2 className="text-xl font-bold text-foreground">My courses</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-foreground">My courses</h2>
             <ChevronDown className="h-5 w-5 text-slate-400" />
           </div>
 
@@ -100,8 +99,8 @@ export default function DashboardPage() {
                 />
               ))
             ) : (
-               <div className="col-span-full text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[3rem]">
-                <p className="text-slate-400 font-bold">No courses found. Start exploring the marketplace!</p>
+               <div className="col-span-full text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] sm:rounded-[3rem]">
+                <p className="text-slate-400 font-bold px-4">No courses found. Start exploring the marketplace!</p>
               </div>
             )}
           </div>
@@ -134,13 +133,13 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
         />
         {course.isLocked && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
-            <div className="bg-white/90 p-3 rounded-full shadow-lg">
-              <Lock size={24} className="text-slate-900" />
+            <div className="bg-white/90 p-2 sm:p-3 rounded-full shadow-lg">
+              <Lock size={20} className="text-slate-900 sm:size-6" />
             </div>
           </div>
         )}
         {course.isBestseller && !course.isLocked && (
-          <div className="absolute top-3 left-3 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[10px] font-bold px-2 py-1 rounded-sm border border-[#acd2cc] dark:border-emerald-800 shadow-sm">
+          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-1 rounded-sm border border-[#acd2cc] dark:border-emerald-800 shadow-sm">
             Bestseller
           </div>
         )}
@@ -148,41 +147,41 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
 
       <div className="space-y-1">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-[#1c1d1f] dark:text-slate-100 text-base leading-snug line-clamp-2">
+          <h3 className="font-bold text-[#1c1d1f] dark:text-slate-100 text-sm sm:text-base leading-snug line-clamp-2">
             {course.title || "Untitled Program"}
           </h3>
-          {course.isLocked && <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none shrink-0 font-black text-[9px] uppercase tracking-widest">Locked</Badge>}
+          {course.isLocked && <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none shrink-0 font-black text-[8px] sm:text-[9px] uppercase tracking-widest px-1.5 py-0">Locked</Badge>}
         </div>
-        <p className="text-[11px] text-[#6a6f73] dark:text-slate-400 line-clamp-1">
+        <p className="text-[10px] sm:text-[11px] text-[#6a6f73] dark:text-slate-400 line-clamp-1">
           {course.author || "Freedom Magnet Hub"}
         </p>
         
         {/* Rating Stars */}
         <div className="flex items-center gap-1">
-          <span className="text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue.toFixed(1)}</span>
+          <span className="text-[10px] sm:text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue.toFixed(1)}</span>
           <div className="flex">
             {[...Array(5)].map((_, i) => (
               <Star 
                 key={i} 
-                size={10} 
-                className={i < Math.floor(ratingValue) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500" : "text-slate-200 dark:text-slate-700"} 
+                size={8} 
+                className={i < Math.floor(ratingValue) ? "fill-[#b4690e] dark:fill-amber-500 text-[#b4690e] dark:text-amber-500 sm:size-[10px]" : "text-slate-200 dark:text-slate-700 sm:size-[10px]"} 
               />
             ))}
           </div>
-          {reviewCountValue > 0 && <span className="text-[10px] text-[#6a6f73] dark:text-slate-500">({reviewCountValue.toLocaleString()})</span>}
+          {reviewCountValue > 0 && <span className="text-[9px] sm:text-[10px] text-[#6a6f73] dark:text-slate-500">({reviewCountValue.toLocaleString()})</span>}
         </div>
 
         <div className="flex items-center gap-2">
-          <Badge className="bg-[#5022c3] dark:bg-[#4338ca] hover:bg-[#5022c3] text-white text-[10px] font-bold h-5 px-2 rounded-sm gap-1 flex items-center border-none">
+          <Badge className="bg-[#5022c3] dark:bg-[#4338ca] hover:bg-[#5022c3] text-white text-[9px] sm:text-[10px] font-bold h-5 px-1.5 sm:px-2 rounded-sm gap-1 flex items-center border-none">
             <ShieldCheck size={10} /> Premium
           </Badge>
         </div>
 
         {(course.price !== undefined && course.price > 0) && !course.isLocked ? (
           <div className="flex items-center gap-2 pt-1">
-            <span className="font-bold text-lg text-[#1c1d1f] dark:text-slate-100">₹{course.price.toLocaleString()}</span>
+            <span className="font-bold text-base sm:text-lg text-[#1c1d1f] dark:text-slate-100">₹{course.price.toLocaleString()}</span>
             {course.originalPrice && course.originalPrice > course.price && (
-              <span className="text-sm text-[#6a6f73] dark:text-slate-500 line-through">₹{course.originalPrice.toLocaleString()}</span>
+              <span className="text-xs sm:text-sm text-[#6a6f73] dark:text-slate-500 line-through">₹{course.originalPrice.toLocaleString()}</span>
             )}
           </div>
         ) : null}
