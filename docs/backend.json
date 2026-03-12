@@ -2,7 +2,7 @@
   "entities": {
     "UserProfile": {
       "title": "User Profile",
-      "description": "User account information including role, status, and cohort start date.",
+      "description": "User account information including role, status, and cohort start date for Freedom Magnet Hub.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
@@ -15,7 +15,7 @@
     },
     "Lesson": {
       "title": "Lesson",
-      "description": "Educational lesson content for the 90-day program.",
+      "description": "Educational lesson content for the 90-day program in Freedom Magnet Hub.",
       "type": "object",
       "properties": {
         "dayNumber": { "type": "number" },
@@ -54,7 +54,7 @@
     },
     "/lessons/{lessonId}": {
       "schema": "Lesson",
-      "description": "Lessons in the training program."
+      "description": "Lessons in the training program curriculum."
     },
     "/courses/{courseId}": {
       "schema": "Course",

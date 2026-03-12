@@ -20,7 +20,7 @@ import { signOut } from 'firebase/auth';
  * Set your master admin email here. 
  * Ensure you create this user in the Firebase Console.
  */
-const ADMIN_EMAIL = "admin@edutrail.com";
+const ADMIN_EMAIL = "admin@freedommagnethub.com";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user, profile, loading } = useAuth();
@@ -53,7 +53,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
             <ShieldCheck size={20} />
           </div>
-          <span className="font-bold text-xl tracking-tight text-slate-800">Admin Hub</span>
+          <span className="font-bold text-xl tracking-tight text-slate-800">Freedom Admin</span>
         </div>
         
         <nav className="flex-1 p-4 space-y-2">

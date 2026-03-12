@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { AuthProvider } from '@/context/auth-context';
@@ -6,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 
 export const metadata: Metadata = {
-  title: 'EduTrail - 90-Day Teacher Training',
+  title: 'Freedom Magnet Hub - 90-Day Teacher Training',
   description: 'An elite 90-day drip-content training program for modern teachers.',
 };
 

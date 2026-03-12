@@ -28,7 +28,7 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       // Check if it's the admin to redirect correctly
-      if (email === "admin@edutrail.com") {
+      if (email === "admin@freedommagnethub.com") {
         router.push("/admin");
       } else {
         router.push("/dashboard");
@@ -56,7 +56,7 @@ export default function LoginPage() {
       window.localStorage.setItem("emailForSignIn", email);
       toast({
         title: "Magic Link Sent",
-        description: "Check your email to sign in to EduTrail.",
+        description: "Check your email to sign in to Freedom Magnet Hub.",
       });
     } catch (error: any) {
       toast({
@@ -76,7 +76,7 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-xl shadow-primary/20">
             <GraduationCap size={32} />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">EduTrail</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Freedom Magnet Hub</h1>
           <p className="text-slate-500 font-medium">90-Day Elite Teacher Training</p>
         </div>
 
@@ -101,7 +101,7 @@ export default function LoginPage() {
                       <Input 
                         id="email" 
                         type="email" 
-                        placeholder="admin@edutrail.com" 
+                        placeholder="admin@freedommagnethub.com" 
                         className="pl-11 h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-primary" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}

@@ -118,8 +118,8 @@ export default function LessonPage() {
                   <div className="absolute bottom-0 right-0 w-48 h-16 bg-transparent z-10 pointer-events-none" />
                   
                   {/* Custom Mask for 'Watch on YouTube' button */}
-                  <div className="absolute bottom-4 left-4 w-32 h-8 bg-black/40 rounded-md backdrop-blur-sm z-10 flex items-center justify-center pointer-events-none">
-                     <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">EduTrail Player</span>
+                  <div className="absolute bottom-4 left-4 w-40 h-8 bg-black/40 rounded-md backdrop-blur-sm z-10 flex items-center justify-center pointer-events-none">
+                     <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">Freedom Magnet Player</span>
                   </div>
                 </>
               ) : (

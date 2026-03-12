@@ -5,7 +5,7 @@ service cloud.firestore {
     function isAdmin() {
       return request.auth != null && (
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        request.auth.token.email == 'admin@edutrail.com'
+        request.auth.token.email == 'admin@freedommagnethub.com'
       );
     }
 
