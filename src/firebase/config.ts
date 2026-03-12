@@ -1,10 +1,10 @@
 'use client';
 
 export const firebaseConfig = {
-  apiKey: "AIzaSyB-example-api-key",
-  authDomain: "edutrail-90-day-training.firebaseapp.com",
-  projectId: "edutrail-90-day-training",
-  storageBucket: "edutrail-90-day-training.firebasestorage.app",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:exampleappid"
+  apiKey: "AIzaSyAh04W_6xQSW1Qdm3tpMHzvHwBVj37L39Q",
+  authDomain: "studio-5549119316-fde4e.firebaseapp.com",
+  projectId: "studio-5549119316-fde4e",
+  storageBucket: "studio-5549119316-fde4e.firebasestorage.app",
+  messagingSenderId: "1050923858642",
+  appId: "1:1050923858642:web:5d27afb59d00773c324b0b"
 };
