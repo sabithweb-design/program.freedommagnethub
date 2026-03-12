@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,14 +17,14 @@
     --secondary-foreground: 220 80% 30%;
     --muted: 250 10% 90%;
     --muted-foreground: 250 10% 40%;
-    --accent: 220 80% 60%;
+    --accent: 15 80% 72%; /* Coral color from design */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 250 10% 85%;
     --input: 250 10% 85%;
-    --ring: 250 70% 40%;
-    --radius: 0.75rem;
+    --ring: 15 80% 72%;
+    --radius: 1.5rem;
   }
 
   .dark {
@@ -39,7 +40,7 @@
     --secondary-foreground: 250 10% 90%;
     --muted: 250 20% 15%;
     --muted-foreground: 250 10% 60%;
-    --accent: 220 80% 50%;
+    --accent: 15 80% 60%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
@@ -59,11 +60,11 @@
   }
 }
 
-.lesson-grid-item {
-  @apply transition-all duration-300 hover:scale-105 active:scale-95;
+/* Custom styles for matching the provided design */
+.progress-bar-primary > div {
+  background-color: #76C8B2 !important; /* Specific teal color for progress bars */
 }
 
-.locked-day {
-  filter: grayscale(1) opacity(0.6);
-  cursor: not-allowed;
+.lesson-grid-item {
+  @apply transition-all duration-300 hover:scale-105 active:scale-95;
 }
