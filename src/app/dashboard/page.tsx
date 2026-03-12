@@ -59,7 +59,7 @@ export default function DashboardPage() {
             </Button>
           </div>
           <div className="h-10 w-px bg-slate-100 hidden sm:block" />
-          <BrandLogo className="h-12 w-12" />
+          <BrandLogo className="h-10 w-10" />
         </div>
       </header>
 

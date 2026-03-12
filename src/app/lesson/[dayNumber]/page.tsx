@@ -103,7 +103,7 @@ export default function LessonPage() {
               </Button>
             </div>
             <div className="h-8 w-px bg-slate-100 hidden sm:block" />
-            <BrandLogo className="h-10 w-10" />
+            <BrandLogo className="h-8 w-8" />
           </div>
         </div>
       </div>

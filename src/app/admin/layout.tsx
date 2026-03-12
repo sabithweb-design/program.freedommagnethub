@@ -83,7 +83,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Avatar>
             </div>
             <div className="h-10 w-px bg-slate-100 mx-2 hidden sm:block" />
-            <BrandLogo className="h-14 w-14" />
+            <BrandLogo className="h-10 w-10" />
           </div>
         </div>
       </header>

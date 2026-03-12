@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-export function BrandLogo({ className = "h-12 w-12" }: { className?: string }) {
+export function BrandLogo({ className = "h-10 w-10" }: { className?: string }) {
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
       <svg 
