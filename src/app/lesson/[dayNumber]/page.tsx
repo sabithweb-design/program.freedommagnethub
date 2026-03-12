@@ -14,7 +14,6 @@ import {
   Clock, 
   GraduationCap, 
   Lock, 
-  ShieldAlert, 
   CheckCircle2,
   FileText,
   ClipboardList
@@ -38,16 +37,6 @@ interface LessonData {
   dayNumber: number;
   isLocked?: boolean;
 }
-
-const STARTER_LESSONS: Record<number, LessonData> = {
-  1: {
-    dayNumber: 1,
-    title: "Welcome to the 90-Day Training",
-    description: "Welcome to your first day of transformation. In this introductory module, we explore the core principles of the Freedom Magnet methodology.",
-    youtubeVideoId: "LXb3EKWsInQ",
-    isLocked: false
-  }
-};
 
 export default function LessonPage() {
   const { dayNumber } = useParams();
@@ -88,9 +77,6 @@ export default function LessonPage() {
           if (!querySnapshot.empty) {
             currentLessonId = querySnapshot.docs[0].id;
             currentLesson = querySnapshot.docs[0].data() as LessonData;
-          } else if (STARTER_LESSONS[day]) {
-            currentLessonId = `starter-${day}`;
-            currentLesson = STARTER_LESSONS[day];
           }
 
           setLessonId(currentLessonId);
@@ -183,7 +169,7 @@ export default function LessonPage() {
 
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
-      <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-20 transition-colors">
+      <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" asChild className="rounded-full">
@@ -224,25 +210,24 @@ export default function LessonPage() {
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Privacy-Enhanced Video Embed */}
-            <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative group">
+            <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative group select-none">
               {lesson.youtubeVideoId ? (
                 <>
                   <iframe 
-                    /* 
-                      Parameters:
-                      - modestbranding=1: Removes YT logo from bottom bar
-                      - rel=0: Shows related videos only from your channel
-                      - iv_load_policy=3: Hides annotations
-                      - disablekb=1: Disables keyboard navigation
-                      - fs=0: Disables full screen (to keep them in your UI)
-                    */
                     src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
                     className="video-iframe border-none" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     title={lesson.title || `Day ${day}`}
                   />
-                  {/* Deterrent: Transparent overlay that blocks clicks on the top "Title" area if not an admin */}
-                  {!isAdmin && <div className="absolute top-0 left-0 right-0 h-20 z-10 bg-transparent" />}
+                  {/* Deterrent: Transparent overlays that block clicks on the Top (Title) and Bottom Right (Logo) areas */}
+                  {!isAdmin && (
+                    <>
+                      {/* Covers the Top Title Area */}
+                      <div className="absolute top-0 left-0 right-0 h-[15%] z-10 bg-transparent cursor-default" />
+                      {/* Covers the Bottom Right Logo Area */}
+                      <div className="absolute bottom-0 right-0 w-[20%] h-[15%] z-10 bg-transparent cursor-default" />
+                    </>
+                  )}
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800">
@@ -262,7 +247,7 @@ export default function LessonPage() {
                         <BookOpen size={14} /> Module {Math.floor((day - 1) / 30) + 1}
                       </span>
                       <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                        <Clock size={14} /> 15 MIN READ
+                        <Clock size={14} /> DAY {day}
                       </span>
                     </div>
                   </div>

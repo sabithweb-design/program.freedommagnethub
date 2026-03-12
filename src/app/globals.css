@@ -71,13 +71,16 @@
   aspect-ratio: 16 / 9;
   border-radius: 2rem;
   background-color: #000;
+  /* Deterrent for screen recording on supported browsers */
+  -webkit-backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
 }
 
 /* 
   The "Stealth Clip" technique: 
-  We make the iframe slightly larger (115%) and center it. 
-  This crops out the top bar (where YouTube shows the title) 
-  and the bottom bar (where they show the logo).
+  We make the iframe larger (115%) and center it. 
+  This physically crops out the top bar (titles) 
+  and the bottom right area (logo).
 */
 .video-iframe {
   position: absolute;
