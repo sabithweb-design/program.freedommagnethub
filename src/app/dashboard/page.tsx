@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -75,7 +74,7 @@ export default function DashboardPage() {
         {/* Category Header */}
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
-            <h2 className="text-xl font-bold text-foreground">Featured Programs</h2>
+            <h2 className="text-xl font-bold text-foreground">My courses</h2>
             <ChevronDown className="h-5 w-5 text-slate-400" />
           </div>
 

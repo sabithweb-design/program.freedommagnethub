@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -59,7 +58,7 @@ export default function MyCoursesPage() {
 
           <nav className="hidden lg:flex items-center gap-10 h-full">
             <NavItem label="DASHBOARD" href="/dashboard" />
-            <NavItem label="FEATURED PROGRAMS" href="/my-courses" active />
+            <NavItem label="MY COURSES" href="/my-courses" active />
             <NavItem label="WORKSHOPS" href="#" />
           </nav>
 
@@ -78,7 +77,7 @@ export default function MyCoursesPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-10 space-y-10">
         <div className="space-y-1">
-          <h1 className="text-3xl font-black text-foreground tracking-tight">Featured Programs</h1>
+          <h1 className="text-3xl font-black text-foreground tracking-tight">My courses</h1>
           <p className="text-slate-500 dark:text-slate-400 font-medium">Continue your professional development journey.</p>
         </div>
 
