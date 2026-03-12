@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -11,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
-import { Search, Play, BookOpen, GraduationCap } from 'lucide-react';
+import { Search, Play, BookOpen, ChevronLeft } from 'lucide-react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -30,11 +29,11 @@ const CATEGORIES = ["Coding", "Design", "Development", "Writing", "Business"];
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useAuth();
+  const { loading: authLoading } = useAuth();
   const firestore = useFirestore();
   const [activeCategory, setActiveCategory] = useState("Coding");
 
-  // Fetch ALL courses without userId filter
+  // Fetch ALL courses without userId filter as requested
   const coursesQuery = useMemo(() => {
     if (!firestore) return null;
     return query(collection(firestore, "courses"));
@@ -54,38 +53,25 @@ export default function DashboardPage() {
   if (authLoading || coursesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#FFFBF5] p-4 text-center">
-        <div>
-          <h2 className="text-xl font-bold text-destructive">Unable to load curriculum</h2>
-          <p className="text-muted-foreground">Please ensure you have authenticated access.</p>
-        </div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#F28C7F]"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#FFFBF5] text-foreground pb-10">
+    <div className="min-h-screen bg-[#FFFBF5] text-slate-800 pb-10">
       {/* Header */}
-      <header className="px-6 h-16 flex items-center justify-between sticky top-0 bg-[#FFFBF5]/80 backdrop-blur-md z-30 border-b border-black/5">
-        <div className="flex items-center gap-2">
-          <div className="bg-primary p-1.5 rounded-lg text-white">
-            <GraduationCap size={20} />
-          </div>
-          <h1 className="text-xl font-bold text-slate-800">My Courses</h1>
-        </div>
-        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5">
+      <header className="px-6 h-16 flex items-center justify-between sticky top-0 bg-[#FFFBF5]/80 backdrop-blur-md z-30">
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -ml-2">
+          <ChevronLeft className="h-6 w-6 text-slate-700" />
+        </Button>
+        <h1 className="text-xl font-bold text-slate-800">My Courses</h1>
+        <Button variant="ghost" size="icon" className="rounded-full hover:bg-black/5 -mr-2">
           <Search className="h-6 w-6 text-slate-700" />
         </Button>
       </header>
 
-      <main className="px-6 space-y-8 max-w-4xl mx-auto pt-6">
+      <main className="px-6 space-y-8 max-w-xl mx-auto pt-4">
         {/* Categories */}
         <ScrollArea className="w-full whitespace-nowrap">
           <div className="flex gap-3 py-2">
@@ -116,7 +102,7 @@ export default function DashboardPage() {
               className="overflow-hidden border-none shadow-xl rounded-[2.5rem] relative group bg-white cursor-pointer"
               onClick={() => router.push(`/lesson/1`)}
             >
-              <div className="relative aspect-[16/9] md:aspect-[21/9]">
+              <div className="relative aspect-[16/9]">
                 <Image
                   src={latestLearned.thumbnailUrl || 'https://picsum.photos/seed/latest/800/400'}
                   alt={latestLearned.title || "Featured Course"}
@@ -140,23 +126,22 @@ export default function DashboardPage() {
               </div>
             </Card>
           ) : (
-             <div className="h-48 md:h-64 rounded-[2.5rem] bg-slate-100 animate-pulse" />
+             <div className="h-48 rounded-[2.5rem] bg-slate-100 animate-pulse" />
           )}
         </section>
 
         {/* Course List */}
         <div className="space-y-4 pb-12">
-          <h2 className="text-lg font-bold text-slate-800">Browse {activeCategory}</h2>
           {filteredCourses.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid gap-4">
               {filteredCourses.map((course) => (
                 <Card 
                   key={course.id} 
-                  className="border-none shadow-sm rounded-3xl bg-white overflow-hidden p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  className="border-none shadow-sm rounded-[2rem] bg-white overflow-hidden p-4 hover:shadow-md transition-shadow cursor-pointer"
                   onClick={() => router.push(`/lesson/1`)}
                 >
                   <div className="flex gap-4">
-                    <div className="relative h-24 w-24 rounded-2xl overflow-hidden shrink-0 bg-[#E8F5F1]">
+                    <div className="relative h-20 w-20 rounded-2xl overflow-hidden shrink-0 bg-[#E8F5F1]">
                       <Image
                         src={course.thumbnailUrl || 'https://picsum.photos/seed/course/200/200'}
                         alt={course.title || "Course Thumbnail"}
@@ -165,25 +150,25 @@ export default function DashboardPage() {
                         data-ai-hint="course icon"
                       />
                     </div>
-                    <div className="flex-1 flex flex-col justify-between py-1">
+                    <div className="flex-1 flex flex-col justify-between py-0.5">
                       <div>
-                        <h3 className="font-bold text-slate-800 text-base leading-tight">{course.title}</h3>
-                        <p className="text-xs text-slate-400 mt-1">
-                          By {course.author}
+                        <h3 className="font-bold text-slate-800 text-sm leading-tight">{course.title}</h3>
+                        <p className="text-[11px] text-slate-400 mt-1">
+                          Author by {course.author}
                         </p>
                       </div>
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-[#76C8B2]">
-                            {course.lessonsCompleted}/{course.lessonsTotal} Lessons
+                          <span className="text-[10px] font-bold text-[#76C8B2]">
+                            {course.lessonsCompleted}/{course.lessonsTotal} Video
                           </span>
-                          <span className="text-[11px] font-bold text-slate-300">
+                          <span className="text-[10px] font-bold text-slate-300">
                             {Math.round((course.lessonsCompleted / course.lessonsTotal) * 100)}%
                           </span>
                         </div>
                         <Progress
                           value={(course.lessonsCompleted / course.lessonsTotal) * 100}
-                          className="h-2 bg-slate-100"
+                          className="h-1.5 bg-slate-100 progress-bar-primary"
                         />
                       </div>
                     </div>
@@ -199,7 +184,7 @@ export default function DashboardPage() {
               <div>
                 <h3 className="font-bold text-slate-800">No courses in {activeCategory}</h3>
                 <p className="text-xs text-slate-400 max-w-[200px] mt-1 mx-auto">
-                  Try selecting a different category or check back later.
+                  Courses for this category will appear here.
                 </p>
               </div>
             </div>
