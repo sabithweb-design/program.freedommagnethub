@@ -3,33 +3,49 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    function isAdmin() {
+    // Super Admin check: Global admin email or explicit role
+    function isSuperAdmin() {
       return request.auth != null && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-        request.auth.token.email == 'admin@freedommagnethub.com'
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@freedommagnethub.com'
       );
     }
 
-    // User profile: Users can only read/write their own profiles. Admins can do everything.
+    // Scoped Admin check: Has admin role AND is explicitly assigned to the course
+    function isCourseAdmin(courseId) {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      let course = get(/databases/$(database)/documents/courses/$(courseId)).data;
+      return request.auth != null && (
+        isSuperAdmin() || 
+        (user.role == 'admin' && request.auth.uid in course.adminIds)
+      );
+    }
+
+    // User profile: Users can only read/write their own profiles. Super Admins can do everything.
     match /users/{userId} {
-      allow read: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow write: if request.auth != null && (request.auth.uid == userId || isAdmin());
+      allow read: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
       
       match /completedLessons/{lessonId} {
         allow read, write: if request.auth != null && request.auth.uid == userId;
       }
     }
     
-    // Lessons: All authenticated users can read all lessons.
+    // Lessons: Scoped admins can manage lessons belonging to their assigned courses.
     match /lessons/{lessonId} {
       allow read: if request.auth != null;
-      allow write: if isAdmin();
+      allow write, create, delete: if request.auth != null && (
+        isSuperAdmin() || 
+        isCourseAdmin(request.resource.data.courseId) || 
+        isCourseAdmin(resource.data.courseId)
+      );
     }
 
-    // Courses: Authenticated users can read all courses. 
+    // Courses: Super Admin manages all. Scoped Admin manages assigned courses.
     match /courses/{courseId} {
       allow read: if request.auth != null;
-      allow write, create: if isAdmin();
+      allow create: if isSuperAdmin();
+      allow update, delete: if isCourseAdmin(courseId);
     }
   }
 }

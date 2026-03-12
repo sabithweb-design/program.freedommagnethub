@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -35,7 +34,7 @@
     },
     "Course": {
       "title": "Course",
-      "description": "A course available in the hub with stylized progress tracking.",
+      "description": "A course available in the hub with stylized progress tracking and scoped admin access.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
@@ -51,7 +50,12 @@
         "originalPrice": { "type": "number" },
         "isLocked": { "type": "boolean", "default": false },
         "rating": { "type": "number", "description": "Star rating (0-5)" },
-        "reviewCount": { "type": "number", "description": "Total number of reviews" }
+        "reviewCount": { "type": "number", "description": "Total number of reviews" },
+        "adminIds": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "List of Admin UIDs who have permission to manage this specific program."
+        }
       },
       "required": ["category", "videos", "progress"]
     },

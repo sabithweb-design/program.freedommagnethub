@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc } from 'firebase/firestore';
+import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
@@ -38,7 +38,9 @@ import {
   DialogDescription,
   DialogTrigger
 } from '@/components/ui/dialog';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/auth-context';
 import { 
   Users, 
   BookOpen, 
@@ -49,22 +51,19 @@ import {
   Edit2, 
   UserPlus, 
   Trash2, 
-  IndianRupee, 
   Lock, 
-  Unlock,
-  Star,
+  Star, 
   Image as ImageIcon,
-  FileText,
   Share2,
-  ClipboardList
+  ShieldCheck,
+  ShieldAlert
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
 
-/**
- * Custom Player Icon matching the requested Flaticon style.
- */
+const SUPER_ADMIN_EMAIL = "admin@freedommagnethub.com";
+
 export const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg 
     viewBox="0 0 24 24" 
@@ -78,12 +77,24 @@ export const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) =>
 
 export default function AdminPage() {
   const firestore = useFirestore();
+  const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('users');
 
+  const isSuperAdmin = currentUser?.email === SUPER_ADMIN_EMAIL;
+
   // Queries
   const usersQuery = useMemo(() => firestore ? query(collection(firestore, 'users')) : null, [firestore]);
-  const coursesQuery = useMemo(() => firestore ? query(collection(firestore, 'courses')) : null, [firestore]);
+  
+  // Courses query: Scoped admins only see what they are assigned to
+  const coursesQuery = useMemo(() => {
+    if (!firestore || !currentUser) return null;
+    if (isSuperAdmin) {
+      return query(collection(firestore, 'courses'));
+    }
+    return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', currentUser.uid));
+  }, [firestore, currentUser, isSuperAdmin]);
+
   const lessonsQuery = useMemo(() => firestore ? query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc')) : null, [firestore]);
 
   const { data: users, loading: usersLoading } = useCollection<any>(usersQuery);
@@ -127,11 +138,13 @@ export default function AdminPage() {
     price: 0, 
     originalPrice: 0,
     rating: 4.5,
-    reviewCount: 0
+    reviewCount: 0,
+    adminIds: [] as string[]
   });
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
-    const userRef = doc(firestore!, 'users', userId);
+    if (!firestore) return;
+    const userRef = doc(firestore, 'users', userId);
     updateDoc(userRef, { status: !currentStatus })
       .then(() => {
         toast({
@@ -140,40 +153,7 @@ export default function AdminPage() {
         });
       })
       .catch(async (err) => {
-        const pErr = new FirestorePermissionError({ path: userRef.path, operation: 'update', requestResourceData: { status: !currentStatus } });
-        errorEmitter.emit('permission-error', pErr);
-      });
-  };
-
-  const handleToggleProgramLock = (programId: string, currentLocked: boolean) => {
-    if (!firestore) return;
-    const programRef = doc(firestore, 'courses', programId);
-    updateDoc(programRef, { isLocked: !currentLocked })
-      .then(() => {
-        toast({
-          title: !currentLocked ? "Program Locked" : "Program Unlocked",
-          description: `Access status updated successfully.`,
-        });
-      })
-      .catch(async (err) => {
-        const pErr = new FirestorePermissionError({ path: programRef.path, operation: 'update', requestResourceData: { isLocked: !currentLocked } });
-        errorEmitter.emit('permission-error', pErr);
-      });
-  };
-
-  const handleToggleLessonLock = (lessonId: string, currentLocked: boolean) => {
-    if (!firestore) return;
-    const lessonRef = doc(firestore, 'lessons', lessonId);
-    updateDoc(lessonRef, { isLocked: !currentLocked })
-      .then(() => {
-        toast({
-          title: !currentLocked ? "Lesson Locked" : "Lesson Unlocked",
-          description: `Access status updated successfully.`,
-        });
-      })
-      .catch(async (err) => {
-        const pErr = new FirestorePermissionError({ path: lessonRef.path, operation: 'update', requestResourceData: { isLocked: !currentLocked } });
-        errorEmitter.emit('permission-error', pErr);
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userRef.path, operation: 'update', requestResourceData: { status: !currentStatus } }));
       });
   };
 
@@ -202,7 +182,7 @@ export default function AdminPage() {
       await signOut(secondaryAuth);
 
       toast({
-        title: "Admin/Member Registered",
+        title: "Account Registered",
         description: `${newUserForm.displayName} now has ${newUserForm.role} access.`,
       });
 
@@ -211,7 +191,7 @@ export default function AdminPage() {
     } catch (error: any) {
       toast({
         variant: "destructive",
-        title: "Error Creating User",
+        title: "Registration Failed",
         description: error.message,
       });
     } finally {
@@ -233,6 +213,7 @@ export default function AdminPage() {
       videos: "0",
       progress: 0,
       isLocked: false,
+      adminIds: [currentUser?.uid], // By default, the creator is an admin
       createdAt: serverTimestamp()
     }).then(() => {
       setCourseForm({ 
@@ -248,8 +229,7 @@ export default function AdminPage() {
       });
       toast({ title: "Program Created", description: "Successfully added a new training program." });
     }).catch(async (err) => {
-      const pErr = new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm });
-      errorEmitter.emit('permission-error', pErr);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm }));
     });
   };
 
@@ -266,7 +246,8 @@ export default function AdminPage() {
       price: Number(editFields.price),
       originalPrice: Number(editFields.originalPrice),
       rating: Number(editFields.rating),
-      reviewCount: Number(editFields.reviewCount)
+      reviewCount: Number(editFields.reviewCount),
+      adminIds: editFields.adminIds
     };
 
     updateDoc(programRef, updateData)
@@ -275,38 +256,35 @@ export default function AdminPage() {
         setEditingProgram(null);
       })
       .catch(async (err) => {
-        const pErr = new FirestorePermissionError({ 
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
           path: programRef.path, 
           operation: 'update', 
           requestResourceData: updateData 
-        });
-        errorEmitter.emit('permission-error', pErr);
+        }));
       });
   };
 
   const handleDeleteProgram = (programId: string) => {
     if (!firestore) return;
-    
     if (!confirm("Are you sure you want to remove this program? This action cannot be undone.")) return;
 
     const programRef = doc(firestore, 'courses', programId);
     deleteDoc(programRef)
       .then(() => {
-        toast({ title: "Program Removed", description: "The program has been deleted from the catalog." });
+        toast({ title: "Program Removed", description: "The program has been deleted." });
       })
       .catch(async (err) => {
-        const pErr = new FirestorePermissionError({ 
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
           path: programRef.path, 
           operation: 'delete'
-        });
-        errorEmitter.emit('permission-error', pErr);
+        }));
       });
   };
 
   const handleAddLesson = (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !lessonForm.courseId) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please select a program for this lesson." });
+      toast({ variant: "destructive", title: "Missing Information", description: "Please select a program." });
       return;
     }
 
@@ -333,47 +311,45 @@ export default function AdminPage() {
       setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', actionPlan: '' });
       toast({ title: "Lesson Published", description: `Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
-      const pErr = new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData });
-      errorEmitter.emit('permission-error', pErr);
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData }));
     });
   };
 
-  const handleShareLesson = (dayNumber: number) => {
-    const url = `${window.location.origin}/lesson/${dayNumber}`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: "Lesson Link Copied",
-      description: `Direct link to Day ${dayNumber} has been copied.`,
+  const toggleAdminAssignment = (adminUid: string) => {
+    setEditFields(prev => {
+      const currentAdmins = [...prev.adminIds];
+      const index = currentAdmins.indexOf(adminUid);
+      if (index > -1) {
+        currentAdmins.splice(index, 1);
+      } else {
+        currentAdmins.push(adminUid);
+      }
+      return { ...prev, adminIds: currentAdmins };
     });
   };
 
-  const handleShareCourse = (courseId: string) => {
-    const url = `${window.location.origin}/courses`;
-    navigator.clipboard.writeText(url);
-    toast({
-      title: "Program Link Copied",
-      description: `The marketplace link has been copied to your clipboard.`,
-    });
-  };
+  const adminUsers = users?.filter((u: any) => u.role === 'admin') || [];
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
       <header className="flex justify-between items-end">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Management Suite</h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">Add admins, manage programs, and upload training content.</p>
+          <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
+            {isSuperAdmin ? "Super Admin: Full system control and admin assignment." : "Scoped Admin: Manage your assigned training folders."}
+          </p>
         </div>
-        {activeTab === 'users' && (
+        {isSuperAdmin && activeTab === 'users' && (
           <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="rounded-full h-12 px-6 flex gap-2 font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90">
-                <UserPlus size={18} /> Add New Member
+              <Button className="rounded-full h-12 px-6 flex gap-2 font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all">
+                <UserPlus size={18} /> Register New Account
               </Button>
             </DialogTrigger>
             <DialogContent className="rounded-3xl max-w-md">
               <DialogHeader>
                 <DialogTitle>Register New Account</DialogTitle>
-                <DialogDescription>Create a student or admin account for the hub.</DialogDescription>
+                <DialogDescription>Create a student or specific admin account.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateUser} className="space-y-4 py-4">
                 <div className="space-y-2">
@@ -381,7 +357,7 @@ export default function AdminPage() {
                   <Input 
                     value={newUserForm.displayName} 
                     onChange={e => setNewUserForm({...newUserForm, displayName: e.target.value})}
-                    placeholder="John Doe" 
+                    placeholder="Name" 
                     required 
                     className="rounded-xl h-12"
                   />
@@ -392,7 +368,7 @@ export default function AdminPage() {
                     type="email"
                     value={newUserForm.email} 
                     onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
-                    placeholder="admin@freedommagnethub.com" 
+                    placeholder="email@example.com" 
                     required 
                     className="rounded-xl h-12"
                   />
@@ -415,8 +391,8 @@ export default function AdminPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="student">Student (Standard Access)</SelectItem>
-                      <SelectItem value="admin">Admin (Full Control)</SelectItem>
+                      <SelectItem value="student">Student (Hub Access)</SelectItem>
+                      <SelectItem value="admin">Admin (Management Access)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -440,23 +416,22 @@ export default function AdminPage() {
             <BookOpen size={16} /> Manage Programs
           </TabsTrigger>
           <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
-            <PlayerIcon className="h-4 w-4" /> Upload Lessons
+            <PlayerIcon className="h-4 w-4" /> Content Upload
           </TabsTrigger>
         </TabsList>
 
-        {/* Users Section */}
         <TabsContent value="users">
           <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
             <CardHeader className="border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
-              <CardTitle>Member Directory</CardTitle>
-              <CardDescription>Grant admin privileges or manage student access status.</CardDescription>
+              <CardTitle>Directory</CardTitle>
+              <CardDescription>Grant specific admin privileges or manage student access status.</CardDescription>
             </CardHeader>
             <CardContent className="p-0">
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-slate-100 dark:border-slate-800">
                     <TableHead className="pl-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Name & Email</TableHead>
-                    <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">System Role</TableHead>
+                    <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Role</TableHead>
                     <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Status</TableHead>
                     <TableHead className="text-right pr-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Control</TableHead>
                   </TableRow>
@@ -468,7 +443,7 @@ export default function AdminPage() {
                     <TableRow key={u.id} className="group transition-colors border-slate-50 dark:border-slate-800/50">
                       <TableCell className="pl-6 py-5">
                         <div className="flex flex-col">
-                          <span className="font-black text-slate-800 dark:text-slate-200 text-base">{u.displayName || "Unknown Member"}</span>
+                          <span className="font-black text-slate-800 dark:text-slate-200 text-base">{u.displayName || "Unknown"}</span>
                           <span className="text-xs text-slate-400 dark:text-slate-500 font-bold">{u.email}</span>
                         </div>
                       </TableCell>
@@ -476,7 +451,7 @@ export default function AdminPage() {
                         <Badge className={`rounded-lg px-2.5 py-1 text-[10px] font-black tracking-widest uppercase border-none ${
                           u.role === 'admin' ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "bg-rose-50 dark:bg-rose-950 text-primary"
                         }`}>
-                          {u.role}
+                          {u.email === SUPER_ADMIN_EMAIL ? "Super Admin" : u.role}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -486,14 +461,16 @@ export default function AdminPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right pr-6">
-                        <div className="flex items-center justify-end gap-3">
-                          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{u.status === false ? "Enable" : "Disable"}</span>
-                          <Switch 
-                            checked={u.status !== false} 
-                            onCheckedChange={() => handleToggleUserStatus(u.id, u.status !== false)}
-                            className="data-[state=checked]:bg-emerald-500"
-                          />
-                        </div>
+                        {isSuperAdmin && u.email !== SUPER_ADMIN_EMAIL && (
+                          <div className="flex items-center justify-end gap-3">
+                            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{u.status === false ? "Enable" : "Disable"}</span>
+                            <Switch 
+                              checked={u.status !== false} 
+                              onCheckedChange={() => handleToggleUserStatus(u.id, u.status !== false)}
+                              className="data-[state=checked]:bg-emerald-500"
+                            />
+                          </div>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -503,7 +480,6 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        {/* Programs Section */}
         <TabsContent value="courses">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
@@ -511,13 +487,13 @@ export default function AdminPage() {
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="text-primary" /> Create Program
                 </CardTitle>
-                <CardDescription>Add a new folder or course to the hub.</CardDescription>
+                <CardDescription>Add a new folder or course track.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddCourse} className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold">Program Name</Label>
-                    <Input placeholder="e.g. Elite Digital Marketing" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12" required />
+                    <Input placeholder="e.g. Masterclass A" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12" required />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -525,23 +501,23 @@ export default function AdminPage() {
                       <Input type="number" placeholder="0" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold">Original Price (₹)</Label>
+                      <Label className="font-bold">Old Price (₹)</Label>
                       <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Thumbnail (URL)</Label>
-                    <Input placeholder="https://picsum.photos/..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12" />
+                    <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Category</Label>
-                    <Input placeholder="Business / Design" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12" />
+                    <Input placeholder="Tech / Design" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Overview</Label>
-                    <Textarea placeholder="What is this program about?" value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px]" />
+                    <Textarea placeholder="Program description..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px]" />
                   </div>
-                  <Button type="submit" className="w-full rounded-xl h-12 font-bold">Add to Portfolio</Button>
+                  <Button type="submit" className="w-full rounded-xl h-12 font-bold shadow-md">Add to Portfolio</Button>
                 </form>
               </CardContent>
             </Card>
@@ -551,18 +527,15 @@ export default function AdminPage() {
                 <BookOpen size={18} /> Program Portfolio
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {courses?.map((c: any) => (
-                  <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden p-3 flex gap-4 hover:shadow-md transition-shadow items-center relative group">
+                {coursesLoading ? (
+                  Array(2).fill(0).map((_, i) => <div key={i} className="h-24 bg-white dark:bg-slate-900 animate-pulse rounded-2xl" />)
+                ) : courses?.map((c: any) => (
+                  <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden p-3 flex gap-4 hover:shadow-md transition-all items-center relative group">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800 relative">
-                      <img src={c.imageUrl || 'https://picsum.photos/seed/program/200'} className="w-full h-full object-cover" alt={c.title} />
-                      {c.isLocked && (
-                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                          <Lock size={16} className="text-white" />
-                        </div>
-                      )}
+                      <img src={c.imageUrl || 'https://picsum.photos/seed/prog/200'} className="w-full h-full object-cover" alt={c.title} />
                     </div>
                     <div className="flex flex-col justify-center flex-1 min-w-0">
-                      <h4 className="font-bold text-slate-800 dark:text-slate-200 leading-tight line-clamp-1">{c.title || "Untitled Program"}</h4>
+                      <h4 className="font-bold text-slate-800 dark:text-slate-200 leading-tight line-clamp-1">{c.title || "Untitled"}</h4>
                       <div className="flex items-center gap-2 mt-1">
                         <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{c.category}</span>
                         <div className="flex items-center gap-1 ml-auto">
@@ -572,18 +545,13 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-full text-slate-400 hover:text-primary"
-                        onClick={() => handleShareCourse(c.id)}
-                      >
+                      <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all">
                         <Share2 size={16} />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary"
+                        className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all"
                         onClick={() => { 
                           setEditingProgram(c); 
                           setEditFields({ 
@@ -595,7 +563,8 @@ export default function AdminPage() {
                             price: c.price || 0, 
                             originalPrice: c.originalPrice || 0,
                             rating: c.rating || 4.5,
-                            reviewCount: c.reviewCount || 0
+                            reviewCount: c.reviewCount || 0,
+                            adminIds: c.adminIds || []
                           }); 
                         }}
                       >
@@ -604,7 +573,7 @@ export default function AdminPage() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="rounded-full hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-500"
+                        className="rounded-full hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-500 transition-all"
                         onClick={() => handleDeleteProgram(c.id)}
                       >
                         <Trash2 size={16} />
@@ -617,55 +586,54 @@ export default function AdminPage() {
           </div>
         </TabsContent>
 
-        {/* Lessons Section */}
         <TabsContent value="lessons">
            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <PlayerIcon className="h-5 w-5 text-primary" /> Upload Content
+                  <PlayerIcon className="h-5 w-5 text-primary" /> Content Portal
                 </CardTitle>
-                <CardDescription>Upload training videos and PDFs to a program.</CardDescription>
+                <CardDescription>Upload video lessons and PDFs to programs.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddLesson} className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="font-bold">Select Program Folder</Label>
+                    <Label className="font-bold">Target Program</Label>
                     <Select value={lessonForm.courseId} onValueChange={(val) => setLessonForm({...lessonForm, courseId: val})}>
                       <SelectTrigger className="h-12 rounded-xl">
-                        <SelectValue placeholder="Choose a program" />
+                        <SelectValue placeholder="Choose program" />
                       </SelectTrigger>
                       <SelectContent>
                         {courses?.map((c: any) => (
-                          <SelectItem key={c.id} value={c.id}>{c.title || "Untitled Program"}</SelectItem>
+                          <SelectItem key={c.id} value={c.id}>{c.title || "Untitled"}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="font-bold">Lesson Order</Label>
+                      <Label className="font-bold">Day Number</Label>
                       <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl" />
                     </div>
                     <div className="space-y-2">
                       <Label className="font-bold">Video Link</Label>
-                      <Input placeholder="YouTube/Vimeo link" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl" />
+                      <Input placeholder="YouTube/Vimeo" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">PDF Material (URL)</Label>
-                    <Input placeholder="https://drive.google.com/..." value={lessonForm.pdfUrl} onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} className="h-12 rounded-xl" />
+                    <Input placeholder="https://..." value={lessonForm.pdfUrl} onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} className="h-12 rounded-xl" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Lesson Title</Label>
-                    <Input placeholder="Introduction to Hub" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl" required />
+                    <Label className="font-bold">Title</Label>
+                    <Input placeholder="Introduction" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl" required />
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Lesson Description</Label>
-                    <Textarea className="min-h-[80px] rounded-xl" placeholder="Detailed content summary..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
+                    <Label className="font-bold">Description</Label>
+                    <Textarea className="min-h-[80px] rounded-xl" placeholder="Lesson summary..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
                   </div>
-                  <Button type="submit" className="w-full h-12 rounded-xl font-bold flex gap-2">
-                    <Save size={18} /> Publish to Folder
+                  <Button type="submit" className="w-full h-12 rounded-xl font-bold flex gap-2 transition-all active:scale-95 shadow-lg shadow-primary/10">
+                    <Save size={18} /> Publish Lesson
                   </Button>
                 </form>
               </CardContent>
@@ -673,12 +641,12 @@ export default function AdminPage() {
 
             <div className="lg:col-span-2 space-y-4">
               <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2">
-                <PlayerIcon className="h-5 w-5 text-primary" /> Content Timeline
+                <PlayerIcon className="h-5 w-5 text-primary" /> Timeline Preview
               </h3>
               <div className="space-y-3">
                 {lessonsLoading ? (
-                  <div className="text-center py-10 text-slate-400">Loading timeline...</div>
-                ) : lessons?.map((l: any) => {
+                  <div className="text-center py-10 text-slate-400">Syncing content...</div>
+                ) : lessons?.filter(l => courses?.some(c => c.id === l.courseId)).map((l: any) => {
                   const course = courses?.find(c => c.id === l.courseId);
                   return (
                     <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-4 flex items-center justify-between group">
@@ -686,31 +654,21 @@ export default function AdminPage() {
                         <div className="relative w-16 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800">
                           <Image 
                             src={l.thumbnailUrl || `https://picsum.photos/seed/${l.id}/200/120`}
-                            alt={l.title || "Lesson Thumbnail"}
+                            alt={l.title || "Thumbnail"}
                             fill
                             className="object-cover"
                           />
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 bg-primary/10 text-primary`}>
-                            {l.dayNumber}
+                        <div>
+                          <div className="flex items-center gap-2">
+                             <h4 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{l.title || `Day ${l.dayNumber}`}</h4>
+                             {course && <span className="text-[9px] bg-primary/5 text-primary px-1.5 py-0.5 rounded font-black uppercase whitespace-nowrap">{course.title}</span>}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                               <h4 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{l.title || `Lesson ${l.dayNumber}`}</h4>
-                               {course && <span className="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 px-2 py-0.5 rounded font-black uppercase whitespace-nowrap">{course.title || "Untitled"}</span>}
-                            </div>
-                            <p className="text-xs text-slate-400 line-clamp-1 max-w-md">{l.description}</p>
-                          </div>
+                          <p className="text-xs text-slate-400 line-clamp-1">Day {l.dayNumber} • {l.description || 'No description'}</p>
                         </div>
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="rounded-full text-slate-400 hover:text-primary"
-                          onClick={() => handleShareLesson(l.dayNumber)}
-                        >
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button variant="ghost" size="icon" className="rounded-full text-slate-400">
                           <Share2 size={16} />
                         </Button>
                       </div>
@@ -723,38 +681,45 @@ export default function AdminPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Edit Dialog */}
+      {/* Edit Program Dialog */}
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
-        <DialogContent className="rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="rounded-3xl max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Edit Program Details</DialogTitle>
-            <DialogDescription>Modify program names, pricing, and visual assets.</DialogDescription>
+            <DialogTitle>Management Config</DialogTitle>
+            <DialogDescription>Modify program details and assign specific admin access.</DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="py-4 space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Program Name</Label>
+                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Title</Label>
                   <Input 
                     value={editFields.title} 
                     onChange={(e) => setEditFields({...editFields, title: e.target.value})}
                     className="rounded-xl h-12"
-                    placeholder="Enter program title..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Category</Label>
+                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Category</Label>
                   <Input 
                     value={editFields.category} 
                     onChange={(e) => setEditFields({...editFields, category: e.target.value})}
                     className="rounded-xl h-12"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Description</Label>
+                  <Textarea 
+                    value={editFields.description} 
+                    onChange={(e) => setEditFields({...editFields, description: e.target.value})}
+                    className="rounded-xl min-h-[120px]"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Thumbnail (URL)</Label>
+                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail Link</Label>
                   <div className="relative">
                     <ImageIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
                     <Input 
@@ -764,41 +729,56 @@ export default function AdminPage() {
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Sale Price (₹)</Label>
-                    <Input 
-                      type="number"
-                      value={editFields.price} 
-                      onChange={(e) => setEditFields({...editFields, price: Number(e.target.value)})}
-                      className="rounded-xl h-12"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Original (₹)</Label>
-                    <Input 
-                      type="number"
-                      value={editFields.originalPrice} 
-                      onChange={(e) => setEditFields({...editFields, originalPrice: Number(e.target.value)})}
-                      className="rounded-xl h-12"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
+                
+                {/* Admin Assignment Section: Only for Super Admin */}
+                {isSuperAdmin && (
+                  <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-primary" /> Admin Assignment
+                      </CardTitle>
+                      <CardDescription className="text-[10px]">Grant specific admins access to manage this folder.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="space-y-3 mt-2">
+                        {adminUsers.filter(u => u.email !== SUPER_ADMIN_EMAIL).length === 0 ? (
+                          <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
+                            No secondary admin accounts found.<br/>Register an admin in the Members tab first.
+                          </div>
+                        ) : adminUsers.filter(u => u.email !== SUPER_ADMIN_EMAIL).map((u: any) => (
+                          <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
+                            <Checkbox 
+                              id={`admin-${u.uid}`} 
+                              checked={editFields.adminIds.includes(u.uid)}
+                              onCheckedChange={() => toggleAdminAssignment(u.uid)}
+                              className="rounded-md"
+                            />
+                            <Label htmlFor={`admin-${u.uid}`} className="flex flex-col cursor-pointer">
+                              <span className="text-sm font-black text-slate-700 dark:text-slate-300">{u.displayName}</span>
+                              <span className="text-[10px] text-slate-400 font-bold">{u.email}</span>
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-            <div className="space-y-2">
-              <Label className="font-bold text-xs uppercase tracking-wider text-slate-500">Program Description</Label>
-              <Textarea 
-                value={editFields.description} 
-                onChange={(e) => setEditFields({...editFields, description: e.target.value})}
-                className="rounded-xl min-h-[120px]"
-              />
+                {/* Scoped Admin Warning */}
+                {!isSuperAdmin && (
+                  <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
+                    <ShieldAlert size={20} className="text-amber-500 shrink-0" />
+                    <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
+                      You are a Scoped Admin for this program. You can edit content and lessons, but only the Super Admin can assign additional managers.
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2 pt-4 border-t">
-            <Button variant="ghost" onClick={() => setEditingProgram(null)} className="rounded-xl h-12 font-bold flex-1">Cancel</Button>
-            <Button onClick={handleUpdateProgram} className="rounded-xl h-12 font-bold bg-primary text-white flex-1 shadow-lg shadow-primary/20">Save All Changes</Button>
+            <Button variant="ghost" onClick={() => setEditingProgram(null)} className="rounded-xl h-12 font-bold flex-1">Discard</Button>
+            <Button onClick={handleUpdateProgram} className="rounded-xl h-12 font-bold bg-primary text-white flex-1 shadow-lg shadow-primary/20 transition-all active:scale-95">Save Config</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
