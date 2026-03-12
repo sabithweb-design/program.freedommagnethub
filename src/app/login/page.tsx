@@ -27,7 +27,6 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // Check if it's the admin to redirect correctly
       if (email === "admin@freedommagnethub.com") {
         router.push("/admin");
       } else {
@@ -76,7 +75,9 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary text-primary-foreground mb-4 shadow-xl shadow-primary/20">
             <GraduationCap size={32} />
           </div>
-          <h1 className="text-4xl font-black text-slate-900 tracking-tight">Freedom Magnet Hub</h1>
+          <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+            freedommagnet<span className="text-primary">hub</span>
+          </h1>
           <p className="text-slate-500 font-medium">90-Day Elite Teacher Training</p>
         </div>
 
@@ -86,7 +87,7 @@ export default function LoginPage() {
             <CardDescription className="text-slate-400">Choose your entry method</CardDescription>
           </CardHeader>
           <CardContent className="px-8">
-            <Tabs defaultValue="password" title="Login Methods">
+            <Tabs defaultValue="password">
               <TabsList className="grid w-full grid-cols-2 mb-8 bg-slate-50 p-1 rounded-2xl h-12">
                 <TabsTrigger value="password" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">Password</TabsTrigger>
                 <TabsTrigger value="magic" className="rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">Magic Link</TabsTrigger>

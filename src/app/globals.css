@@ -10,19 +10,19 @@
     --card-foreground: 250 10% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 250 10% 15%;
-    --primary: 7 83% 72%; /* #F28C7F - Salmon/Coral */
+    --primary: 0 84% 60%; /* #ED1C24 - Vibrant Magnet Red */
     --primary-foreground: 0 0% 100%;
     --secondary: 220 80% 95%;
     --secondary-foreground: 220 80% 30%;
     --muted: 250 10% 90%;
     --muted-foreground: 250 10% 40%;
-    --accent: 7 83% 72%; /* #F28C7F */
+    --accent: 0 84% 60%; 
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 250 10% 85%;
     --input: 250 10% 85%;
-    --ring: 7 83% 72%;
+    --ring: 0 84% 60%;
     --radius: 1.5rem;
   }
 
@@ -33,19 +33,19 @@
     --card-foreground: 250 10% 90%;
     --popover: 250 20% 8%;
     --popover-foreground: 250 10% 90%;
-    --primary: 7 83% 72%;
+    --primary: 0 84% 60%;
     --primary-foreground: 0 0% 100%;
     --secondary: 250 20% 15%;
     --secondary-foreground: 250 10% 90%;
     --muted: 250 20% 15%;
     --muted-foreground: 250 10% 60%;
-    --accent: 7 83% 72%;
+    --accent: 0 84% 60%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
     --border: 250 20% 15%;
     --input: 250 20% 15%;
-    --ring: 7 83% 72%;
+    --ring: 0 84% 60%;
   }
 }
 
@@ -59,16 +59,10 @@
   }
 }
 
-/* Custom styles for matching the design */
-.progress-bar-coral > div {
-  background-color: #F28C7F !important;
-}
-
 .lesson-grid-item {
   @apply transition-all duration-300 hover:scale-105 active:scale-95;
 }
 
-/* YouTube Cinema Mode Hack */
 .video-container {
   position: relative;
   overflow: hidden;
