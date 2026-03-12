@@ -4,25 +4,25 @@
 
 @layer base {
   :root {
-    --background: 250 20% 95%;
+    --background: 37 100% 98%; /* #FFFBF5 */
     --foreground: 250 10% 10%;
     --card: 0 0% 100%;
     --card-foreground: 250 10% 15%;
     --popover: 0 0% 100%;
     --popover-foreground: 250 10% 15%;
-    --primary: 250 70% 40%;
+    --primary: 7 83% 72%; /* #F28C7F - Salmon/Coral */
     --primary-foreground: 0 0% 100%;
     --secondary: 220 80% 95%;
     --secondary-foreground: 220 80% 30%;
     --muted: 250 10% 90%;
     --muted-foreground: 250 10% 40%;
-    --accent: 15 80% 72%; /* Coral color from design */
+    --accent: 7 83% 72%; /* #F28C7F */
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 250 10% 85%;
     --input: 250 10% 85%;
-    --ring: 15 80% 72%;
+    --ring: 7 83% 72%;
     --radius: 1.5rem;
   }
 
@@ -33,19 +33,19 @@
     --card-foreground: 250 10% 90%;
     --popover: 250 20% 8%;
     --popover-foreground: 250 10% 90%;
-    --primary: 250 70% 50%;
+    --primary: 7 83% 72%;
     --primary-foreground: 0 0% 100%;
     --secondary: 250 20% 15%;
     --secondary-foreground: 250 10% 90%;
     --muted: 250 20% 15%;
     --muted-foreground: 250 10% 60%;
-    --accent: 15 80% 60%;
+    --accent: 7 83% 72%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 62% 30%;
     --destructive-foreground: 0 0% 100%;
     --border: 250 20% 15%;
     --input: 250 20% 15%;
-    --ring: 250 70% 50%;
+    --ring: 7 83% 72%;
   }
 }
 
@@ -60,10 +60,29 @@
 }
 
 /* Custom styles for matching the design */
-.progress-bar-teal > div {
-  background-color: #76C8B2 !important; /* Specific teal color from design */
+.progress-bar-coral > div {
+  background-color: #F28C7F !important;
 }
 
 .lesson-grid-item {
   @apply transition-all duration-300 hover:scale-105 active:scale-95;
+}
+
+/* YouTube Cinema Mode Hack */
+.video-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 2rem;
+}
+
+.video-iframe {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 115%;
+  height: 115%;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
 }

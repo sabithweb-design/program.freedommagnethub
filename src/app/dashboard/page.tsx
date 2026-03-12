@@ -168,7 +168,7 @@ export default function DashboardPage() {
                       {/* Progress Info */}
                       <div className="space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] font-bold text-[#76C8B2]">
+                          <span className="text-[10px] font-bold text-[#F28C7F]">
                             {course.videos} Video
                           </span>
                           <span className="text-[10px] font-bold text-slate-300">
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                         </div>
                         <Progress
                           value={course.progress}
-                          className="h-1.5 bg-slate-100 progress-bar-teal"
+                          className="h-1.5 bg-slate-100 progress-bar-coral"
                         />
                       </div>
                     </div>

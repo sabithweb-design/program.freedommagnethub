@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -7,7 +6,7 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, BookOpen, Clock, PlayCircle, GraduationCap } from "lucide-react";
 import Link from "next/link";
 
@@ -18,13 +17,12 @@ interface LessonData {
   dayNumber: number;
 }
 
-// Starter content for Day 1 to ensure the user sees a video immediately
 const STARTER_LESSONS: Record<number, LessonData> = {
   1: {
     dayNumber: 1,
     title: "Welcome to the 90-Day Training",
     description: "Welcome to your first day of transformation. In this introductory module, we explore the core principles of the Freedom Magnet methodology. We'll discuss how to shift your mindset from a standard educator to a high-impact mentor, setting the foundation for the next three months of growth.\n\nToday's objectives:\n1. Understand the 'Freedom Magnet' framework.\n2. Set your personal goals for the 90-day journey.\n3. Complete the initial self-assessment worksheet.",
-    youtubeVideoId: "LXb3EKWsInQ", // Placeholder professional video
+    youtubeVideoId: "LXb3EKWsInQ",
   }
 };
 
@@ -51,7 +49,6 @@ export default function LessonPage() {
           if (!querySnapshot.empty) {
             setLesson(querySnapshot.docs[0].data() as LessonData);
           } else if (STARTER_LESSONS[day]) {
-            // Provide starter content if DB is empty for Day 1
             setLesson(STARTER_LESSONS[day]);
           } else {
             setLesson(null);
@@ -106,19 +103,24 @@ export default function LessonPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Video Section with custom protection to hide branding and prevent external navigation */}
-            <div className="relative aspect-video bg-slate-900 rounded-[2rem] overflow-hidden shadow-2xl ring-8 ring-white/50 group">
+            {/* Advance Branding-Free Video Player */}
+            <div className="video-container shadow-2xl ring-8 ring-white/50 relative">
               {lesson.youtubeVideoId ? (
                 <>
                   <iframe 
-                    src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0`}
-                    className="w-full h-full border-none" 
+                    src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
+                    className="video-iframe border-none" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     title={lesson.title}
                   />
-                  {/* Invisible overlays to block clicks on YouTube branding areas (corners) */}
-                  <div className="absolute top-0 right-0 w-[15%] h-[15%] bg-transparent z-10 pointer-events-auto cursor-default" title="Locked to EduTrail" />
-                  <div className="absolute bottom-0 right-0 w-[20%] h-[15%] bg-transparent z-10 pointer-events-auto cursor-default" title="Locked to EduTrail" />
+                  {/* Branding Protection Overlays */}
+                  <div className="absolute top-0 left-0 w-full h-24 bg-transparent z-10 pointer-events-none" /> 
+                  <div className="absolute bottom-0 right-0 w-48 h-16 bg-transparent z-10 pointer-events-none" />
+                  
+                  {/* Custom Mask for 'Watch on YouTube' button */}
+                  <div className="absolute bottom-4 left-4 w-32 h-8 bg-black/40 rounded-md backdrop-blur-sm z-10 flex items-center justify-center pointer-events-none">
+                     <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest">EduTrail Player</span>
+                  </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800">
@@ -133,7 +135,7 @@ export default function LessonPage() {
                 <div>
                   <h1 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">{lesson.title}</h1>
                   <div className="flex gap-4 mt-4">
-                    <span className="flex items-center gap-1.5 text-xs font-bold text-[#76C8B2] uppercase tracking-wider">
+                    <span className="flex items-center gap-1.5 text-xs font-bold text-[#F28C7F] uppercase tracking-wider">
                       <BookOpen size={14} /> Module {Math.floor((day - 1) / 30) + 1}
                     </span>
                     <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 uppercase tracking-wider">
@@ -158,7 +160,7 @@ export default function LessonPage() {
                   <ul className="space-y-4">
                     {[
                       "Watch video lesson",
-                      "Download day 1 worksheet",
+                      "Download day worksheet",
                       "Join the peer discussion"
                     ].map((step, i) => (
                       <li key={i} className="flex items-start gap-3 group">
