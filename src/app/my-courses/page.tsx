@@ -52,7 +52,7 @@ export default function MyCoursesPage() {
         <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-1 group">
             <span className="font-bold text-2xl tracking-tighter text-foreground">
-              freedom<span className="text-primary">magnet</span>
+              freedommagnet<span className="text-primary">hub</span>
             </span>
           </Link>
 
