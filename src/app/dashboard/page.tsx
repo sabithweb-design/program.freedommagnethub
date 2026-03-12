@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -50,15 +51,15 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       {/* Header */}
-      <header className="px-4 sm:px-8 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
+      <header className="px-4 sm:px-8 md:px-10 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <BrandLogo className="h-8 w-8 sm:h-9 sm:w-9" />
+          <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
           <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground">
             freedom<span className="text-primary">magnethub</span>
           </h1>
         </div>
         
-        <div className="flex items-center gap-2 sm:gap-4 lg:gap-8">
+        <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
           {isAdmin && (
             <Button 
               variant="outline" 
