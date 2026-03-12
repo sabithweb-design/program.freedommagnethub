@@ -2,12 +2,13 @@
   "entities": {
     "UserProfile": {
       "title": "User Profile",
-      "description": "User account information including role and cohort start date.",
+      "description": "User account information including role, status, and cohort start date.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
         "email": { "type": "string", "format": "email" },
         "role": { "type": "string", "enum": ["student", "admin"] },
+        "status": { "type": "boolean", "description": "Active or deactivated status" },
         "cohortStartDate": { "type": "object", "description": "Firestore Timestamp" }
       },
       "required": ["uid", "email", "role", "cohortStartDate"]
@@ -37,7 +38,8 @@
         "progress": { "type": "number", "description": "Percentage value (0-100)" },
         "imageUrl": { "type": "string" },
         "isLatestLearned": { "type": "boolean" },
-        "userId": { "type": "string" }
+        "userId": { "type": "string" },
+        "description": { "type": "string" }
       },
       "required": ["title", "author", "category", "videos", "progress", "imageUrl"]
     }
