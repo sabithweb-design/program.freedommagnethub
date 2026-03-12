@@ -76,7 +76,7 @@ export default function LoginPage() {
             <GraduationCap size={32} />
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tight">
-            freedommagnet<span className="text-primary">hub</span>
+            freedom<span className="text-primary">magnethub</span>
           </h1>
           <p className="text-slate-500 font-medium">90-Day Elite Teacher Training</p>
         </div>

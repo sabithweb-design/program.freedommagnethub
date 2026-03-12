@@ -51,7 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {/* Logo */}
           <Link href="/admin" className="flex items-center gap-1 group">
             <span className="font-bold text-2xl tracking-tight text-slate-800 dark:text-slate-100">
-              freedommagnet<span className="text-primary">hub</span>
+              freedom<span className="text-primary">magnethub</span>
             </span>
           </Link>
 

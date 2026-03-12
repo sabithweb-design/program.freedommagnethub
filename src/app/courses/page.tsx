@@ -78,7 +78,7 @@ export default function CoursesPage() {
               <ShoppingCart className="h-5 w-5" />
             </Button>
             <div className="font-bold text-foreground hidden sm:block ml-2">
-              FreedomMagnet<span className="text-primary">Hub</span>
+              Freedom<span className="text-primary">MagnetHub</span>
             </div>
           </div>
           <div className="h-10 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
