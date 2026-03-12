@@ -7,13 +7,14 @@ import {
   MessageSquare, 
   MoreVertical, 
   LayoutDashboard, 
-  Rss, 
-  Tent, 
+  Compass, 
+  Video, 
   BookOpen, 
-  Mail, 
+  MessageCircle,
   Bell, 
   ChevronDown,
-  Edit2
+  Edit2,
+  Grid
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,14 +32,14 @@ import Image from 'next/image';
 
 /**
  * Course Management Page
- * Inspired by TagMango design for Freedom Magnet Hub.
+ * High-fidelity implementation based on TagMango design.
  */
 export default function CourseManagementPage() {
   const firestore = useFirestore();
   const [activeTab, setActiveTab] = useState<'by-me' | 'purchased'>('by-me');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch real courses from Firestore
+  // Fetch courses from Firestore
   const coursesQuery = useMemo(() => 
     firestore ? query(collection(firestore, 'courses')) : null, 
   [firestore]);
@@ -46,52 +47,53 @@ export default function CourseManagementPage() {
   const { data: courses, loading } = useCollection<any>(coursesQuery);
 
   return (
-    <div className="min-h-screen bg-slate-50/50">
+    <div className="min-h-screen bg-white">
       {/* Top Navbar */}
       <header className="bg-white border-b sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className="max-w-[1400px] mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-              F
-            </div>
-            <span className="font-bold text-lg hidden md:block">Freedom Hub</span>
+          <div className="flex items-center gap-1">
+            <span className="font-bold text-2xl tracking-tight text-slate-800">tag<span className="text-orange-600">mango</span></span>
           </div>
 
           {/* Centered Menu */}
-          <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-slate-500">
-            <NavItem icon={<LayoutDashboard size={18} />} label="Dashboard" />
-            <NavItem icon={<Rss size={18} />} label="Feed" />
-            <NavItem icon={<Tent size={18} />} label="Workshops" />
-            <NavItem icon={<BookOpen size={18} />} label="Courses" active />
-            <NavItem icon={<MessageSquare size={18} />} label="Messages" />
+          <nav className="hidden lg:flex items-center gap-10">
+            <NavItem icon={<LayoutDashboard size={20} />} label="DASHBOARD" />
+            <NavItem icon={<Compass size={20} />} label="FEED" />
+            <NavItem icon={<Video size={20} />} label="WORKSHOPS" />
+            <NavItem icon={<BookOpen size={20} />} label="COURSES" active />
+            <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" />
           </nav>
 
           {/* Right Icons */}
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="text-slate-400">
-              <Bell size={20} />
+              <Grid size={20} />
             </Button>
-            <Avatar className="h-8 w-8 border">
+            <Button variant="ghost" size="icon" className="text-slate-400 relative">
+              <Bell size={20} />
+              <span className="absolute top-2 right-2 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center border-2 border-white">3</span>
+            </Button>
+            <Avatar className="h-9 w-9 border cursor-pointer">
               <AvatarImage src="https://picsum.photos/seed/admin/100" />
-              <AvatarFallback>AD</AvatarFallback>
+              <AvatarFallback>M</AvatarFallback>
             </Avatar>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      <main className="max-w-[1200px] mx-auto px-6 py-10 space-y-8">
         {/* Sub-Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Courses</h1>
-            <Button variant="link" className="text-slate-400 font-semibold p-0 h-auto flex gap-2">
-              <MessageSquare size={16} /> Comments
+          <h1 className="text-4xl font-bold text-slate-900">Courses</h1>
+          <div className="flex items-center gap-6">
+            <button className="text-primary font-semibold text-sm hover:underline">
+              Comments
+            </button>
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white rounded-lg px-6 h-10 flex gap-2 font-bold shadow-sm">
+              <Plus size={18} /> Create
             </Button>
           </div>
-          <Button className="bg-[#F28C7F] hover:bg-[#F28C7F]/90 text-white rounded-full px-6 flex gap-2">
-            <Plus size={18} /> Create
-          </Button>
         </div>
 
         {/* Tabs */}
@@ -113,16 +115,16 @@ export default function CourseManagementPage() {
           <div className="relative flex-1 w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <Input 
-              placeholder="Search for courses..." 
-              className="pl-12 h-12 rounded-full border-slate-200 bg-white shadow-sm"
+              placeholder="search by course title or description" 
+              className="pl-12 h-12 rounded-lg border-slate-200 bg-white placeholder:text-slate-400"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="h-12 rounded-full border-slate-200 px-6 flex gap-2 bg-white">
-                Course <ChevronDown size={16} />
+              <Button variant="outline" className="h-12 rounded-lg border-slate-200 px-6 flex gap-10 bg-white justify-between min-w-[140px] text-slate-700 font-medium">
+                Course <ChevronDown size={16} className="text-slate-400" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -134,15 +136,25 @@ export default function CourseManagementPage() {
         </div>
 
         {/* Course Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
           {loading ? (
-            Array(6).fill(0).map((_, i) => (
-              <div key={i} className="bg-white rounded-3xl h-80 animate-pulse border shadow-sm" />
+            Array(3).fill(0).map((_, i) => (
+              <div key={i} className="bg-white rounded-xl h-[400px] animate-pulse border shadow-sm" />
             ))
           ) : (
             courses?.map((course: any) => (
               <CourseCard key={course.id} course={course} />
             ))
+          )}
+          
+          {/* Default Empty State / Static Card for UI demo if no DB data */}
+          {(!courses || courses.length === 0) && !loading && (
+             <CourseCard course={{
+               title: "magnetic digital marketing formula",
+               sections: 6,
+               lectures: 7,
+               imageUrl: "https://picsum.photos/seed/mango/600/400"
+             }} />
           )}
         </div>
       </main>
@@ -152,9 +164,14 @@ export default function CourseManagementPage() {
 
 function NavItem({ icon, label, active = false }: { icon: React.ReactNode, label: string, active?: boolean }) {
   return (
-    <div className={`flex items-center gap-2 cursor-pointer transition-colors ${active ? "text-primary border-b-2 border-primary pb-5 mt-5" : "hover:text-slate-900 pb-5 mt-5 border-b-2 border-transparent"}`}>
-      {icon}
-      <span>{label}</span>
+    <div className={`flex flex-col items-center gap-1 cursor-pointer group relative pt-2`}>
+      <div className={`flex flex-col items-center gap-1.5 transition-colors ${active ? "text-primary" : "text-slate-400 group-hover:text-slate-600"}`}>
+        {icon}
+        <span className="text-[11px] font-bold tracking-wider">{label}</span>
+      </div>
+      {active && (
+        <div className="absolute -bottom-[22px] left-0 right-0 h-1 bg-primary rounded-t-full" />
+      )}
     </div>
   );
 }
@@ -163,10 +180,10 @@ function TabButton({ active, label, onClick }: { active: boolean, label: string,
   return (
     <button 
       onClick={onClick}
-      className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all ${
+      className={`px-8 py-2.5 rounded-full text-sm font-semibold transition-all ${
         active 
-          ? "bg-[#F28C7F]/10 text-[#F28C7F] ring-1 ring-[#F28C7F]/20" 
-          : "text-slate-400 hover:text-slate-600"
+          ? "bg-rose-50 text-primary border border-rose-100" 
+          : "bg-slate-50 text-slate-500 border border-transparent hover:bg-slate-100"
       }`}
     >
       {label}
@@ -176,37 +193,39 @@ function TabButton({ active, label, onClick }: { active: boolean, label: string,
 
 function CourseCard({ course }: { course: any }) {
   return (
-    <div className="bg-white rounded-[2rem] border overflow-hidden shadow-sm hover:shadow-md transition-shadow group">
+    <div className="bg-white rounded-xl border border-slate-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow group flex flex-col h-full">
       {/* Course Image */}
-      <div className="relative aspect-video">
+      <div className="relative aspect-[16/10] w-full bg-slate-100">
         <Image 
           src={course.imageUrl || 'https://picsum.photos/seed/course/600/400'} 
           alt={course.title}
           fill
           className="object-cover"
         />
-        <Badge className="absolute top-4 left-4 bg-emerald-500 hover:bg-emerald-500 text-white border-none rounded-full px-3 py-1 text-[10px] font-bold">
-          PUBLISHED
-        </Badge>
       </div>
 
       {/* Content */}
-      <div className="p-6 space-y-4">
-        <div>
-          <h3 className="text-lg font-bold text-slate-800 line-clamp-1">
-            {course.title || "Magnetic Digital Marketing Formula"}
+      <div className="p-6 space-y-4 flex flex-col flex-1">
+        <div className="space-y-2 flex-1">
+          <div className="inline-flex">
+            <Badge className="bg-emerald-500 hover:bg-emerald-500 text-white border-none rounded-full px-3 py-0.5 text-[9px] font-bold tracking-wider mb-1">
+              PUBLISHED
+            </Badge>
+          </div>
+          <h3 className="text-xl font-bold text-slate-800 capitalize leading-tight">
+            {course.title || "magnetic digital marketing formula"}
           </h3>
-          <p className="text-sm text-slate-400 font-medium mt-1">
+          <p className="text-sm text-slate-400 font-medium">
             {course.sections || 6} sections • {course.lectures || 7} lectures
           </p>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-2">
-          <Button variant="outline" className="rounded-full border-slate-200 text-slate-600 hover:bg-slate-50 h-10 px-6 text-sm font-bold gap-2">
-            <Edit2 size={14} /> Edit course
+        <div className="flex items-center justify-between pt-4 border-t border-slate-50">
+          <Button variant="ghost" className="flex-1 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-50 h-10 text-sm font-bold border border-transparent hover:border-slate-200">
+            Edit course
           </Button>
-          <Button variant="ghost" size="icon" className="rounded-full text-slate-400">
+          <Button variant="ghost" size="icon" className="rounded-lg text-slate-400 ml-2">
             <MoreVertical size={20} />
           </Button>
         </div>
