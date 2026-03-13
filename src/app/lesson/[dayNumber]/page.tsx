@@ -230,7 +230,7 @@ export default function LessonPage() {
       </div>
 
       <main className="max-w-4xl mx-auto px-6 py-8">
-        {lesson ? (
+        {lesson && (lesson.driveVideoUrl || lesson.youtubeVideoId) ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative group select-none overflow-hidden">
               {lesson.driveVideoUrl ? (
@@ -243,31 +243,22 @@ export default function LessonPage() {
               ) : lesson.youtubeVideoId ? (
                 <>
                   <iframe 
-                    src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
+                    src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1&playsinline=1&enablejsapi=1`}
                     className="video-iframe border-none" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    sandbox="allow-forms allow-scripts allow-pointer-lock allow-same-origin"
+                    sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
                     title={lesson.title || `Day ${day}`}
                   />
                   {!isAdmin && (
                     <>
-                      <div className="absolute top-0 left-0 right-0 h-[20%] z-10 bg-transparent cursor-default" />
-                      <div className="absolute bottom-0 right-0 w-[25%] h-[20%] z-10 bg-transparent cursor-default" />
-                      <div className="absolute bottom-0 left-0 w-[20%] h-[15%] z-10 bg-transparent cursor-default" />
+                      {/* Stealth Overlays to block interaction with YouTube UI elements */}
+                      <div className="absolute top-0 left-0 right-0 h-[25%] z-20 bg-transparent cursor-default pointer-events-auto" />
+                      <div className="absolute bottom-0 right-0 w-[30%] h-[20%] z-20 bg-transparent cursor-default pointer-events-auto" />
+                      <div className="absolute bottom-0 left-0 w-[25%] h-[15%] z-20 bg-transparent cursor-default pointer-events-auto" />
                     </>
                   )}
                 </>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800 p-8 text-center">
-                  <div className="bg-slate-700/50 p-4 rounded-full mb-4">
-                    <PlayerIcon className="h-10 w-10 text-slate-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-white mb-2">No Video Available</h3>
-                  <p className="text-slate-400 text-sm max-w-[250px]">
-                    A video session has not been uploaded for this day yet. Check back later or review the session materials.
-                  </p>
-                </div>
-              )}
+              ) : null}
             </div>
 
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
@@ -360,6 +351,55 @@ export default function LessonPage() {
                   </Card>
                 </div>
               )}
+            </div>
+          </div>
+        ) : lesson ? (
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Empty Session view (No Video) but with description */}
+            <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 flex flex-col items-center justify-center text-white/30 bg-slate-800 p-8 text-center">
+              <div className="bg-slate-700/50 p-4 rounded-full mb-4">
+                <PlayerIcon className="h-10 w-10 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">No Video Content</h3>
+              <p className="text-slate-400 text-sm max-w-[250px]">
+                This session consists of text materials and resources. Review the action plan below.
+              </p>
+            </div>
+            
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
+              <div className="flex-1 space-y-8">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title || `Day ${day} Session`}</h1>
+                    <div className="flex gap-4 mt-4">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
+                        <BookOpen size={14} /> Training Hub
+                      </span>
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                        <Clock size={14} /> DAY {day}
+                      </span>
+                    </div>
+                  </div>
+                  <Button 
+                    onClick={handleToggleComplete}
+                    disabled={completing}
+                    className={`rounded-full h-12 px-8 font-bold transition-all shadow-lg ${
+                      isCompleted 
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
+                        : "bg-slate-900 dark:bg-slate-100 dark:text-slate-900 shadow-slate-900/20"
+                    }`}
+                  >
+                    {isCompleted ? <><CheckCircle2 className="mr-2 h-5 w-5" /> Completed</> : "Mark as Complete"}
+                  </Button>
+                </div>
+                {lesson.description && <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg whitespace-pre-wrap">{lesson.description}</p>}
+                {lesson.actionPlan && (
+                  <Card className="border-none shadow-sm rounded-3xl bg-primary/5 dark:bg-primary/10 p-8 border-l-4 border-primary">
+                    <h3 className="font-black text-primary text-xl mb-4 flex items-center gap-3"><ClipboardList size={24} /> Action Steps</h3>
+                    <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">{lesson.actionPlan}</div>
+                  </Card>
+                )}
+              </div>
             </div>
           </div>
         ) : (
