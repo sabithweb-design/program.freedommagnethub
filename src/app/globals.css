@@ -81,6 +81,12 @@
   border-radius: inherit;
 }
 
+/* Hide branding by slightly scaling the underlying iframe inside Plyr */
+.plyr iframe {
+  transform: scale(1.1);
+  transform-origin: center;
+}
+
 /* Deterrent class to prevent selection (applied to non-admins) */
 .content-protected {
   -webkit-user-select: none;
