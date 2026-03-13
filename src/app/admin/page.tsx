@@ -61,7 +61,8 @@ import {
   Search,
   Eye,
   EyeOff,
-  FolderOpen
+  FolderOpen,
+  Info
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -215,14 +216,12 @@ export default function AdminPage() {
     setEnrolling(true);
 
     try {
-      // 1. Check if user exists
       const q = query(collection(firestore, 'users'), where('email', '==', enrollmentEmail));
       const snap = await getDocs(q);
       
       let studentUid = '';
 
       if (snap.empty) {
-        // 2. User does not exist, try to create them if password provided
         if (!enrollmentPassword) {
           toast({ variant: "destructive", title: "New Member Detected", description: "Please provide a password to register this new student." });
           setEnrolling(false);
@@ -256,7 +255,6 @@ export default function AdminPage() {
         studentUid = snap.docs[0].id;
       }
 
-      // 3. Enroll student
       if (editFields.studentIds.includes(studentUid)) {
         toast({ title: "Already Enrolled", description: "This user is already a member of this program." });
         return;
@@ -283,7 +281,7 @@ export default function AdminPage() {
 
   const handleAddCourse = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firestore) return;
+    if (!firestore || !currentUser) return;
 
     addDoc(collection(firestore, 'courses'), {
       ...courseForm,
@@ -295,7 +293,7 @@ export default function AdminPage() {
       videos: "0",
       progress: 0,
       isLocked: false,
-      adminIds: [currentUser?.uid], 
+      adminIds: [currentUser.uid], 
       studentIds: [],
       createdAt: serverTimestamp()
     }).then(() => {
@@ -413,6 +411,12 @@ export default function AdminPage() {
   };
 
   const adminUsers = users?.filter((u: any) => u.role === 'admin') || [];
+  
+  // Filter lessons based on accessible courses
+  const filteredLessons = useMemo(() => {
+    if (!lessons || !courses) return [];
+    return lessons.filter(l => courses.some(c => c.id === l.courseId));
+  }, [lessons, courses]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
@@ -434,7 +438,7 @@ export default function AdminPage() {
           <DialogContent className="rounded-3xl max-w-md">
             <DialogHeader>
               <DialogTitle>Register Account</DialogTitle>
-              <DialogDescription>Create a student {isMainAdmin ? "or co-admin" : ""} account. {isMainAdmin ? "New admins can be assigned to help manage program sessions." : ""}</DialogDescription>
+              <DialogDescription>Create a student {isMainAdmin ? "or co-admin" : ""} account.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -514,7 +518,7 @@ export default function AdminPage() {
         </TabsList>
 
         <TabsContent value="users">
-          {isMainAdmin ? (
+          {isMainAdmin && (
             <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                 <CardTitle>Member Directory</CardTitle>
@@ -555,7 +559,7 @@ export default function AdminPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right pr-6">
-                          {isMainAdmin && u.email !== MAIN_ADMIN_EMAIL && (
+                          {u.email !== MAIN_ADMIN_EMAIL && (
                             <div className="flex items-center justify-end gap-3">
                               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{u.status === false ? "Enable" : "Disable"}</span>
                               <Switch 
@@ -572,61 +576,59 @@ export default function AdminPage() {
                 </Table>
               </CardContent>
             </Card>
-          ) : null}
+          )}
         </TabsContent>
 
         <TabsContent value="courses">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {isAdmin && (
-              <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Plus className="text-primary" /> Create Program
-                  </CardTitle>
-                  <CardDescription>Main Admin initialization of a new program folder.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleAddCourse} className="space-y-4">
+            <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Plus className="text-primary" /> Create Program
+                </CardTitle>
+                <CardDescription>Initialize a new program folder to manage content and students.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddCourse} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="font-bold">Program Name</Label>
+                    <Input placeholder="e.g. 90-Day Masterclass" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12 text-slate-900" required />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="font-bold">Program Name</Label>
-                      <Input placeholder="e.g. 90-Day Masterclass" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12 text-slate-900" required />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="font-bold">Sale Price (₹)</Label>
-                        <Input type="number" placeholder="0" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="font-bold">Old Price (₹)</Label>
-                        <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
-                      </div>
+                      <Label className="font-bold">Sale Price (₹)</Label>
+                      <Input type="number" placeholder="0" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold">Thumbnail (URL)</Label>
-                      <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900" />
+                      <Label className="font-bold">Old Price (₹)</Label>
+                      <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="font-bold">Category</Label>
-                      <Input placeholder="Education / Training" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12 text-slate-900" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="font-bold">Overview</Label>
-                      <Textarea placeholder="Program description..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px] text-slate-900" />
-                    </div>
-                    <Button type="submit" className="w-full rounded-xl h-12 font-bold shadow-md">Add to Portfolio</Button>
-                  </form>
-                </CardContent>
-              </Card>
-            )}
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold">Thumbnail (URL)</Label>
+                    <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold">Category</Label>
+                    <Input placeholder="Education / Training" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12 text-slate-900" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold">Overview</Label>
+                    <Textarea placeholder="Program description..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px] text-slate-900" />
+                  </div>
+                  <Button type="submit" className="w-full rounded-xl h-12 font-bold shadow-md">Add to Portfolio</Button>
+                </form>
+              </CardContent>
+            </Card>
 
-            <div className={isAdmin ? "lg:col-span-2 space-y-4" : "col-span-full space-y-4"}>
+            <div className="lg:col-span-2 space-y-4">
               <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2">
                 <FolderOpen size={18} className="text-primary" /> {isMainAdmin ? "Full Program Portfolio" : "Assigned Programs"}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {coursesLoading ? (
                   Array(2).fill(0).map((_, i) => <div key={i} className="h-24 bg-white dark:bg-slate-900 animate-pulse rounded-2xl" />)
-                ) : courses?.map((c: any) => (
+                ) : courses && courses.length > 0 ? courses.map((c: any) => (
                   <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden p-3 flex gap-4 hover:shadow-md transition-all items-center relative group">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800 relative">
                       <img src={c.imageUrl || 'https://picsum.photos/seed/prog/200'} className="w-full h-full object-cover" alt={c.title} />
@@ -665,7 +667,7 @@ export default function AdminPage() {
                       >
                         <Edit2 size={16} />
                       </Button>
-                      {isAdmin && (
+                      {(isMainAdmin || c.adminIds?.includes(currentUser?.uid)) && (
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -677,7 +679,11 @@ export default function AdminPage() {
                       )}
                     </div>
                   </Card>
-                ))}
+                )) : (
+                  <div className="col-span-full py-12 text-center bg-slate-50 dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                    <p className="text-slate-400 font-bold">No programs assigned to your profile yet.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -743,7 +749,7 @@ export default function AdminPage() {
               <div className="space-y-3">
                 {lessonsLoading ? (
                   <div className="text-center py-10 text-slate-400">Syncing content...</div>
-                ) : lessons?.filter(l => courses?.some(c => c.id === l.courseId)).map((l: any) => {
+                ) : filteredLessons.length > 0 ? filteredLessons.map((l: any) => {
                   const course = courses?.find(c => c.id === l.courseId);
                   return (
                     <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-4 flex items-center justify-between group">
@@ -764,7 +770,7 @@ export default function AdminPage() {
                           <p className="text-xs text-slate-400 line-clamp-1">Day {l.dayNumber} • {l.description || 'No description'}</p>
                         </div>
                       </div>
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
                           const url = `${window.location.origin}/lesson/${l.dayNumber}`;
                           navigator.clipboard.writeText(url);
@@ -772,10 +778,25 @@ export default function AdminPage() {
                         }}>
                           <Share2 size={16} />
                         </Button>
+                        <Button variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-red-500" onClick={() => {
+                          if (confirm("Delete this session?")) {
+                            deleteDoc(doc(firestore, 'lessons', l.id))
+                              .catch(async (err) => {
+                                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'delete' }));
+                              });
+                          }
+                        }}>
+                          <Trash2 size={16} />
+                        </Button>
                       </div>
                     </Card>
                   );
-                })}
+                }) : (
+                  <div className="flex flex-col items-center justify-center py-20 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed text-slate-400 space-y-4">
+                    <Info size={32} />
+                    <p className="font-bold">No sessions found in your programs yet.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -815,7 +836,7 @@ export default function AdminPage() {
                     <CardTitle className="text-base flex items-center gap-2">
                       <Users size={18} className="text-primary" /> Student Enrollment
                     </CardTitle>
-                    <CardDescription className="text-xs">Add new or existing students. If the student doesn't exist, provide a password to register them.</CardDescription>
+                    <CardDescription className="text-xs">Add new or existing students. Provide a password to register new members.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-5 pt-4 space-y-4">
                     <div className="space-y-3">
@@ -932,7 +953,7 @@ export default function AdminPage() {
                   <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
                     <ShieldAlert size={20} className="text-amber-500 shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                      You are a Sub Admin managing this program. You can build lessons, add students, and share enrollment links.
+                      You are an Admin managing this program session. You can build lessons, add students, and share enrollment links.
                     </p>
                   </div>
                 )}
