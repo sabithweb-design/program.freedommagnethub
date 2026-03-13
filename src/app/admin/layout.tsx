@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -10,7 +11,8 @@ import {
   MessageCircle,
   Bell, 
   Grid,
-  ExternalLink
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -18,20 +20,20 @@ import { ThemeToggle } from '@/components/ThemeToggle';
 import { PlayerIcon } from './page';
 import { BrandLogo } from '@/components/BrandLogo';
 
-const ADMIN_EMAIL = "admin@freedommagnethub.com";
+const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, isAdmin } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  const isAuthorized = user?.email === ADMIN_EMAIL || profile?.role === 'admin';
+  const isMainAdmin = user?.email === MAIN_ADMIN_EMAIL;
 
   React.useEffect(() => {
-    if (!loading && !isAuthorized) {
+    if (!loading && !isAdmin) {
       router.push('/login');
     }
-  }, [loading, isAuthorized, router]);
+  }, [loading, isAdmin, router]);
 
   if (loading) {
     return (
@@ -41,7 +43,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  if (!isAuthorized) return null;
+  if (!isAdmin) return null;
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
@@ -60,19 +62,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <NavItem icon={<LayoutDashboard size={20} />} label="DASHBOARD" href="/admin" active={pathname === '/admin'} />
             <NavItem icon={<Compass size={20} />} label="FEED" href="#" />
             <NavItem icon={<PlayerIcon className="h-5 w-5" />} label="WORKSHOPS" href="#" />
-            <NavItem icon={<BookOpen size={20} />} label="PROGRAMS" href="/admin/courses" active={pathname === '/admin/courses'} />
+            <NavItem icon={<BookOpen size={20} />} label="PROGRAMS" href="/admin" active={pathname === '/admin'} />
             <NavItem icon={<MessageCircle size={20} />} label="MESSAGES" href="#" />
           </nav>
 
           {/* Right Section: Icons, Action Button & Logo at the end */}
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
             <div className="flex items-center gap-1 sm:gap-2">
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full mr-2">
+                <ShieldCheck size={14} className="text-primary" />
+                <span className="text-[10px] font-black uppercase text-primary tracking-widest">{isMainAdmin ? "Main Admin" : "Sub Admin"}</span>
+              </div>
               <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 relative rounded-full h-9 w-9 sm:h-10 sm:w-10">
                 <Bell size={18} className="sm:size-5" />
-                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] sm:text-[10px] text-white flex items-center justify-center border-2 border-white dark:border-slate-900">3</span>
-              </Button>
-              <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 rounded-full h-9 w-9 sm:h-10 sm:w-10">
-                <Grid size={18} className="sm:size-5" />
+                <span className="absolute top-1.5 right-1.5 w-3.5 h-3.5 bg-red-500 rounded-full text-[8px] sm:text-[10px] text-white flex items-center justify-center border-2 border-white dark:border-slate-900">1</span>
               </Button>
               <ThemeToggle />
             </div>

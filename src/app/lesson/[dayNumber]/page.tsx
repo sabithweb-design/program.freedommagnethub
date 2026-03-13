@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -16,7 +17,8 @@ import {
   Lock, 
   CheckCircle2,
   FileText,
-  ClipboardList
+  ClipboardList,
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -48,6 +50,7 @@ export default function LessonPage() {
   const [fetching, setFetching] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
+  const [noAccess, setNoAccess] = useState(false);
 
   useEffect(() => {
     // Prevent right-click to protect video content (deterrent only)
@@ -59,42 +62,47 @@ export default function LessonPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      // Force user to login page with a redirect back to this lesson
-      router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`);
+    if (loading) return;
+
+    if (!user) {
+      // Force user to login page with a redirect back to this specific session
+      const currentPath = window.location.pathname;
+      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
 
-    if (user) {
-      const fetchLesson = async () => {
-        try {
-          const q = query(collection(db, "lessons"), where("dayNumber", "==", day));
-          const querySnapshot = await getDocs(q);
-          
-          let currentLessonId = null;
-          let currentLesson = null;
+    const fetchLesson = async () => {
+      try {
+        const q = query(collection(db, "lessons"), where("dayNumber", "==", day));
+        const querySnapshot = await getDocs(q);
+        
+        let currentLessonId = null;
+        let currentLesson = null;
 
-          if (!querySnapshot.empty) {
-            currentLessonId = querySnapshot.docs[0].id;
-            currentLesson = querySnapshot.docs[0].data() as LessonData;
-          }
-
-          setLessonId(currentLessonId);
-          setLesson(currentLesson);
-
-          if (currentLessonId) {
-            const progressRef = doc(db, 'users', user.uid, 'completedLessons', currentLessonId);
-            const docSnap = await getDoc(progressRef);
-            setIsCompleted(docSnap.exists());
-          }
-        } catch (error) {
-          console.error("Error fetching lesson:", error);
-        } finally {
-          setFetching(false);
+        if (!querySnapshot.empty) {
+          currentLessonId = querySnapshot.docs[0].id;
+          currentLesson = querySnapshot.docs[0].data() as LessonData;
         }
-      };
-      fetchLesson();
-    }
+
+        setLessonId(currentLessonId);
+        setLesson(currentLesson);
+
+        if (currentLessonId) {
+          const progressRef = doc(db, 'users', user.uid, 'completedLessons', currentLessonId);
+          const docSnap = await getDoc(progressRef);
+          setIsCompleted(docSnap.exists());
+        }
+      } catch (error: any) {
+        console.error("Error fetching lesson:", error);
+        if (error.code === 'permission-denied') {
+          setNoAccess(true);
+        }
+      } finally {
+        setFetching(false);
+      }
+    };
+    
+    fetchLesson();
   }, [user, loading, day, router]);
 
   const handleToggleComplete = () => {
@@ -148,21 +156,19 @@ export default function LessonPage() {
     );
   }
 
-  if (lesson?.isLocked) {
+  if (noAccess) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-slate-50 dark:bg-slate-900 w-24 h-24 rounded-full flex items-center justify-center mb-8 shadow-xl">
-          <Lock size={48} className="text-primary" />
+        <div className="bg-rose-50 dark:bg-rose-950 w-24 h-24 rounded-full flex items-center justify-center mb-8 shadow-xl">
+          <AlertCircle size={48} className="text-primary" />
         </div>
-        <h1 className="text-3xl font-black text-foreground mb-4">Day {day}: Content Locked</h1>
+        <h1 className="text-3xl font-black text-foreground mb-4">Access Denied</h1>
         <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8 leading-relaxed font-medium">
-          Access to this lesson is currently restricted.
+          You are not enrolled in the program containing this session. Please contact your instructor for access.
         </p>
-        <div className="flex gap-4">
-          <Button variant="outline" asChild className="rounded-full px-8 h-12">
-            <Link href="/dashboard">Return to Hub</Link>
-          </Button>
-        </div>
+        <Button asChild className="rounded-full px-8 h-12 shadow-lg shadow-primary/20">
+          <Link href="/dashboard">Go to My Dashboard</Link>
+        </Button>
       </div>
     );
   }
@@ -175,32 +181,29 @@ export default function LessonPage() {
             <Button variant="ghost" size="sm" asChild className="rounded-full">
               <Link href="/dashboard">
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                Back
+                Hub
               </Link>
             </Button>
             <div className="font-bold text-foreground flex items-center gap-2">
               <GraduationCap className="h-5 w-5 text-primary" />
-              Day {day}
+              Session {day}
             </div>
           </div>
 
-          <div className="flex items-center gap-4 sm:gap-8">
-            <div className="flex items-center gap-2">
-              <ThemeToggle />
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full">
-                  <Link href={day > 1 ? `/lesson/${day - 1}` : "#"}>
-                    <ChevronLeft className="h-5 w-5" />
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="icon" asChild disabled={day >= 90} className="rounded-full">
-                  <Link href={day < 90 ? `/lesson/${day + 1}` : "#"}>
-                    <ChevronRight className="h-5 w-5" />
-                  </Link>
-                </Button>
-              </div>
+          <div className="flex items-center gap-4">
+            <ThemeToggle />
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full">
+                <Link href={day > 1 ? `/lesson/${day - 1}` : "#"}>
+                  <ChevronLeft className="h-5 w-5" />
+                </Link>
+              </Button>
+              <Button variant="ghost" size="icon" asChild disabled={day >= 90} className="rounded-full">
+                <Link href={day < 90 ? `/lesson/${day + 1}` : "#"}>
+                  <ChevronRight className="h-5 w-5" />
+                </Link>
+              </Button>
             </div>
-            <div className="h-8 w-px bg-slate-100 dark:bg-slate-800 hidden sm:block" />
           </div>
         </div>
       </div>
@@ -208,7 +211,6 @@ export default function LessonPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Privacy-Enhanced Video Embed */}
             <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative group select-none">
               {lesson.youtubeVideoId ? (
                 <>
@@ -219,14 +221,10 @@ export default function LessonPage() {
                     sandbox="allow-forms allow-scripts allow-pointer-lock allow-same-origin"
                     title={lesson.title || `Day ${day}`}
                   />
-                  {/* Deterrent: Transparent overlays that block clicks on the Top (Title) and Bottom Right (Logo) areas */}
                   {!isAdmin && (
                     <>
-                      {/* Covers the Top Title Area (Title, Watch Later, Share) */}
                       <div className="absolute top-0 left-0 right-0 h-[20%] z-10 bg-transparent cursor-default" />
-                      {/* Covers the Bottom Right Logo Area (YouTube Logo) */}
                       <div className="absolute bottom-0 right-0 w-[25%] h-[20%] z-10 bg-transparent cursor-default" />
-                      {/* Covers the Bottom Left Area (Watch on YouTube) */}
                       <div className="absolute bottom-0 left-0 w-[20%] h-[15%] z-10 bg-transparent cursor-default" />
                     </>
                   )}
@@ -234,7 +232,7 @@ export default function LessonPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800">
                   <PlayerIcon className="h-16 w-16 mb-4 animate-pulse" />
-                  <p className="font-medium">Video content pending</p>
+                  <p className="font-medium">Video stream loading...</p>
                 </div>
               )}
             </div>
@@ -243,10 +241,10 @@ export default function LessonPage() {
               <div className="flex-1 space-y-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title || `Day ${day} Training`}</h1>
+                    <h1 className="text-3xl md:text-4xl font-bold text-foreground leading-tight">{lesson.title || `Day ${day} Session`}</h1>
                     <div className="flex gap-4 mt-4">
                       <span className="flex items-center gap-1.5 text-xs font-bold text-primary uppercase tracking-wider">
-                        <BookOpen size={14} /> Module {Math.floor((day - 1) / 30) + 1}
+                        <BookOpen size={14} /> Training Hub
                       </span>
                       <span className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
                         <Clock size={14} /> DAY {day}
@@ -285,7 +283,7 @@ export default function LessonPage() {
                   <Card className="border-none shadow-sm rounded-3xl bg-primary/5 dark:bg-primary/10 p-8 border-l-4 border-primary">
                     <h3 className="font-black text-primary text-xl mb-4 flex items-center gap-3">
                       <ClipboardList size={24} />
-                      Action Plan
+                      Action Steps
                     </h3>
                     <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-medium whitespace-pre-wrap">
                       {lesson.actionPlan}
@@ -299,10 +297,10 @@ export default function LessonPage() {
                   <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
                     <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
                       <FileText size={18} className="text-primary" />
-                      Study Material
+                      Session Materials
                     </h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium">
-                      Download the day's roadmap.
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium leading-relaxed">
+                      Download the day's supplemental PDF resources.
                     </p>
                     <Button 
                       className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold"
@@ -322,8 +320,8 @@ export default function LessonPage() {
             <div className="bg-background w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
                <PlayerIcon className="h-12 w-12 text-primary" />
             </div>
-            <h2 className="text-2xl font-bold text-foreground mb-2">Lesson Coming Soon</h2>
-            <p className="text-slate-400 mb-8 max-w-xs mx-auto">This module is currently being finalized.</p>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Session Not Found</h2>
+            <p className="text-slate-400 mb-8 max-w-xs mx-auto">This session hasn't been uploaded yet or you don't have access.</p>
             <Button asChild variant="outline" className="rounded-full px-8">
               <Link href="/dashboard">Return to Dashboard</Link>
             </Button>

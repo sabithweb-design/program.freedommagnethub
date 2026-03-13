@@ -3,7 +3,7 @@
   "entities": {
     "UserProfile": {
       "title": "User Profile",
-      "description": "User account information including role, status, and cohort start date for Freedom Magnet Hub.",
+      "description": "User account information including role (main_admin, sub_admin, student), status, and cohort start date.",
       "type": "object",
       "properties": {
         "uid": { "type": "string" },
@@ -17,7 +17,7 @@
     },
     "Lesson": {
       "title": "Lesson",
-      "description": "Educational lesson content for the 90-day program in Freedom Magnet Hub.",
+      "description": "Educational lesson content for the training programs.",
       "type": "object",
       "properties": {
         "courseId": { "type": "string", "description": "Reference to the parent Course ID" },
@@ -35,27 +35,25 @@
     },
     "Course": {
       "title": "Course",
-      "description": "A course available in the hub with stylized progress tracking and scoped admin access.",
+      "description": "A program folder with scoped access for Sub Admins and enrolled Students.",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
         "author": { "type": "string" },
         "category": { "type": "string" },
-        "videos": { "type": "string", "description": "e.g., '4/6'" },
-        "progress": { "type": "number", "description": "Percentage value (0-100)" },
+        "videos": { "type": "string" },
+        "progress": { "type": "number" },
         "imageUrl": { "type": "string" },
-        "isLatestLearned": { "type": "boolean" },
-        "userId": { "type": "string" },
         "description": { "type": "string" },
         "price": { "type": "number" },
         "originalPrice": { "type": "number" },
         "isLocked": { "type": "boolean", "default": false },
-        "rating": { "type": "number", "description": "Star rating (0-5)" },
-        "reviewCount": { "type": "number", "description": "Total number of reviews" },
+        "rating": { "type": "number" },
+        "reviewCount": { "type": "number" },
         "adminIds": { 
           "type": "array", 
           "items": { "type": "string" },
-          "description": "List of Admin UIDs who have permission to manage this specific program."
+          "description": "List of Sub Admin UIDs who can manage this program."
         },
         "studentIds": {
           "type": "array",
@@ -63,7 +61,7 @@
           "description": "List of Student UIDs enrolled in this program."
         }
       },
-      "required": ["category", "videos", "progress"]
+      "required": ["title", "category"]
     },
     "UserLessonProgress": {
       "title": "User Lesson Progress",
@@ -75,7 +73,7 @@
     }
   },
   "auth": {
-    "providers": ["password", "emailLink"]
+    "providers": ["password"]
   },
   "firestore": {
     "/users/{userId}": {

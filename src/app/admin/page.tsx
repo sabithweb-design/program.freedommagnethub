@@ -60,13 +60,14 @@ import {
   ShieldAlert,
   Search,
   Eye,
-  EyeOff
+  EyeOff,
+  FolderOpen
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
 
-const SUPER_ADMIN_EMAIL = "admin@freedommagnethub.com";
+const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
 
 export const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
   <svg 
@@ -85,20 +86,21 @@ export default function AdminPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('courses');
 
-  const isSuperAdmin = currentUser?.email === SUPER_ADMIN_EMAIL;
+  const isMainAdmin = currentUser?.email === MAIN_ADMIN_EMAIL;
 
   const usersQuery = useMemo(() => {
-    if (!firestore || !isSuperAdmin) return null;
+    if (!firestore || !isMainAdmin) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, isSuperAdmin]);
+  }, [firestore, isMainAdmin]);
   
   const coursesQuery = useMemo(() => {
     if (!firestore || !currentUser) return null;
-    if (isSuperAdmin) {
+    if (isMainAdmin) {
       return query(collection(firestore, 'courses'));
     }
+    // Sub Admins only see courses where they are in adminIds
     return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', currentUser.uid));
-  }, [firestore, currentUser, isSuperAdmin]);
+  }, [firestore, currentUser, isMainAdmin]);
 
   const lessonsQuery = useMemo(() => firestore ? query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc')) : null, [firestore]);
 
@@ -379,11 +381,13 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
-      <header className="flex justify-between items-end">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight">Management Suite</h1>
+          <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-3">
+            <ShieldCheck className="text-primary h-10 w-10" /> Management Suite
+          </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            {isSuperAdmin ? "Super Admin: Full system control and admin assignment." : "Scoped Admin: Manage your assigned training folders and members."}
+            {isMainAdmin ? "Main Admin: Full platform control, program creation, and Sub Admin assignment." : "Sub Admin: Manage assigned programs, lessons, and student enrollment."}
           </p>
         </div>
         <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
@@ -395,7 +399,7 @@ export default function AdminPage() {
           <DialogContent className="rounded-3xl max-w-md">
             <DialogHeader>
               <DialogTitle>Register Account</DialogTitle>
-              <DialogDescription>Create a student account. Only Super Admins can create other admins.</DialogDescription>
+              <DialogDescription>Create a student or sub-admin account. Only Main Admins should create other admins.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -447,7 +451,7 @@ export default function AdminPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student (Hub Access)</SelectItem>
-                    {isSuperAdmin && <SelectItem value="admin">Admin (Scoped Access)</SelectItem>}
+                    {isMainAdmin && <SelectItem value="admin">Sub Admin (Folder Access)</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -463,7 +467,7 @@ export default function AdminPage() {
 
       <Tabs defaultValue="courses" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="bg-white dark:bg-slate-900 border dark:border-slate-800 p-1 rounded-2xl h-14 w-full md:w-auto grid grid-cols-3">
-          <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
+          <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all disabled:opacity-50" disabled={!isMainAdmin}>
             <Users size={16} /> Directory
           </TabsTrigger>
           <TabsTrigger value="courses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all">
@@ -475,11 +479,11 @@ export default function AdminPage() {
         </TabsList>
 
         <TabsContent value="users">
-          {isSuperAdmin ? (
+          {isMainAdmin ? (
             <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                 <CardTitle>Member Directory</CardTitle>
-                <CardDescription>Full access list for the entire hub.</CardDescription>
+                <CardDescription>Main Admin view of all platform accounts.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -506,7 +510,7 @@ export default function AdminPage() {
                           <Badge className={`rounded-lg px-2.5 py-1 text-[10px] font-black tracking-widest uppercase border-none ${
                             u.role === 'admin' ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "bg-rose-50 dark:bg-rose-950 text-primary"
                           }`}>
-                            {u.email === SUPER_ADMIN_EMAIL ? "Super Admin" : u.role}
+                            {u.email === MAIN_ADMIN_EMAIL ? "Main Admin" : u.role === 'admin' ? "Sub Admin" : "Student"}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -516,7 +520,7 @@ export default function AdminPage() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right pr-6">
-                          {isSuperAdmin && u.email !== SUPER_ADMIN_EMAIL && (
+                          {isMainAdmin && u.email !== MAIN_ADMIN_EMAIL && (
                             <div className="flex items-center justify-end gap-3">
                               <span className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{u.status === false ? "Enable" : "Disable"}</span>
                               <Switch 
@@ -533,61 +537,56 @@ export default function AdminPage() {
                 </Table>
               </CardContent>
             </Card>
-          ) : (
-            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-dashed flex flex-col items-center">
-              <ShieldAlert className="h-12 w-12 text-slate-300 mb-4" />
-              <h3 className="text-xl font-bold">Scoped Management</h3>
-              <p className="text-slate-400 max-w-sm mx-auto mb-6">You have limited directory access. You can register new members, and manage enrollment directly within your assigned program folders.</p>
-              <Button variant="outline" onClick={() => setIsUserDialogOpen(true)} className="rounded-full px-8">Register New Student</Button>
-            </div>
-          )}
+          ) : null}
         </TabsContent>
 
         <TabsContent value="courses">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="text-primary" /> Create Program
-                </CardTitle>
-                <CardDescription>Add a new folder or course track.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={handleAddCourse} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="font-bold">Program Name</Label>
-                    <Input placeholder="e.g. Masterclass A" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12 text-slate-900" required />
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
+            {isMainAdmin && (
+              <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Plus className="text-primary" /> Create Program
+                  </CardTitle>
+                  <CardDescription>Only Main Admins can initialize new program folders.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleAddCourse} className="space-y-4">
                     <div className="space-y-2">
-                      <Label className="font-bold">Sale Price (₹)</Label>
-                      <Input type="number" placeholder="0" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
+                      <Label className="font-bold">Program Name</Label>
+                      <Input placeholder="e.g. 90-Day Masterclass" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12 text-slate-900" required />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="font-bold">Sale Price (₹)</Label>
+                        <Input type="number" placeholder="0" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-bold">Old Price (₹)</Label>
+                        <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
+                      </div>
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold">Old Price (₹)</Label>
-                      <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
+                      <Label className="font-bold">Thumbnail (URL)</Label>
+                      <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900" />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold">Thumbnail (URL)</Label>
-                    <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold">Category</Label>
-                    <Input placeholder="Tech / Design" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12 text-slate-900" />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold">Overview</Label>
-                    <Textarea placeholder="Program description..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px] text-slate-900" />
-                  </div>
-                  <Button type="submit" className="w-full rounded-xl h-12 font-bold shadow-md">Add to Portfolio</Button>
-                </form>
-              </CardContent>
-            </Card>
+                    <div className="space-y-2">
+                      <Label className="font-bold">Category</Label>
+                      <Input placeholder="Education / Training" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12 text-slate-900" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold">Overview</Label>
+                      <Textarea placeholder="Program description..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px] text-slate-900" />
+                    </div>
+                    <Button type="submit" className="w-full rounded-xl h-12 font-bold shadow-md">Add to Portfolio</Button>
+                  </form>
+                </CardContent>
+              </Card>
+            )}
 
-            <div className="lg:col-span-2 space-y-4">
+            <div className={isMainAdmin ? "lg:col-span-2 space-y-4" : "col-span-full space-y-4"}>
               <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2">
-                <BookOpen size={18} /> Program Portfolio
+                <FolderOpen size={18} className="text-primary" /> {isMainAdmin ? "Full Program Portfolio" : "Assigned Programs"}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {coursesLoading ? (
@@ -608,9 +607,6 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all">
-                        <Share2 size={16} />
-                      </Button>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -634,14 +630,16 @@ export default function AdminPage() {
                       >
                         <Edit2 size={16} />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-full hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-500 transition-all"
-                        onClick={() => handleDeleteProgram(c.id)}
-                      >
-                        <Trash2 size={16} />
-                      </Button>
+                      {isMainAdmin && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="rounded-full hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-500 transition-all"
+                          onClick={() => handleDeleteProgram(c.id)}
+                        >
+                          <Trash2 size={16} />
+                        </Button>
+                      )}
                     </div>
                   </Card>
                 ))}
@@ -657,7 +655,7 @@ export default function AdminPage() {
                 <CardTitle className="flex items-center gap-2">
                   <PlayerIcon className="h-5 w-5 text-primary" /> Content Portal
                 </CardTitle>
-                <CardDescription>Upload video lessons and PDFs to programs.</CardDescription>
+                <CardDescription>Upload video sessions to your assigned programs.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddLesson} className="space-y-4">
@@ -676,28 +674,28 @@ export default function AdminPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="font-bold">Day Number</Label>
+                      <Label className="font-bold">Session / Day #</Label>
                       <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl text-slate-900" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold">Video Link</Label>
-                      <Input placeholder="YouTube/Vimeo" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl text-slate-900" />
+                      <Label className="font-bold">Video URL</Label>
+                      <Input placeholder="YouTube Link" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl text-slate-900" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">PDF Material (URL)</Label>
+                    <Label className="font-bold">Resources PDF (URL)</Label>
                     <Input placeholder="https://..." value={lessonForm.pdfUrl} onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Title</Label>
-                    <Input placeholder="Introduction" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl text-slate-900" required />
+                    <Label className="font-bold">Session Title</Label>
+                    <Input placeholder="Introduction to..." value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl text-slate-900" required />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Description</Label>
-                    <Textarea className="min-h-[80px] rounded-xl text-slate-900" placeholder="Lesson summary..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
+                    <Textarea className="min-h-[80px] rounded-xl text-slate-900" placeholder="Session breakdown..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
                   </div>
                   <Button type="submit" className="w-full h-12 rounded-xl font-bold flex gap-2 transition-all active:scale-95 shadow-lg shadow-primary/10">
-                    <Save size={18} /> Publish Lesson
+                    <Save size={18} /> Publish Session
                   </Button>
                 </form>
               </CardContent>
@@ -705,7 +703,7 @@ export default function AdminPage() {
 
             <div className="lg:col-span-2 space-y-4">
               <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2">
-                <PlayerIcon className="h-5 w-5 text-primary" /> Timeline Preview
+                <PlayerIcon className="h-5 w-5 text-primary" /> Published Sessions
               </h3>
               <div className="space-y-3">
                 {lessonsLoading ? (
@@ -732,7 +730,11 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button variant="ghost" size="icon" className="rounded-full text-slate-400">
+                        <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
+                          const url = `${window.location.origin}/lesson/${l.dayNumber}`;
+                          navigator.clipboard.writeText(url);
+                          toast({ title: "Session Link Copied", description: "Share this link with your enrolled students." });
+                        }}>
                           <Share2 size={16} />
                         </Button>
                       </div>
@@ -748,8 +750,8 @@ export default function AdminPage() {
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
         <DialogContent className="rounded-3xl max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Management Config</DialogTitle>
-            <DialogDescription>Modify program details and assign specific admin access or enroll students.</DialogDescription>
+            <DialogTitle>Program Configuration</DialogTitle>
+            <DialogDescription>Manage content, assign sub-admins, and enroll students for this program session.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-8 text-slate-900">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -776,14 +778,14 @@ export default function AdminPage() {
                 <Card className="border shadow-none rounded-2xl bg-white dark:bg-slate-900">
                   <CardHeader className="p-5 pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
-                      <Users size={18} className="text-primary" /> Session Enrollment
+                      <Users size={18} className="text-primary" /> Student Enrollment
                     </CardTitle>
-                    <CardDescription className="text-xs">Add members to this specific program session.</CardDescription>
+                    <CardDescription className="text-xs">Add students to this program folder. They will only see this session.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-5 pt-4 space-y-4">
                     <div className="flex gap-2">
                       <Input 
-                        placeholder="your@email.com" 
+                        placeholder="student@email.com" 
                         value={enrollmentEmail}
                         onChange={(e) => setEnrollmentEmail(e.target.value)}
                         className="rounded-xl h-11 text-slate-900"
@@ -796,7 +798,7 @@ export default function AdminPage() {
                     <div className="space-y-2 mt-4 max-h-[200px] overflow-y-auto pr-2">
                       {editFields.studentIds.length === 0 ? (
                         <div className="text-[10px] text-slate-400 text-center py-4 border border-dashed rounded-lg font-bold">
-                          No members enrolled yet.
+                          No students enrolled yet.
                         </div>
                       ) : editFields.studentIds.map(sid => (
                         <div key={sid} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border group">
@@ -831,21 +833,21 @@ export default function AdminPage() {
                   </div>
                 </div>
                 
-                {isSuperAdmin && (
+                {isMainAdmin && (
                   <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
                     <CardHeader className="p-4 pb-2">
                       <CardTitle className="text-sm flex items-center gap-2">
-                        <ShieldCheck size={16} className="text-primary" /> Manager Access
+                        <ShieldCheck size={16} className="text-primary" /> Sub Admin Assignment
                       </CardTitle>
-                      <CardDescription className="text-[10px]">Grant specific admins access to manage this folder.</CardDescription>
+                      <CardDescription className="text-[10px]">Assign Sub Admins to manage this specific folder.</CardDescription>
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       <div className="space-y-3 mt-2">
-                        {adminUsers.filter(u => u.email !== SUPER_ADMIN_EMAIL).length === 0 ? (
+                        {adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
                           <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
-                            No secondary admin accounts found.
+                            Register a Sub Admin in the Directory first.
                           </div>
-                        ) : adminUsers.filter(u => u.email !== SUPER_ADMIN_EMAIL).map((u: any) => (
+                        ) : adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
                           <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
                             <Checkbox 
                               id={`admin-${u.uid}`} 
@@ -864,11 +866,11 @@ export default function AdminPage() {
                   </Card>
                 )}
 
-                {!isSuperAdmin && (
+                {!isMainAdmin && (
                   <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
                     <ShieldAlert size={20} className="text-amber-500 shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                      As a Scoped Admin, you can edit content and enroll students, but only the Super Admin can assign additional management roles.
+                      As a Sub Admin, you can edit content and enroll students, but only the Main Admin can assign additional management roles.
                     </p>
                   </div>
                 )}

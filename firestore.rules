@@ -3,37 +3,32 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Super Admin check: Global admin email and role
+    // Super Admin: Has full control over everything.
     function isSuperAdmin() {
       return request.auth != null && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' &&
              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@freedommagnethub.com';
     }
 
-    // Scoped Admin check: Has admin role AND is explicitly assigned to the course
-    function isCourseAdmin(courseId) {
-      return request.auth != null && (
-        isSuperAdmin() || 
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' && 
-         request.auth.uid in get(/databases/$(database)/documents/courses/$(courseId)).data.adminIds)
-      );
+    // Sub Admin: Can manage a course if their UID is in the course.adminIds array.
+    function isSubAdminForCourse(courseId) {
+      let user = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return request.auth != null && 
+             user.role == 'admin' && 
+             request.auth.uid in get(/databases/$(database)/documents/courses/$(courseId)).data.adminIds;
     }
 
-    // Is any Admin (Super or Scoped)
+    // Is any type of Admin (Main or Sub)
     function isAdmin() {
        return request.auth != null && 
               get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
-    // User profile: Users see their own. Admins see profiles to manage them.
+    // User profile: Users see their own. Super Admin sees all. 
+    // Sub admins can read (get) a profile to verify a student's existence for enrollment.
     match /users/{userId} {
       allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      // Explicitly allow Super Admin to list all. Scoped admins only get.
       allow list: if isSuperAdmin();
-      // Allow creation of students by any admin.
-      allow create: if isAdmin() && request.resource.data.role == 'student';
-      // Super admin can create anything (like other admins).
-      allow create: if isSuperAdmin();
+      allow create: if isAdmin(); // Admins can register new students/admins.
       allow update, delete: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
       
       match /completedLessons/{lessonId} {
@@ -41,26 +36,29 @@ service cloud.firestore {
       }
     }
     
-    // Lessons: Scoped admins can manage lessons belonging to their assigned courses.
+    // Lessons: Managed by Super Admin or the assigned Sub Admin.
     match /lessons/{lessonId} {
       allow read: if request.auth != null;
       allow write, create, delete: if request.auth != null && (
         isSuperAdmin() || 
-        isCourseAdmin(request.resource.data.courseId) || 
-        isCourseAdmin(resource.data.courseId)
+        isSubAdminForCourse(request.resource.data.courseId) || 
+        (resource != null && isSubAdminForCourse(resource.data.courseId))
       );
     }
 
-    // Courses: Super Admin manages all. Scoped Admin manages assigned courses. 
-    // Students can read if enrolled.
+    // Courses: 
+    // Super Admin manages all. 
+    // Sub Admin manages assigned courses. 
+    // Students can read if their UID is in the studentIds array.
     match /courses/{courseId} {
       allow read: if request.auth != null && (
         isSuperAdmin() || 
-        isCourseAdmin(courseId) || 
+        isSubAdminForCourse(courseId) || 
         request.auth.uid in resource.data.studentIds
       );
       allow create: if isAdmin();
-      allow update, delete: if isCourseAdmin(courseId);
+      allow update: if isSuperAdmin() || isSubAdminForCourse(courseId);
+      allow delete: if isSuperAdmin();
     }
   }
 }
