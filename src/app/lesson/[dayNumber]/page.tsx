@@ -170,7 +170,7 @@ function LessonContent() {
         playerInstance.destroy();
       }
     };
-  }, [lesson]);
+  }, [lesson, lessonId]);
 
   const handleToggleComplete = () => {
     if (!user || !lessonId) return;
@@ -265,8 +265,11 @@ function LessonContent() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {lesson && (lesson.vimeoVideoId || lesson.youtubeVideoId) ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Custom Plyr Video Player */}
-            <div className="overflow-hidden rounded-[2rem] shadow-2xl bg-black aspect-video">
+            {/* Custom Plyr Video Player Container */}
+            <div 
+              key={lessonId || day} 
+              className="overflow-hidden rounded-[2rem] shadow-2xl bg-black aspect-video relative group"
+            >
               <div 
                 ref={videoRef}
                 data-plyr-provider={lesson.youtubeVideoId ? "youtube" : "vimeo"}
