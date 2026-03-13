@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -55,7 +56,11 @@ export default function LessonPage() {
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    setOrigin(window.location.origin);
+    // Dynamically set origin for YouTube API
+    if (typeof window !== "undefined") {
+      setOrigin(window.location.origin);
+    }
+    
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
