@@ -52,8 +52,10 @@ export default function LessonPage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [noAccess, setNoAccess] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
+    setOrigin(window.location.origin);
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
@@ -212,23 +214,20 @@ export default function LessonPage() {
                   className="video-iframe border-none" 
                   allow="autoplay; fullscreen; encrypted-media"
                   title={lesson.title || `Day ${day}`}
-                  sandbox="allow-scripts allow-same-origin allow-presentation"
                 />
               ) : lesson.youtubeVideoId ? (
                 <>
                   <iframe 
-                    src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1&playsinline=1&enablejsapi=1`}
+                    src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1&playsinline=1&enablejsapi=1&origin=${origin}`}
                     className="video-iframe border-none" 
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    sandbox="allow-scripts allow-same-origin allow-presentation allow-forms"
                     title={lesson.title || `Day ${day}`}
                   />
                   {!isAdmin && (
                     <>
-                      {/* Targeted Stealth Overlays to block top and bottom UI links without blocking central controls */}
-                      <div className="absolute top-0 left-0 right-0 h-[20%] z-20 bg-transparent cursor-default pointer-events-auto" />
-                      <div className="absolute bottom-0 right-0 w-[35%] h-[15%] z-20 bg-transparent cursor-default pointer-events-auto" />
-                      <div className="absolute bottom-0 left-0 w-[20%] h-[10%] z-20 bg-transparent cursor-default pointer-events-auto" />
+                      {/* Strategic Overlays to block Title and YouTube Branding without hindering controls */}
+                      <div className="absolute top-0 left-0 right-0 h-[15%] z-20 bg-transparent cursor-default" />
+                      <div className="absolute bottom-0 right-0 w-[25%] h-[12%] z-20 bg-transparent cursor-default" />
                     </>
                   )}
                 </>
