@@ -153,11 +153,19 @@ export default function LessonPage() {
 
   const getDriveEmbedUrl = (url: string) => {
     if (!url) return '';
-    // Format: https://drive.google.com/file/d/FILE_ID/preview
-    const fileIdMatch = url.match(/\/d\/([^/]+)/);
+    
+    // Pattern 1: /file/d/ID/view
+    const fileIdMatch = url.match(/\/d\/([^/?#]+)/);
     if (fileIdMatch && fileIdMatch[1]) {
       return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
     }
+    
+    // Pattern 2: open?id=ID or docs.google.com/...id=ID
+    const idParamMatch = url.match(/[?&]id=([^&]+)/);
+    if (idParamMatch && idParamMatch[1]) {
+      return `https://drive.google.com/file/d/${idParamMatch[1]}/preview`;
+    }
+
     return url;
   };
 
@@ -224,12 +232,12 @@ export default function LessonPage() {
       <main className="max-w-4xl mx-auto px-6 py-8">
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative group select-none">
+            <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative group select-none overflow-hidden">
               {lesson.driveVideoUrl ? (
                 <iframe 
                   src={getDriveEmbedUrl(lesson.driveVideoUrl)}
                   className="video-iframe border-none" 
-                  allow="autoplay"
+                  allow="autoplay; fullscreen"
                   title={lesson.title || `Day ${day}`}
                 />
               ) : lesson.youtubeVideoId ? (
