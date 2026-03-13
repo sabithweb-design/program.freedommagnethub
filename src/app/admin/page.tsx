@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -29,7 +28,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Dialog, 
   DialogContent, 
@@ -847,7 +846,7 @@ export default function AdminPage() {
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
                           const url = `${window.location.origin}/lesson/${l.dayNumber}?courseId=${l.courseId}`;
-                          navigator.clipboard.writeText(url);
+                          navigator.clipboard.txt(url);
                           toast({ title: "Session Link Copied", description: "Share this link with your enrolled students." });
                         }}>
                           <Share2 size={16} />
