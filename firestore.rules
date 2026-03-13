@@ -4,9 +4,12 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Super Admin: Has full control over everything.
+    // We check both the auth token email and the stored user document for robustness.
     function isSuperAdmin() {
-      return request.auth != null && 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@freedommagnethub.com';
+      return request.auth != null && (
+        request.auth.token.email == 'admin@freedommagnethub.com' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@freedommagnethub.com'
+      );
     }
 
     // Sub Admin: Can manage a course if their UID is in the course.adminIds array.
@@ -19,16 +22,18 @@ service cloud.firestore {
 
     // Is any type of Admin (Main or Sub)
     function isAdmin() {
-       return request.auth != null && 
-              get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+       return request.auth != null && (
+         isSuperAdmin() ||
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+       );
     }
 
-    // User profile: Users see their own. Super Admin sees all. 
-    // Sub admins can read (get) a profile to verify a student's existence for enrollment.
+    // User profile: Users see their own. 
+    // Admins (Main and Sub) can list/search to manage enrollments.
     match /users/{userId} {
       allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow list: if isSuperAdmin();
-      allow create: if isAdmin(); // Admins can register new students/admins.
+      allow list: if request.auth != null && isAdmin(); 
+      allow create: if request.auth != null && isAdmin(); 
       allow update, delete: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
       
       match /completedLessons/{lessonId} {

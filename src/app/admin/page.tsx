@@ -89,6 +89,7 @@ export default function AdminPage() {
   const isMainAdmin = currentUser?.email === MAIN_ADMIN_EMAIL;
 
   const usersQuery = useMemo(() => {
+    // Only fetch the full list for the Main Admin to avoid permission overhead
     if (!firestore || !isMainAdmin) return null;
     return query(collection(firestore, 'users'));
   }, [firestore, isMainAdmin]);
