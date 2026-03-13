@@ -50,7 +50,8 @@ service cloud.firestore {
       );
       allow create: if isAdmin();
       allow update: if isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds);
-      allow delete: if isSuperAdmin();
+      // Fixed: Allow delete if Super Admin OR if the admin is assigned to this course
+      allow delete: if isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds);
     }
   }
 }
