@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
@@ -29,6 +29,7 @@ import { PlayerIcon } from "@/app/admin/page";
 
 interface LessonData {
   id?: string;
+  courseId?: string;
   title?: string;
   description?: string;
   actionPlan?: string;
@@ -41,12 +42,15 @@ interface LessonData {
   isLocked?: boolean;
 }
 
-export default function LessonPage() {
+function LessonContent() {
   const { dayNumber } = useParams();
+  const searchParams = useSearchParams();
   const day = parseInt(dayNumber as string);
+  const courseId = searchParams.get('courseId');
   const router = useRouter();
   const { user, profile, loading, isAdmin } = useAuth();
   const { toast } = useToast();
+  
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
@@ -56,7 +60,6 @@ export default function LessonPage() {
   const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    // Dynamically set origin for YouTube API
     if (typeof window !== "undefined") {
       setOrigin(window.location.origin);
     }
@@ -77,9 +80,20 @@ export default function LessonPage() {
       return;
     }
 
+    if (!courseId) {
+      setNoAccess(true);
+      setFetching(false);
+      return;
+    }
+
     const fetchLesson = async () => {
       try {
-        const q = query(collection(db, "lessons"), where("dayNumber", "==", day));
+        // IMPORTANT: We filter by BOTH dayNumber and courseId for total data isolation
+        const q = query(
+          collection(db, "lessons"), 
+          where("dayNumber", "==", day),
+          where("courseId", "==", courseId)
+        );
         const querySnapshot = await getDocs(q);
         
         let currentLessonId = null;
@@ -108,7 +122,7 @@ export default function LessonPage() {
     };
     
     fetchLesson();
-  }, [user, loading, day, router]);
+  }, [user, loading, day, courseId, router]);
 
   const handleToggleComplete = () => {
     if (!user || !lessonId) return;
@@ -186,12 +200,12 @@ export default function LessonPage() {
             <ThemeToggle />
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full h-9 w-9">
-                <Link href={day > 1 ? `/lesson/${day - 1}` : "#"}>
+                <Link href={day > 1 ? `/lesson/${day - 1}?courseId=${courseId}` : "#"}>
                   <ChevronLeft className="h-4 w-4" />
                 </Link>
               </Button>
               <Button variant="ghost" size="icon" asChild disabled={day >= 90} className="rounded-full h-9 w-9">
-                <Link href={day < 90 ? `/lesson/${day + 1}` : "#"}>
+                <Link href={day < 90 ? `/lesson/${day + 1}?courseId=${courseId}` : "#"}>
                   <ChevronRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -221,7 +235,6 @@ export default function LessonPage() {
                   />
                   {!isAdmin && (
                     <>
-                      {/* Strategic Overlays to block Title and YouTube Branding without hindering controls */}
                       <div className="absolute top-0 left-0 right-0 h-[15%] z-20 bg-transparent cursor-default" />
                       <div className="absolute bottom-0 right-0 w-[25%] h-[12%] z-20 bg-transparent cursor-default" />
                     </>
@@ -385,5 +398,17 @@ export default function LessonPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function LessonPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    }>
+      <LessonContent />
+    </Suspense>
   );
 }

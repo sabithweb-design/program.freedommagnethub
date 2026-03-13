@@ -188,7 +188,6 @@ export default function AdminPage() {
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newUserForm.email, newUserForm.password);
       const uid = userCredential.user.uid;
 
-      // Force 'student' role if created by sub-admin
       const roleToAssign = isMainAdmin ? newUserForm.role : 'student';
 
       const userProfile = {
@@ -308,7 +307,7 @@ export default function AdminPage() {
       createdAt: serverTimestamp()
     };
 
-    addDoc(collection(firestore, 'courses'), newCourseData).then(() => {
+    addDoc(collection(firestore, 'courses'), newCourseData).then((docRef) => {
       setCourseForm({ 
         title: '', 
         description: '', 
@@ -320,6 +319,9 @@ export default function AdminPage() {
         rating: 4.5,
         reviewCount: 0
       });
+      // Automatically select the new program in the filter to avoid confusion
+      setLessonFilter(docRef.id);
+      setActiveTab('courses');
       toast({ title: "Program Created", description: "Successfully added a new training program folder." });
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: newCourseData }));
@@ -363,18 +365,19 @@ export default function AdminPage() {
     if (!confirm("Are you sure you want to remove this program? This action will also delete all associated sessions. This cannot be undone.")) return;
 
     try {
-      // 1. Find and delete associated lessons
       const q = query(collection(firestore, 'lessons'), where('courseId', '==', programId));
       const lessonSnaps = await getDocs(q);
       
       const batch = writeBatch(firestore);
       lessonSnaps.docs.forEach((d) => batch.delete(d.ref));
       
-      // 2. Delete the course itself
       const programRef = doc(firestore, 'courses', programId);
       batch.delete(programRef);
       
       await batch.commit();
+      
+      if (lessonFilter === programId) setLessonFilter('all');
+      
       toast({ title: "Program Removed", description: "The program and all its sessions have been deleted." });
     } catch (err: any) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ 
@@ -422,6 +425,7 @@ export default function AdminPage() {
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
       setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', vimeoUrl: '', thumbnailUrl: '', pdfUrl: '', driveUrl: '', actionPlan: '' });
+      setLessonFilter(lessonForm.courseId); // Switch filter to the program just updated
       toast({ title: "Lesson Published", description: `Session Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData }));
@@ -843,7 +847,7 @@ export default function AdminPage() {
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
-                          const url = `${window.location.origin}/lesson/${l.dayNumber}`;
+                          const url = `${window.location.origin}/lesson/${l.dayNumber}?courseId=${l.courseId}`;
                           navigator.clipboard.writeText(url);
                           toast({ title: "Session Link Copied", description: "Share this link with your enrolled students." });
                         }}>

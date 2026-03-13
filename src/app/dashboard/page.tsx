@@ -120,7 +120,7 @@ export default function DashboardPage() {
                 <CourseUdemyCard 
                   key={course.id} 
                   course={course} 
-                  onClick={() => !course.isLocked && router.push(`/lesson/1`)} 
+                  onClick={() => !course.isLocked && router.push(`/lesson/1?courseId=${course.id}`)} 
                 />
               ))
             ) : (
