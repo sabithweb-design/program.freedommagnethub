@@ -63,31 +63,28 @@
   @apply transition-all duration-300 hover:scale-105 active:scale-95;
 }
 
-/* Privacy-Enhanced Video Container */
+/* Precision-Crop Video Layout */
 .video-container {
   position: relative;
-  overflow: hidden;
   width: 100%;
+  max-width: 1280px; /* Fixed target max width */
   aspect-ratio: 16 / 9;
+  overflow: hidden; /* Key to cropping outside elements */
   border-radius: 2rem;
   background-color: #000;
-  -webkit-backface-visibility: hidden;
-  -webkit-transform: translateZ(0);
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
-/* 
- * Precision-Crop Logic:
- * We over-scale the iframe slightly and shift it UP.
- * This crops the top-right branding/social icons (Love, Share, Watch Later)
- * while keeping the bottom progress bar and play buttons visible within the frame.
- */
 .video-iframe {
   position: absolute;
-  top: -6%; /* Shifts up to hide top social icons */
-  left: -1%; /* Shifts left to hide potential right-side edges */
-  width: 102%; /* Makes it slightly wider to compensate for shifting */
-  height: 108%; /* Makes it taller to ensure the bottom controls stay in frame */
-  border: 0;
+  top: 50%;
+  left: 50%;
+  width: 112%; /* Overscaled to push icons outside the container */
+  height: 112%;
+  transform: translate(-50%, -50%);
+  border: none;
 }
 
 /* Deterrent class to prevent selection (applied to non-admins) */
