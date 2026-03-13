@@ -126,7 +126,7 @@ export default function AdminPage() {
     description: '', 
     dayNumber: 1, 
     youtubeUrl: '', 
-    driveVideoUrl: '',
+    vimeoUrl: '',
     thumbnailUrl: '', 
     pdfUrl: '', 
     driveUrl: '',
@@ -376,10 +376,16 @@ export default function AdminPage() {
 
     const extractYoutubeId = (url: string) => {
       if (!url) return '';
-      // Support standard, shortened, AND embed URLs
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
       const match = url.match(regExp);
       return (match && match[2].length === 11) ? match[2] : url;
+    };
+
+    const extractVimeoId = (url: string) => {
+      if (!url) return '';
+      const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+      const match = url.match(regExp);
+      return match ? match[1] : url;
     };
 
     const lessonData = {
@@ -389,7 +395,7 @@ export default function AdminPage() {
       actionPlan: lessonForm.actionPlan || '',
       dayNumber: Number(lessonForm.dayNumber),
       youtubeVideoId: extractYoutubeId(lessonForm.youtubeUrl),
-      driveVideoUrl: lessonForm.driveVideoUrl || '',
+      vimeoVideoId: extractVimeoId(lessonForm.vimeoUrl),
       thumbnailUrl: lessonForm.thumbnailUrl || '',
       pdfUrl: lessonForm.pdfUrl || '',
       driveUrl: lessonForm.driveUrl || '',
@@ -398,7 +404,7 @@ export default function AdminPage() {
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', driveVideoUrl: '', thumbnailUrl: '', pdfUrl: '', driveUrl: '', actionPlan: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', vimeoUrl: '', thumbnailUrl: '', pdfUrl: '', driveUrl: '', actionPlan: '' });
       toast({ title: "Lesson Published", description: `Session Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData }));
@@ -733,9 +739,9 @@ export default function AdminPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold flex items-center gap-2 text-xs uppercase tracking-tight text-slate-500">
-                      <Video size={14} className="text-primary" /> Drive Video Link (Optional)
+                      <Video size={14} className="text-primary" /> Vimeo URL (Optional)
                     </Label>
-                    <Input placeholder="Google Drive Shared Link" value={lessonForm.driveVideoUrl} onChange={e => setLessonForm({...lessonForm, driveVideoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+                    <Input placeholder="Vimeo Video Link" value={lessonForm.vimeoUrl} onChange={e => setLessonForm({...lessonForm, vimeoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">

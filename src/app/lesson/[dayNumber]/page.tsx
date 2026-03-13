@@ -33,7 +33,7 @@ interface LessonData {
   description?: string;
   actionPlan?: string;
   youtubeVideoId?: string;
-  driveVideoUrl?: string;
+  vimeoVideoId?: string;
   thumbnailUrl?: string;
   pdfUrl?: string;
   driveUrl?: string;
@@ -140,15 +140,6 @@ export default function LessonPage() {
     }
   };
 
-  const getDriveEmbedUrl = (url: string) => {
-    if (!url) return '';
-    const fileIdMatch = url.match(/\/d\/([^/?#]+)/);
-    if (fileIdMatch && fileIdMatch[1]) return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
-    const idParamMatch = url.match(/[?&]id=([^&]+)/);
-    if (idParamMatch && idParamMatch[1]) return `https://drive.google.com/file/d/${idParamMatch[1]}/preview`;
-    return url;
-  };
-
   if (loading || fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -210,14 +201,14 @@ export default function LessonPage() {
       </div>
 
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        {lesson && (lesson.driveVideoUrl || lesson.youtubeVideoId) ? (
+        {lesson && (lesson.vimeoVideoId || lesson.youtubeVideoId) ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="video-container shadow-2xl ring-4 sm:ring-8 ring-white/50 dark:ring-black/50 relative group select-none overflow-hidden">
-              {lesson.driveVideoUrl ? (
+              {lesson.vimeoVideoId ? (
                 <iframe 
-                  src={getDriveEmbedUrl(lesson.driveVideoUrl)}
+                  src={`https://player.vimeo.com/video/${lesson.vimeoVideoId}?badge=0&autopause=0&player_id=0&app_id=58479&dnt=1`}
                   className="video-iframe border-none" 
-                  allow="autoplay; fullscreen; encrypted-media"
+                  allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
                   title={lesson.title || `Day ${day}`}
                 />
               ) : lesson.youtubeVideoId ? (
