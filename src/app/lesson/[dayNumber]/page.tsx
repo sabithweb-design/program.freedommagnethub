@@ -250,9 +250,14 @@ export default function LessonPage() {
                   )}
                 </>
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800">
-                  <PlayerIcon className="h-16 w-16 mb-4 animate-pulse" />
-                  <p className="font-medium">Video stream loading...</p>
+                <div className="flex flex-col items-center justify-center h-full text-white/30 bg-slate-800 p-8 text-center">
+                  <div className="bg-slate-700/50 p-4 rounded-full mb-4">
+                    <PlayerIcon className="h-10 w-10 text-slate-400" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white mb-2">No Video Available</h3>
+                  <p className="text-slate-400 text-sm max-w-[250px]">
+                    A video session has not been uploaded for this day yet. Check back later or review the session materials.
+                  </p>
                 </div>
               )}
             </div>

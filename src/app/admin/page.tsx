@@ -426,7 +426,7 @@ export default function AdminPage() {
   }, [lessons, courses]);
 
   return (
-    <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
+    <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500 text-slate-900 dark:text-slate-100">
       <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <h1 className="text-4xl font-black text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-3">
@@ -726,13 +726,13 @@ export default function AdminPage() {
                       <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl text-slate-900" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold">YouTube URL</Label>
+                      <Label className="font-bold text-xs uppercase tracking-tight text-slate-500">YouTube URL (Optional)</Label>
                       <Input placeholder="YouTube Link" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold flex items-center gap-2">
-                      <Video size={14} className="text-primary" /> Drive Video Link
+                    <Label className="font-bold flex items-center gap-2 text-xs uppercase tracking-tight text-slate-500">
+                      <Video size={14} className="text-primary" /> Drive Video Link (Optional)
                     </Label>
                     <Input placeholder="Google Drive Shared Link" value={lessonForm.driveVideoUrl} onChange={e => setLessonForm({...lessonForm, driveVideoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                   </div>
@@ -988,4 +988,3 @@ export default function AdminPage() {
     </div>
   );
 }
-

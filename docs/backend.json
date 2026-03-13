@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "UserProfile": {
@@ -25,13 +26,14 @@
         "description": { "type": "string" },
         "actionPlan": { "type": "string", "description": "Specific action steps for the student" },
         "youtubeVideoId": { "type": "string" },
+        "driveVideoUrl": { "type": "string" },
         "thumbnailUrl": { "type": "string", "description": "URL for the lesson preview image" },
         "pdfUrl": { "type": "string", "description": "URL for downloadable PDF resources" },
         "driveUrl": { "type": "string", "description": "Link to shared Google Drive folder or file" },
         "isLocked": { "type": "boolean", "default": false },
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },
-      "required": ["dayNumber", "youtubeVideoId", "courseId"]
+      "required": ["dayNumber", "courseId"]
     },
     "Course": {
       "title": "Course",
