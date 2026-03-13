@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -24,6 +25,11 @@
     --input: 250 10% 85%;
     --ring: 0 84% 60%;
     --radius: 1.5rem;
+
+    /* Plyr Customization to match Red Brand */
+    --plyr-color-main: hsl(0 84% 60%);
+    --plyr-video-control-background-hover: hsl(0 84% 60%);
+    --plyr-control-radius: 12px;
   }
 
   .dark {
@@ -63,40 +69,16 @@
   @apply transition-all duration-300 hover:scale-105 active:scale-95;
 }
 
-/* Precision-Crop Video Layout */
-.video-mask {
-  position: relative;
-  width: 1280px;
-  max-width: 100%;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  margin: 0 auto;
-  border-radius: 2rem;
-  background-color: #000;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+/* Custom Plyr Styles */
+.plyr {
+  --plyr-color-main: hsl(var(--primary));
+  --plyr-video-background: #000;
+  height: 100%;
+  width: 100%;
 }
 
-.video-iframe {
-  position: absolute;
-  /* Over-scale to push branding outside the mask */
-  width: 115%;
-  height: 115%;
-  /* Pushes top icons outside while keeping bottom bar visible */
-  top: -7%; 
-  left: -7.5%;
-  border: none;
-}
-
-/* Click shield for remaining top-right hotspots */
-.video-click-shield {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 180px;
-  height: 120px;
-  z-index: 10;
-  background-color: transparent;
-  cursor: default;
+.plyr--video {
+  border-radius: inherit;
 }
 
 /* Deterrent class to prevent selection (applied to non-admins) */
