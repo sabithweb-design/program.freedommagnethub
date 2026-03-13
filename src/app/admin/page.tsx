@@ -434,7 +434,7 @@ export default function AdminPage() {
           <DialogContent className="rounded-3xl max-w-md">
             <DialogHeader>
               <DialogTitle>Register Account</DialogTitle>
-              <DialogDescription>Create a student or co-admin account. New admins can be assigned to help manage program sessions.</DialogDescription>
+              <DialogDescription>Create a student {isMainAdmin ? "or co-admin" : ""} account. {isMainAdmin ? "New admins can be assigned to help manage program sessions." : ""}</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -486,7 +486,7 @@ export default function AdminPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student (Hub Access)</SelectItem>
-                    <SelectItem value="admin">Admin (Co-Admin Access)</SelectItem>
+                    {isMainAdmin && <SelectItem value="admin">Admin (Co-Admin Access)</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -577,7 +577,7 @@ export default function AdminPage() {
 
         <TabsContent value="courses">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {isMainAdmin && (
+            {isAdmin && (
               <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -619,7 +619,7 @@ export default function AdminPage() {
               </Card>
             )}
 
-            <div className={isMainAdmin ? "lg:col-span-2 space-y-4" : "col-span-full space-y-4"}>
+            <div className={isAdmin ? "lg:col-span-2 space-y-4" : "col-span-full space-y-4"}>
               <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2">
                 <FolderOpen size={18} className="text-primary" /> {isMainAdmin ? "Full Program Portfolio" : "Assigned Programs"}
               </h3>
@@ -665,7 +665,7 @@ export default function AdminPage() {
                       >
                         <Edit2 size={16} />
                       </Button>
-                      {isMainAdmin && (
+                      {isAdmin && (
                         <Button 
                           variant="ghost" 
                           size="icon" 
@@ -786,7 +786,7 @@ export default function AdminPage() {
         <DialogContent className="rounded-3xl max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Program Configuration</DialogTitle>
-            <DialogDescription>Manage content, assign co-admins, and enroll students for this program session.</DialogDescription>
+            <DialogDescription>Manage content and enroll students for this program session.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-8 text-slate-900">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -895,42 +895,44 @@ export default function AdminPage() {
                   </div>
                 </div>
                 
-                <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
-                  <CardHeader className="p-4 pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <ShieldCheck size={16} className="text-primary" /> Admin Assignment
-                    </CardTitle>
-                    <CardDescription className="text-[10px]">Invite co-admins to help you manage this program session.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="space-y-3 mt-2">
-                      {adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
-                        <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
-                          Register a co-admin in the Register Member dialog first.
-                        </div>
-                      ) : adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
-                        <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
-                          <Checkbox 
-                            id={`admin-${u.uid}`} 
-                            checked={editFields.adminIds.includes(u.uid)}
-                            onCheckedChange={() => toggleAdminAssignment(u.uid)}
-                            className="rounded-md"
-                          />
-                          <Label htmlFor={`admin-${u.uid}`} className="flex flex-col cursor-pointer">
-                            <span className="text-sm font-black text-slate-700 dark:text-slate-300">{u.displayName}</span>
-                            <span className="text-[10px] text-slate-400 font-bold">{u.email}</span>
-                          </Label>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                {isMainAdmin && (
+                  <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
+                    <CardHeader className="p-4 pb-2">
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <ShieldCheck size={16} className="text-primary" /> Sub Admin Assignment
+                      </CardTitle>
+                      <CardDescription className="text-[10px]">Invite other admins to help manage this program session.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0">
+                      <div className="space-y-3 mt-2">
+                        {adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
+                          <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
+                            No other sub admins registered.
+                          </div>
+                        ) : adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
+                          <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
+                            <Checkbox 
+                              id={`admin-${u.uid}`} 
+                              checked={editFields.adminIds.includes(u.uid)}
+                              onCheckedChange={() => toggleAdminAssignment(u.uid)}
+                              className="rounded-md"
+                            />
+                            <Label htmlFor={`admin-${u.uid}`} className="flex flex-col cursor-pointer">
+                              <span className="text-sm font-black text-slate-700 dark:text-slate-300">{u.displayName}</span>
+                              <span className="text-[10px] text-slate-400 font-bold">{u.email}</span>
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
                 {!isMainAdmin && (
                   <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
                     <ShieldAlert size={20} className="text-amber-500 shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                      As a Sub Admin, you can independently register students and co-admins for your assigned program sessions.
+                      You are a Sub Admin managing this program. You can build lessons, add students, and share enrollment links.
                     </p>
                   </div>
                 )}
