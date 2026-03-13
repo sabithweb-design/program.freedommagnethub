@@ -62,7 +62,8 @@ import {
   Eye,
   EyeOff,
   FolderOpen,
-  Info
+  Info,
+  ExternalLink
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -126,6 +127,7 @@ export default function AdminPage() {
     youtubeUrl: '', 
     thumbnailUrl: '', 
     pdfUrl: '', 
+    driveUrl: '',
     courseId: '',
     actionPlan: '' 
   });
@@ -385,12 +387,13 @@ export default function AdminPage() {
       youtubeVideoId: extractId(lessonForm.youtubeUrl),
       thumbnailUrl: lessonForm.thumbnailUrl || '',
       pdfUrl: lessonForm.pdfUrl || '',
+      driveUrl: lessonForm.driveUrl || '',
       isLocked: false,
       createdAt: serverTimestamp()
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', actionPlan: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', driveUrl: '', actionPlan: '' });
       toast({ title: "Lesson Published", description: `Session Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData }));
@@ -438,7 +441,7 @@ export default function AdminPage() {
           <DialogContent className="rounded-3xl max-w-md">
             <DialogHeader>
               <DialogTitle>Register Account</DialogTitle>
-              <DialogDescription>Create a student {isMainAdmin ? "or co-admin" : ""} account.</DialogDescription>
+              <DialogDescription>Create a student account for your hub.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -723,9 +726,15 @@ export default function AdminPage() {
                       <Input placeholder="YouTube Link" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl text-slate-900" />
                     </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold">Resources PDF (URL)</Label>
-                    <Input placeholder="https://..." value={lessonForm.pdfUrl} onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-bold">Resources PDF (URL)</Label>
+                      <Input placeholder="https://..." value={lessonForm.pdfUrl} onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold">Drive Link (Resources)</Label>
+                      <Input placeholder="Google Drive URL" value={lessonForm.driveUrl} onChange={e => setLessonForm({...lessonForm, driveUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Session Title</Label>

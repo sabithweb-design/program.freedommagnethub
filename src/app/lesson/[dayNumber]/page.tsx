@@ -18,7 +18,8 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle
+  AlertCircle,
+  FolderOpen
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -35,6 +36,7 @@ interface LessonData {
   youtubeVideoId: string;
   thumbnailUrl?: string;
   pdfUrl?: string;
+  driveUrl?: string;
   dayNumber: number;
   isLocked?: boolean;
 }
@@ -292,7 +294,7 @@ export default function LessonPage() {
                 )}
               </div>
 
-              {lesson.pdfUrl && (
+              {(lesson.pdfUrl || lesson.driveUrl) && (
                 <div className="md:w-72 shrink-0 space-y-4">
                   <Card className="border-none shadow-sm rounded-3xl bg-card text-card-foreground p-6">
                     <h3 className="font-bold text-foreground mb-4 flex items-center gap-2">
@@ -300,16 +302,30 @@ export default function LessonPage() {
                       Session Materials
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4 font-medium leading-relaxed">
-                      Download the day's supplemental PDF resources.
+                      Access supplemental resources for today's session.
                     </p>
-                    <Button 
-                      className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold"
-                      asChild
-                    >
-                      <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                        Download PDF
-                      </a>
-                    </Button>
+                    <div className="flex flex-col gap-3">
+                      {lesson.pdfUrl && (
+                        <Button 
+                          className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold"
+                          asChild
+                        >
+                          <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                            <FileText className="mr-2 h-4 w-4" /> Download PDF
+                          </a>
+                        </Button>
+                      )}
+                      {lesson.driveUrl && (
+                        <Button 
+                          className="w-full rounded-2xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border-none font-bold"
+                          asChild
+                        >
+                          <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
+                            <FolderOpen className="mr-2 h-4 w-4" /> Drive Resources
+                          </a>
+                        </Button>
+                      )}
+                    </div>
                   </Card>
                 </div>
               )}
