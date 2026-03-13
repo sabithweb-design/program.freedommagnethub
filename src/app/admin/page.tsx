@@ -90,7 +90,6 @@ export default function AdminPage() {
 
   const usersQuery = useMemo(() => {
     if (!firestore || !isAdmin) return null;
-    // Main Admin sees everything, Sub Admins only list for search purposes
     return query(collection(firestore, 'users'));
   }, [firestore, isAdmin]);
   
@@ -135,6 +134,8 @@ export default function AdminPage() {
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
   const [enrollmentEmail, setEnrollmentEmail] = useState('');
+  const [enrollmentPassword, setEnrollmentPassword] = useState('');
+  const [showEnrollPassword, setShowEnrollPassword] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
 
   const [editingProgram, setEditingProgram] = useState<any | null>(null);
@@ -214,15 +215,48 @@ export default function AdminPage() {
     setEnrolling(true);
 
     try {
+      // 1. Check if user exists
       const q = query(collection(firestore, 'users'), where('email', '==', enrollmentEmail));
       const snap = await getDocs(q);
       
+      let studentUid = '';
+
       if (snap.empty) {
-        toast({ variant: "destructive", title: "User Not Found", description: "Please register the user first." });
-        return;
+        // 2. User does not exist, try to create them if password provided
+        if (!enrollmentPassword) {
+          toast({ variant: "destructive", title: "New Member Detected", description: "Please provide a password to register this new student." });
+          setEnrolling(false);
+          return;
+        }
+
+        try {
+          const secondaryApp = getApps().find(app => app.name === 'SecondaryApp') || initializeApp(firebaseConfig, 'SecondaryApp');
+          const secondaryAuth = getAuth(secondaryApp);
+          const userCredential = await createUserWithEmailAndPassword(secondaryAuth, enrollmentEmail, enrollmentPassword);
+          studentUid = userCredential.user.uid;
+
+          const userProfile = {
+            uid: studentUid,
+            displayName: enrollmentEmail.split('@')[0],
+            email: enrollmentEmail,
+            role: 'student',
+            status: true,
+            cohortStartDate: serverTimestamp()
+          };
+
+          await setDoc(doc(firestore, 'users', studentUid), userProfile);
+          await signOut(secondaryAuth);
+          toast({ title: "Account Created", description: `Registered ${enrollmentEmail} as a new student.` });
+        } catch (regErr: any) {
+          toast({ variant: "destructive", title: "Registration Error", description: regErr.message });
+          setEnrolling(false);
+          return;
+        }
+      } else {
+        studentUid = snap.docs[0].id;
       }
 
-      const studentUid = snap.docs[0].id;
+      // 3. Enroll student
       if (editFields.studentIds.includes(studentUid)) {
         toast({ title: "Already Enrolled", description: "This user is already a member of this program." });
         return;
@@ -231,7 +265,8 @@ export default function AdminPage() {
       const newStudentIds = [...editFields.studentIds, studentUid];
       setEditFields({ ...editFields, studentIds: newStudentIds });
       setEnrollmentEmail('');
-      toast({ title: "Member Added", description: "Successfully enrolled user in the session." });
+      setEnrollmentPassword('');
+      toast({ title: "Member Added", description: "Successfully enrolled user in the program session." });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Enrollment Error", description: err.message });
     } finally {
@@ -275,7 +310,7 @@ export default function AdminPage() {
         rating: 4.5,
         reviewCount: 0
       });
-      toast({ title: "Program Created", description: "Successfully added a new training program." });
+      toast({ title: "Program Created", description: "Successfully added a new training program folder." });
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm }));
     });
@@ -301,7 +336,7 @@ export default function AdminPage() {
 
     updateDoc(programRef, updateData)
       .then(() => {
-        toast({ title: "Program Updated", description: "The program details have been saved." });
+        toast({ title: "Program Updated", description: "The program configuration has been saved." });
         setEditingProgram(null);
       })
       .catch(async (err) => {
@@ -333,7 +368,7 @@ export default function AdminPage() {
   const handleAddLesson = (e: React.FormEvent) => {
     e.preventDefault();
     if (!firestore || !lessonForm.courseId) {
-      toast({ variant: "destructive", title: "Missing Information", description: "Please select a program." });
+      toast({ variant: "destructive", title: "Missing Information", description: "Please select a target program." });
       return;
     }
 
@@ -358,7 +393,7 @@ export default function AdminPage() {
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
       setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', actionPlan: '' });
-      toast({ title: "Lesson Published", description: `Day ${lessonData.dayNumber} is now live.` });
+      toast({ title: "Lesson Published", description: `Session Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData }));
     });
@@ -387,7 +422,7 @@ export default function AdminPage() {
             <ShieldCheck className="text-primary h-10 w-10" /> Management Suite
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            {isMainAdmin ? "Main Admin: Full platform control and sub-admin assignment." : "Sub Admin: Manage assigned programs, lessons, and your team of co-admins and students."}
+            {isMainAdmin ? "Main Admin: Full platform control and sub-admin assignment." : "Sub Admin: Manage assigned programs, enroll your students, and publish sessions."}
           </p>
         </div>
         <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
@@ -399,7 +434,7 @@ export default function AdminPage() {
           <DialogContent className="rounded-3xl max-w-md">
             <DialogHeader>
               <DialogTitle>Register Account</DialogTitle>
-              <DialogDescription>Create a student or co-admin account. New admins can be assigned to help you manage programs.</DialogDescription>
+              <DialogDescription>Create a student or co-admin account. New admins can be assigned to help manage program sessions.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -483,7 +518,7 @@ export default function AdminPage() {
             <Card className="border-none shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
               <CardHeader className="border-b dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/50">
                 <CardTitle>Member Directory</CardTitle>
-                <CardDescription>Main Admin view of all platform accounts.</CardDescription>
+                <CardDescription>Main Admin view of all registered platform accounts.</CardDescription>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -548,7 +583,7 @@ export default function AdminPage() {
                   <CardTitle className="flex items-center gap-2">
                     <Plus className="text-primary" /> Create Program
                   </CardTitle>
-                  <CardDescription>Only Main Admins can initialize new program folders.</CardDescription>
+                  <CardDescription>Main Admin initialization of a new program folder.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleAddCourse} className="space-y-4">
@@ -655,7 +690,7 @@ export default function AdminPage() {
                 <CardTitle className="flex items-center gap-2">
                   <PlayerIcon className="h-5 w-5 text-primary" /> Content Portal
                 </CardTitle>
-                <CardDescription>Upload video sessions to your assigned programs.</CardDescription>
+                <CardDescription>Upload video sessions to your assigned program folders.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddLesson} className="space-y-4">
@@ -780,41 +815,68 @@ export default function AdminPage() {
                     <CardTitle className="text-base flex items-center gap-2">
                       <Users size={18} className="text-primary" /> Student Enrollment
                     </CardTitle>
-                    <CardDescription className="text-xs">Add students to this program folder. They will only see this session.</CardDescription>
+                    <CardDescription className="text-xs">Add new or existing students. If the student doesn't exist, provide a password to register them.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-5 pt-4 space-y-4">
-                    <div className="flex gap-2">
-                      <Input 
-                        placeholder="student@email.com" 
-                        value={enrollmentEmail}
-                        onChange={(e) => setEnrollmentEmail(e.target.value)}
-                        className="rounded-xl h-11 text-slate-900"
-                      />
-                      <Button onClick={handleEnrollStudent} disabled={enrolling} className="rounded-xl h-11 px-4">
-                        {enrolling ? "..." : "Enroll"}
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase text-slate-400">Email Address</Label>
+                        <Input 
+                          placeholder="student@email.com" 
+                          value={enrollmentEmail}
+                          onChange={(e) => setEnrollmentEmail(e.target.value)}
+                          className="rounded-xl h-11 text-slate-900"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-bold uppercase text-slate-400">Password (Required for new members)</Label>
+                        <div className="relative">
+                          <Input 
+                            type={showEnrollPassword ? "text" : "password"}
+                            placeholder="Set student password" 
+                            value={enrollmentPassword}
+                            onChange={(e) => setEnrollmentPassword(e.target.value)}
+                            className="rounded-xl h-11 text-slate-900 pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowEnrollPassword(!showEnrollPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                          >
+                            {showEnrollPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                          </button>
+                        </div>
+                      </div>
+                      <Button onClick={handleEnrollStudent} disabled={enrolling} className="w-full rounded-xl h-11 font-bold mt-2">
+                        {enrolling ? "Syncing..." : "Register & Enroll Student"}
                       </Button>
                     </div>
                     
-                    <div className="space-y-2 mt-4 max-h-[200px] overflow-y-auto pr-2">
+                    <div className="space-y-2 mt-6 max-h-[200px] overflow-y-auto pr-2">
+                      <Label className="text-[10px] font-bold uppercase text-slate-400">Enrolled Members ({editFields.studentIds.length})</Label>
                       {editFields.studentIds.length === 0 ? (
                         <div className="text-[10px] text-slate-400 text-center py-4 border border-dashed rounded-lg font-bold">
                           No students enrolled yet.
                         </div>
-                      ) : editFields.studentIds.map(sid => (
-                        <div key={sid} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border group">
-                          <div className="flex flex-col">
-                            <span className="text-xs font-black text-slate-700 dark:text-slate-300">ID: {sid.substring(0, 8)}...</span>
+                      ) : editFields.studentIds.map(sid => {
+                        const student = users?.find(u => u.uid === sid);
+                        return (
+                          <div key={sid} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border group">
+                            <div className="flex flex-col">
+                              <span className="text-xs font-black text-slate-700 dark:text-slate-300">{student?.displayName || sid.substring(0, 8)}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">{student?.email || 'Student ID: ' + sid.substring(0, 6)}</span>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => removeStudent(sid)}
+                              className="h-7 w-7 text-slate-400 hover:text-red-500 rounded-full"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
                           </div>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            onClick={() => removeStudent(sid)}
-                            className="h-7 w-7 text-slate-400 hover:text-red-500 rounded-full"
-                          >
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>
@@ -838,13 +900,13 @@ export default function AdminPage() {
                     <CardTitle className="text-sm flex items-center gap-2">
                       <ShieldCheck size={16} className="text-primary" /> Admin Assignment
                     </CardTitle>
-                    <CardDescription className="text-[10px]">Invite co-admins to help manage this program.</CardDescription>
+                    <CardDescription className="text-[10px]">Invite co-admins to help you manage this program session.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="space-y-3 mt-2">
                       {adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
                         <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
-                          Register an Admin in the Register Member dialog first.
+                          Register a co-admin in the Register Member dialog first.
                         </div>
                       ) : adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
                         <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
@@ -868,7 +930,7 @@ export default function AdminPage() {
                   <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
                     <ShieldAlert size={20} className="text-amber-500 shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                      As a Sub Admin, you can enroll students and assign co-admins to help you with this session.
+                      As a Sub Admin, you can independently register students and co-admins for your assigned program sessions.
                     </p>
                   </div>
                 )}
@@ -877,7 +939,7 @@ export default function AdminPage() {
           </div>
           <DialogFooter className="gap-2 pt-4 border-t">
             <Button variant="ghost" onClick={() => setEditingProgram(null)} className="rounded-xl h-12 font-bold flex-1">Discard</Button>
-            <Button onClick={handleUpdateProgram} className="rounded-xl h-12 font-bold bg-primary text-white flex-1 shadow-lg shadow-primary/20 transition-all active:scale-95">Save Config</Button>
+            <Button onClick={handleUpdateProgram} className="rounded-xl h-12 font-bold bg-primary text-white flex-1 shadow-lg shadow-primary/20 transition-all active:scale-95">Save Configuration</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
