@@ -52,7 +52,6 @@ import {
   Edit2, 
   UserPlus, 
   Trash2, 
-  Lock, 
   Star, 
   Image as ImageIcon,
   Share2,
@@ -63,8 +62,8 @@ import {
   EyeOff,
   FolderOpen,
   Info,
-  ExternalLink,
-  Video
+  Video,
+  Filter
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -88,6 +87,7 @@ export default function AdminPage() {
   const { user: currentUser, isAdmin } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('courses');
+  const [lessonFilter, setLessonFilter] = useState('all');
 
   const isMainAdmin = currentUser?.email === MAIN_ADMIN_EMAIL;
 
@@ -188,6 +188,7 @@ export default function AdminPage() {
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newUserForm.email, newUserForm.password);
       const uid = userCredential.user.uid;
 
+      // Force 'student' role if created by sub-admin
       const roleToAssign = isMainAdmin ? newUserForm.role : 'student';
 
       const userProfile = {
@@ -445,16 +446,17 @@ export default function AdminPage() {
   const filteredLessons = useMemo(() => {
     if (!lessons || !courses) return [];
     
-    // Filter out lessons that belong to courses that no longer exist (orphaned)
-    // and apply role-based visibility
     return lessons.filter(l => {
       const courseExists = courses.some(c => c.id === l.courseId);
       if (!courseExists) return false;
       
+      // Filter by selected program if applicable
+      if (lessonFilter !== 'all' && l.courseId !== lessonFilter) return false;
+
       if (isMainAdmin) return true;
       return courses.some(c => c.id === l.courseId && c.adminIds?.includes(currentUser?.uid));
     });
-  }, [lessons, courses, isMainAdmin, currentUser]);
+  }, [lessons, courses, isMainAdmin, currentUser, lessonFilter]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500 text-slate-900 dark:text-slate-100">
@@ -791,9 +793,27 @@ export default function AdminPage() {
             </Card>
 
             <div className="lg:col-span-2 space-y-4">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2">
-                <PlayerIcon className="h-5 w-5 text-primary" /> Published Sessions
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-2">
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <PlayerIcon className="h-5 w-5 text-primary" /> Published Sessions
+                </h3>
+                
+                <div className="flex items-center gap-2 min-w-[200px]">
+                  <Filter size={16} className="text-slate-400" />
+                  <Select value={lessonFilter} onValueChange={setLessonFilter}>
+                    <SelectTrigger className="h-10 rounded-xl bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 font-bold text-xs">
+                      <SelectValue placeholder="Filter by program" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Managed Programs</SelectItem>
+                      {courses?.map((c: any) => (
+                        <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 {lessonsLoading || coursesLoading ? (
                   <div className="text-center py-10 text-slate-400 flex flex-col items-center gap-2 animate-pulse">
@@ -845,7 +865,7 @@ export default function AdminPage() {
                 }) : (
                   <div className="flex flex-col items-center justify-center py-20 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed text-slate-400 space-y-4">
                     <Info size={32} />
-                    <p className="font-bold">No sessions found in your programs yet.</p>
+                    <p className="font-bold">No sessions found in the selected program track.</p>
                   </div>
                 )}
               </div>
