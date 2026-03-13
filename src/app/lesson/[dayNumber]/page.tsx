@@ -88,7 +88,6 @@ function LessonContent() {
 
     const fetchLesson = async () => {
       try {
-        // IMPORTANT: We filter by BOTH dayNumber and courseId for total data isolation
         const q = query(
           collection(db, "lessons"), 
           where("dayNumber", "==", day),
@@ -220,7 +219,7 @@ function LessonContent() {
             <div className="video-container shadow-2xl ring-4 sm:ring-8 ring-white/50 dark:ring-black/50 relative group select-none overflow-hidden">
               {lesson.vimeoVideoId ? (
                 <iframe 
-                  src={`https://player.vimeo.com/video/${lesson.vimeoVideoId}?badge=0&autopause=0&player_id=0&app_id=58479&dnt=1`}
+                  src={`https://player.vimeo.com/video/${lesson.vimeoVideoId}?badge=0&autopause=0&player_id=0&app_id=58479&dnt=1&title=0&byline=0&portrait=0`}
                   className="video-iframe border-none" 
                   allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
                   title={lesson.title || `Day ${day}`}
