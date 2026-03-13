@@ -59,7 +59,8 @@ import {
   ShieldCheck,
   ShieldAlert,
   Search,
-  UserGroup
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -86,13 +87,11 @@ export default function AdminPage() {
 
   const isSuperAdmin = currentUser?.email === SUPER_ADMIN_EMAIL;
 
-  // Queries - only fetch global user list if user is Super Admin
   const usersQuery = useMemo(() => {
     if (!firestore || !isSuperAdmin) return null;
     return query(collection(firestore, 'users'));
   }, [firestore, isSuperAdmin]);
   
-  // Courses query: Scoped admins only see what they are assigned to
   const coursesQuery = useMemo(() => {
     if (!firestore || !currentUser) return null;
     if (isSuperAdmin) {
@@ -107,7 +106,6 @@ export default function AdminPage() {
   const { data: courses, loading: coursesLoading } = useCollection<any>(coursesQuery);
   const { data: lessons, loading: lessonsLoading } = useCollection<any>(lessonsQuery);
 
-  // Form States
   const [courseForm, setCourseForm] = useState({ 
     title: '', 
     description: '', 
@@ -130,14 +128,13 @@ export default function AdminPage() {
     actionPlan: '' 
   });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
-  // Enrollment State
   const [enrollmentEmail, setEnrollmentEmail] = useState('');
   const [enrolling, setEnrolling] = useState(false);
 
-  // Edit State
   const [editingProgram, setEditingProgram] = useState<any | null>(null);
   const [editFields, setEditFields] = useState({ 
     title: '', 
@@ -261,7 +258,7 @@ export default function AdminPage() {
       videos: "0",
       progress: 0,
       isLocked: false,
-      adminIds: [currentUser?.uid], // By default, the creator is an admin
+      adminIds: [currentUser?.uid], 
       studentIds: [],
       createdAt: serverTimestamp()
     }).then(() => {
@@ -408,7 +405,7 @@ export default function AdminPage() {
                   onChange={e => setNewUserForm({...newUserForm, displayName: e.target.value})}
                   placeholder="Name" 
                   required 
-                  className="rounded-xl h-12"
+                  className="rounded-xl h-12 text-slate-900"
                 />
               </div>
               <div className="space-y-2">
@@ -417,26 +414,35 @@ export default function AdminPage() {
                   type="email"
                   value={newUserForm.email} 
                   onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
-                  placeholder="email@example.com" 
+                  placeholder="your@email.com" 
                   required 
-                  className="rounded-xl h-12"
+                  className="rounded-xl h-12 text-slate-900"
                 />
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Password</Label>
-                <Input 
-                  type="password"
-                  value={newUserForm.password} 
-                  onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
-                  placeholder="••••••••" 
-                  required 
-                  className="rounded-xl h-12"
-                />
+                <div className="relative">
+                  <Input 
+                    type={showRegPassword ? "text" : "password"}
+                    value={newUserForm.password} 
+                    onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
+                    placeholder="••••••••" 
+                    required 
+                    className="rounded-xl h-12 pr-11 text-slate-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Role</Label>
                 <Select value={newUserForm.role} onValueChange={(val: any) => setNewUserForm({...newUserForm, role: val})}>
-                  <SelectTrigger className="h-12 rounded-xl">
+                  <SelectTrigger className="h-12 rounded-xl text-slate-900">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -550,29 +556,29 @@ export default function AdminPage() {
                 <form onSubmit={handleAddCourse} className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold">Program Name</Label>
-                    <Input placeholder="e.g. Masterclass A" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12" required />
+                    <Input placeholder="e.g. Masterclass A" value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="rounded-xl h-12 text-slate-900" required />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="font-bold">Sale Price (₹)</Label>
-                      <Input type="number" placeholder="0" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12" />
+                      <Input type="number" placeholder="0" value={courseForm.price} onChange={e => setCourseForm({...courseForm, price: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
                     </div>
                     <div className="space-y-2">
                       <Label className="font-bold">Old Price (₹)</Label>
-                      <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12" />
+                      <Input type="number" placeholder="0" value={courseForm.originalPrice} onChange={e => setCourseForm({...courseForm, originalPrice: Number(e.target.value)})} required className="rounded-xl h-12 text-slate-900" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Thumbnail (URL)</Label>
-                    <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12" />
+                    <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Category</Label>
-                    <Input placeholder="Tech / Design" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12" />
+                    <Input placeholder="Tech / Design" value={courseForm.category} onChange={e => setCourseForm({...courseForm, category: e.target.value})} required className="rounded-xl h-12 text-slate-900" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Overview</Label>
-                    <Textarea placeholder="Program description..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px]" />
+                    <Textarea placeholder="Program description..." value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="rounded-xl min-h-[100px] text-slate-900" />
                   </div>
                   <Button type="submit" className="w-full rounded-xl h-12 font-bold shadow-md">Add to Portfolio</Button>
                 </form>
@@ -658,7 +664,7 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     <Label className="font-bold">Target Program</Label>
                     <Select value={lessonForm.courseId} onValueChange={(val) => setLessonForm({...lessonForm, courseId: val})}>
-                      <SelectTrigger className="h-12 rounded-xl">
+                      <SelectTrigger className="h-12 rounded-xl text-slate-900">
                         <SelectValue placeholder="Choose program" />
                       </SelectTrigger>
                       <SelectContent>
@@ -671,24 +677,24 @@ export default function AdminPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label className="font-bold">Day Number</Label>
-                      <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl" />
+                      <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl text-slate-900" />
                     </div>
                     <div className="space-y-2">
                       <Label className="font-bold">Video Link</Label>
-                      <Input placeholder="YouTube/Vimeo" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl" />
+                      <Input placeholder="YouTube/Vimeo" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl text-slate-900" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">PDF Material (URL)</Label>
-                    <Input placeholder="https://..." value={lessonForm.pdfUrl} onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} className="h-12 rounded-xl" />
+                    <Input placeholder="https://..." value={lessonForm.pdfUrl} onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Title</Label>
-                    <Input placeholder="Introduction" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl" required />
+                    <Input placeholder="Introduction" value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="h-12 rounded-xl text-slate-900" required />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Description</Label>
-                    <Textarea className="min-h-[80px] rounded-xl" placeholder="Lesson summary..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
+                    <Textarea className="min-h-[80px] rounded-xl text-slate-900" placeholder="Lesson summary..." value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} />
                   </div>
                   <Button type="submit" className="w-full h-12 rounded-xl font-bold flex gap-2 transition-all active:scale-95 shadow-lg shadow-primary/10">
                     <Save size={18} /> Publish Lesson
@@ -739,14 +745,13 @@ export default function AdminPage() {
         </TabsContent>
       </Tabs>
 
-      {/* Edit Program Dialog */}
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
         <DialogContent className="rounded-3xl max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Management Config</DialogTitle>
             <DialogDescription>Modify program details and assign specific admin access or enroll students.</DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-8">
+          <div className="py-4 space-y-8 text-slate-900">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-6">
                 <div className="space-y-4">
@@ -755,7 +760,7 @@ export default function AdminPage() {
                     <Input 
                       value={editFields.title} 
                       onChange={(e) => setEditFields({...editFields, title: e.target.value})}
-                      className="rounded-xl h-12"
+                      className="rounded-xl h-12 text-slate-900"
                     />
                   </div>
                   <div className="space-y-2">
@@ -763,12 +768,11 @@ export default function AdminPage() {
                     <Textarea 
                       value={editFields.description} 
                       onChange={(e) => setEditFields({...editFields, description: e.target.value})}
-                      className="rounded-xl min-h-[120px]"
+                      className="rounded-xl min-h-[120px] text-slate-900"
                     />
                   </div>
                 </div>
 
-                {/* Enrollment Section */}
                 <Card className="border shadow-none rounded-2xl bg-white dark:bg-slate-900">
                   <CardHeader className="p-5 pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
@@ -779,10 +783,10 @@ export default function AdminPage() {
                   <CardContent className="p-5 pt-4 space-y-4">
                     <div className="flex gap-2">
                       <Input 
-                        placeholder="Student Email" 
+                        placeholder="your@email.com" 
                         value={enrollmentEmail}
                         onChange={(e) => setEnrollmentEmail(e.target.value)}
-                        className="rounded-xl h-11"
+                        className="rounded-xl h-11 text-slate-900"
                       />
                       <Button onClick={handleEnrollStudent} disabled={enrolling} className="rounded-xl h-11 px-4">
                         {enrolling ? "..." : "Enroll"}
@@ -818,16 +822,15 @@ export default function AdminPage() {
                 <div className="space-y-2">
                   <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail Link</Label>
                   <div className="relative">
-                    <ImageIcon className="absolute left-3 top-3.5 h-4 w-4 text-slate-400" />
+                    <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                     <Input 
                       value={editFields.imageUrl} 
                       onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})}
-                      className="rounded-xl h-12 pl-10"
+                      className="rounded-xl h-12 pl-10 text-slate-900"
                     />
                   </div>
                 </div>
                 
-                {/* Admin Assignment Section: Only for Super Admin */}
                 {isSuperAdmin && (
                   <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
                     <CardHeader className="p-4 pb-2">
@@ -861,7 +864,6 @@ export default function AdminPage() {
                   </Card>
                 )}
 
-                {/* Scoped Admin Warning */}
                 {!isSuperAdmin && (
                   <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
                     <ShieldAlert size={20} className="text-amber-500 shrink-0" />

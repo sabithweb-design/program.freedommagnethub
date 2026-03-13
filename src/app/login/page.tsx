@@ -13,18 +13,18 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GraduationCap, Mail, Lock, Sparkles, ShieldAlert } from "lucide-react";
+import { GraduationCap, Mail, Lock, Sparkles, ShieldAlert, Eye, EyeOff } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Get redirect path if user arrived from a shared link
   const redirectPath = searchParams.get('redirect');
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -33,7 +33,6 @@ function LoginContent() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       
-      // Navigate to the intended lesson link or default to role-based landing
       if (redirectPath) {
         router.push(redirectPath);
       } else if (email === "admin@freedommagnethub.com") {
@@ -105,14 +104,14 @@ function LoginContent() {
               <TabsContent value="password">
                 <form onSubmit={handlePasswordLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-slate-600 ml-1">Email Address</Label>
+                    <Label htmlFor="email" className="text-slate-600 ml-1 font-bold">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-300" />
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input 
                         id="email" 
                         type="email" 
-                        placeholder="admin@freedommagnethub.com" 
-                        className="pl-11 h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-primary" 
+                        placeholder="your@email.com" 
+                        className="pl-11 h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-primary text-slate-900 font-medium" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -121,18 +120,25 @@ function LoginContent() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="password" className="text-slate-600 ml-1">Password</Label>
+                    <Label htmlFor="password" className="text-slate-600 ml-1 font-bold">Password</Label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-3.5 h-4 w-4 text-slate-300" />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input 
                         id="password" 
-                        type="password" 
-                        className="pl-11 h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-primary" 
+                        type={showPassword ? "text" : "password"} 
+                        className="pl-11 pr-11 h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-primary text-slate-900 font-medium" 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
                         autoComplete="off"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
                     </div>
                   </div>
                   <Button type="submit" className="w-full h-12 rounded-xl font-bold text-base mt-2 shadow-lg shadow-primary/20" disabled={isLoading}>
@@ -144,14 +150,14 @@ function LoginContent() {
               <TabsContent value="magic">
                 <form onSubmit={handleMagicLinkLogin} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="magic-email" className="text-slate-600 ml-1">Email Address</Label>
+                    <Label htmlFor="magic-email" className="text-slate-600 ml-1 font-bold">Email Address</Label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-3.5 h-4 w-4 text-slate-300" />
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                       <Input 
                         id="magic-email" 
                         type="email" 
-                        placeholder="teacher@school.edu" 
-                        className="pl-11 h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-primary" 
+                        placeholder="your@email.com" 
+                        className="pl-11 h-12 rounded-xl bg-slate-50 border-none focus-visible:ring-primary text-slate-900 font-medium" 
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
