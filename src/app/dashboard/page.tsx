@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, or } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -27,21 +27,34 @@ interface Course {
   isBestseller?: boolean;
   isLocked?: boolean;
   studentIds?: string[];
+  adminIds?: string[];
 }
+
+const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading, isAdmin } = useAuth();
+  const { user, profile, loading: authLoading, isAdmin } = useAuth();
   const firestore = useFirestore();
+
+  const isMainAdmin = user?.email === MAIN_ADMIN_EMAIL;
 
   const coursesQuery = useMemo(() => {
     if (!firestore || !user) return null;
-    // Admins see all for monitoring. Students only see enrolled programs.
-    if (isAdmin) {
+    
+    // Main Admin sees all
+    if (isMainAdmin) {
       return query(collection(firestore, "courses"));
     }
+    
+    // Admins see courses they manage OR are enrolled in. 
+    // Students see courses they are enrolled in.
+    if (profile?.role === 'admin') {
+      return query(collection(firestore, "courses"), where("adminIds", "array-contains", user.uid));
+    }
+
     return query(collection(firestore, "courses"), where("studentIds", "array-contains", user.uid));
-  }, [firestore, user, isAdmin]);
+  }, [firestore, user, isMainAdmin, profile]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
@@ -95,7 +108,9 @@ export default function DashboardPage() {
         {/* Category Header */}
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
-            <h2 className="text-lg sm:text-xl font-bold text-foreground">My Training Tracks</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-foreground">
+              {isAdmin ? "Managed Training Tracks" : "My Training Tracks"}
+            </h2>
             <ChevronDown className="h-5 w-5 text-slate-400" />
           </div>
 
@@ -112,9 +127,14 @@ export default function DashboardPage() {
                <div className="col-span-full text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] sm:rounded-[3rem]">
                 <p className="text-slate-400 font-bold px-4">
                   {isAdmin 
-                    ? "No programs found in the database. Use the Admin Panel to create one." 
+                    ? "No programs found in your portfolio. Use the Admin Panel to create or assign one." 
                     : "You aren't enrolled in any program sessions yet. Please contact your instructor."}
                 </p>
+                {!isAdmin && (
+                  <Button asChild variant="outline" className="mt-6 rounded-full px-8">
+                    <Link href="/courses">Explore Marketplace</Link>
+                  </Button>
+                )}
               </div>
             )}
           </div>
