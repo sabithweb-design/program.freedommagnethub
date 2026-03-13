@@ -26,7 +26,6 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
-import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 
 interface LessonData {
@@ -122,40 +121,55 @@ function LessonContent() {
   }, [user, loading, day, courseId, router]);
 
   useEffect(() => {
-    if (lesson && (lesson.youtubeVideoId || lesson.vimeoVideoId) && videoRef.current) {
-      const player = new Plyr(videoRef.current, {
-        controls: [
-          'play-large', 
-          'play', 
-          'progress', 
-          'current-time', 
-          'mute', 
-          'volume', 
-          'settings', 
-          'fullscreen'
-        ],
-        settings: ['speed'],
-        speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-        youtube: {
-          noCookie: true,
-          rel: 0,
-          showinfo: 0,
-          iv_load_policy: 3,
-          modestbranding: 1
-        },
-        vimeo: {
-          title: 0,
-          byline: 0,
-          portrait: 0,
-          badge: 0,
-          autopause: 0
-        }
-      });
+    if (!lesson || (!lesson.youtubeVideoId && !lesson.vimeoVideoId) || !videoRef.current) return;
 
-      return () => {
-        player.destroy();
-      };
-    }
+    let playerInstance: any;
+
+    const initPlyr = async () => {
+      try {
+        const Plyr = (await import("plyr")).default;
+        if (videoRef.current) {
+          playerInstance = new Plyr(videoRef.current, {
+            controls: [
+              'play-large', 
+              'play', 
+              'progress', 
+              'current-time', 
+              'mute', 
+              'volume', 
+              'settings', 
+              'fullscreen'
+            ],
+            settings: ['speed'],
+            speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+            youtube: {
+              noCookie: true,
+              rel: 0,
+              showinfo: 0,
+              iv_load_policy: 3,
+              modestbranding: 1
+            },
+            vimeo: {
+              title: 0,
+              byline: 0,
+              portrait: 0,
+              badge: 0,
+              autopause: 0
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Failed to load Plyr:", e);
+      }
+    };
+
+    initPlyr();
+
+    return () => {
+      if (playerInstance && typeof playerInstance.destroy === 'function') {
+        playerInstance.destroy();
+      }
+    };
   }, [lesson]);
 
   const handleToggleComplete = () => {
