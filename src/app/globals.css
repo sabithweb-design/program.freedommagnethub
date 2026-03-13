@@ -66,10 +66,10 @@
 /* Precision-Crop Video Layout */
 .video-mask {
   position: relative;
-  width: 1280px; /* Base desktop width */
-  max-width: 100%; /* Responsive scaling */
+  width: 1280px;
+  max-width: 100%;
   aspect-ratio: 16 / 9;
-  overflow: hidden; /* Key to the cropping technique */
+  overflow: hidden;
   margin: 0 auto;
   border-radius: 2rem;
   background-color: #000;
@@ -81,9 +81,8 @@
   /* Over-scale to push branding outside the mask */
   width: 115%;
   height: 115%;
-  /* Strategically offset: -10% at top hides social icons, 
-     leaving the bottom controls visible within the 100% height container */
-  top: -10%; 
+  /* Pushes top icons outside while keeping bottom bar visible */
+  top: -7%; 
   left: -7.5%;
   border: none;
 }
