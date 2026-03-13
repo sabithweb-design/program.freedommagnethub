@@ -29,7 +29,7 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/tabs';
 import { 
   Dialog, 
   DialogContent, 
@@ -63,7 +63,8 @@ import {
   FolderOpen,
   Info,
   Video,
-  Filter
+  Filter,
+  AlertTriangle
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -145,6 +146,11 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [editUserForm, setEditUserForm] = useState({ displayName: '', email: '', role: 'student' as 'student' | 'admin' });
 
+  // Delete Confirmation State
+  const [deleteConfirmType, setDeleteConfirmType] = useState<'member' | 'program' | 'lesson' | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const [enrollmentEmail, setEnrollmentEmail] = useState('');
   const [enrollmentPassword, setEnrollmentPassword] = useState('');
   const [showEnrollPassword, setShowEnrollPassword] = useState(false);
@@ -177,20 +183,6 @@ export default function AdminPage() {
       })
       .catch(async (err) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userRef.path, operation: 'update', requestResourceData: { status: !currentStatus } }));
-      });
-  };
-
-  const handleRemoveUser = (userId: string) => {
-    if (!firestore) return;
-    if (!confirm("Are you sure you want to permanently remove this member? This will delete their profile data.")) return;
-
-    const userRef = doc(firestore, 'users', userId);
-    deleteDoc(userRef)
-      .then(() => {
-        toast({ title: "Member Removed", description: "The account has been deleted from the directory." });
-      })
-      .catch(async (err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userRef.path, operation: 'delete' }));
       });
   };
 
@@ -325,7 +317,7 @@ export default function AdminPage() {
       setEditFields({ ...editFields, studentIds: newStudentIds });
       setEnrollmentEmail('');
       setEnrollmentPassword('');
-      toast({ title: "Member Added", description: "Successfully enrolled user in the program session." });
+      toast({ title: "Member Added", description: "Successfully enrolled user in the program track." });
     } catch (err: any) {
       toast({ variant: "destructive", title: "Enrollment Error", description: err.message });
     } finally {
@@ -371,7 +363,6 @@ export default function AdminPage() {
         rating: 4.5,
         reviewCount: 0
       });
-      // Automatically select the new program in the filter to avoid confusion
       setLessonFilter(docRef.id);
       setActiveTab('courses');
       toast({ title: "Program Created", description: "Successfully added a new training program folder." });
@@ -412,30 +403,36 @@ export default function AdminPage() {
       });
   };
 
-  const handleDeleteProgram = async (programId: string) => {
-    if (!firestore) return;
-    if (!confirm("Are you sure you want to remove this program? This action will also delete all associated sessions. This cannot be undone.")) return;
+  const performDeletion = async () => {
+    if (!firestore || !deleteTargetId || !deleteConfirmType) return;
+    setIsDeleting(true);
 
     try {
-      const q = query(collection(firestore, 'lessons'), where('courseId', '==', programId));
-      const lessonSnaps = await getDocs(q);
-      
-      const batch = writeBatch(firestore);
-      lessonSnaps.docs.forEach((d) => batch.delete(d.ref));
-      
-      const programRef = doc(firestore, 'courses', programId);
-      batch.delete(programRef);
-      
-      await batch.commit();
-      
-      if (lessonFilter === programId) setLessonFilter('all');
-      
-      toast({ title: "Program Removed", description: "The program and all its sessions have been deleted." });
+      if (deleteConfirmType === 'program') {
+        const q = query(collection(firestore, 'lessons'), where('courseId', '==', deleteTargetId));
+        const lessonSnaps = await getDocs(q);
+        const batch = writeBatch(firestore);
+        lessonSnaps.docs.forEach((d) => batch.delete(d.ref));
+        batch.delete(doc(firestore, 'courses', deleteTargetId));
+        await batch.commit();
+        if (lessonFilter === deleteTargetId) setLessonFilter('all');
+        toast({ title: "Program Deleted", description: "The program and all its content have been removed." });
+      } else if (deleteConfirmType === 'member') {
+        await deleteDoc(doc(firestore, 'users', deleteTargetId));
+        toast({ title: "Member Removed", description: "The profile has been permanently deleted." });
+      } else if (deleteConfirmType === 'lesson') {
+        await deleteDoc(doc(firestore, 'lessons', deleteTargetId));
+        toast({ title: "Session Removed", description: "The session has been deleted." });
+      }
     } catch (err: any) {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-        path: `courses/${programId}`, 
+        path: `${deleteConfirmType === 'program' ? 'courses' : deleteConfirmType === 'member' ? 'users' : 'lessons'}/${deleteTargetId}`, 
         operation: 'delete'
       }));
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmType(null);
+      setDeleteTargetId(null);
     }
   };
 
@@ -477,7 +474,7 @@ export default function AdminPage() {
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
       setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', vimeoUrl: '', thumbnailUrl: '', pdfUrl: '', driveUrl: '', actionPlan: '' });
-      setLessonFilter(lessonForm.courseId); // Switch filter to the program just updated
+      setLessonFilter(lessonForm.courseId);
       toast({ title: "Lesson Published", description: `Session Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData }));
@@ -505,10 +502,7 @@ export default function AdminPage() {
     return lessons.filter(l => {
       const courseExists = courses.some(c => c.id === l.courseId);
       if (!courseExists) return false;
-      
-      // Filter by selected program if applicable
       if (lessonFilter !== 'all' && l.courseId !== lessonFilter) return false;
-
       if (isMainAdmin) return true;
       return courses.some(c => c.id === l.courseId && c.adminIds?.includes(currentUser?.uid));
     });
@@ -539,41 +533,17 @@ export default function AdminPage() {
             <form onSubmit={handleCreateUser} className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label className="font-bold">Full Name</Label>
-                <Input 
-                  value={newUserForm.displayName} 
-                  onChange={e => setNewUserForm({...newUserForm, displayName: e.target.value})}
-                  placeholder="Name" 
-                  required 
-                  className="rounded-xl h-12 text-slate-900"
-                />
+                <Input value={newUserForm.displayName} onChange={e => setNewUserForm({...newUserForm, displayName: e.target.value})} placeholder="Name" required className="rounded-xl h-12 text-slate-900" />
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Email Address</Label>
-                <Input 
-                  type="email"
-                  value={newUserForm.email} 
-                  onChange={e => setNewUserForm({...newUserForm, email: e.target.value})}
-                  placeholder="your@email.com" 
-                  required 
-                  className="rounded-xl h-12 text-slate-900"
-                />
+                <Input type="email" value={newUserForm.email} onChange={e => setNewUserForm({...newUserForm, email: e.target.value})} placeholder="your@email.com" required className="rounded-xl h-12 text-slate-900" />
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Password</Label>
                 <div className="relative">
-                  <Input 
-                    type={showRegPassword ? "text" : "password"}
-                    value={newUserForm.password} 
-                    onChange={e => setNewUserForm({...newUserForm, password: e.target.value})}
-                    placeholder="••••••••" 
-                    required 
-                    className="rounded-xl h-12 pr-11 text-slate-900"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                  >
+                  <Input type={showRegPassword ? "text" : "password"} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} placeholder="••••••••" required className="rounded-xl h-12 pr-11 text-slate-900" />
+                  <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
                     {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
                 </div>
@@ -657,28 +627,14 @@ export default function AdminPage() {
                         <TableCell className="text-right pr-6">
                           {u.email !== MAIN_ADMIN_EMAIL && (
                             <div className="flex items-center justify-end gap-2">
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="rounded-full h-8 w-8 text-slate-400 hover:text-primary transition-all"
-                                onClick={() => handleOpenEditUser(u)}
-                              >
+                              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 text-slate-400 hover:text-primary transition-all" onClick={() => handleOpenEditUser(u)}>
                                 <Edit2 size={14} />
                               </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="rounded-full h-8 w-8 text-slate-400 hover:text-red-500 transition-all"
-                                onClick={() => handleRemoveUser(u.id)}
-                              >
+                              <Button variant="ghost" size="icon" className="rounded-full h-8 w-8 text-slate-400 hover:text-red-500 transition-all" onClick={() => { setDeleteTargetId(u.id); setDeleteConfirmType('member'); }}>
                                 <Trash2 size={14} />
                               </Button>
                               <div className="flex items-center gap-2 ml-2">
-                                <Switch 
-                                  checked={u.status !== false} 
-                                  onCheckedChange={() => handleToggleUserStatus(u.id, u.status !== false)}
-                                  className="data-[state=checked]:bg-emerald-500 scale-75"
-                                />
+                                <Switch checked={u.status !== false} onCheckedChange={() => handleToggleUserStatus(u.id, u.status !== false)} className="data-[state=checked]:bg-emerald-500 scale-75" />
                               </div>
                             </div>
                           )}
@@ -692,9 +648,6 @@ export default function AdminPage() {
           )}
         </TabsContent>
 
-        {/* ... (rest of the TabsContent for courses and lessons remains unchanged) ... */}
-        
-        {/* Course management tab content */}
         <TabsContent value="courses">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
@@ -702,7 +655,7 @@ export default function AdminPage() {
                 <CardTitle className="flex items-center gap-2">
                   <Plus className="text-primary" /> Create Program
                 </CardTitle>
-                <CardDescription>Initialize a new program folder to manage content and students.</CardDescription>
+                <CardDescription>Initialize a new program track folder.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddCourse} className="space-y-4">
@@ -760,35 +713,15 @@ export default function AdminPage() {
                       </div>
                     </div>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all"
-                        onClick={() => { 
-                          setEditingProgram(c); 
-                          setEditFields({ 
-                            title: c.title || '', 
-                            description: c.description || '',
-                            category: c.category || '',
-                            imageUrl: c.imageUrl || '',
-                            author: c.author || '',
-                            price: c.price || 0, 
-                            originalPrice: c.originalPrice || 0,
-                            rating: c.rating || 4.5,
-                            reviewCount: c.reviewCount || 0,
-                            adminIds: c.adminIds || [],
-                            studentIds: c.studentIds || []
-                          }); 
-                        }}
-                      >
+                      <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all" onClick={() => { 
+                        setEditingProgram(c); 
+                        setEditFields({ 
+                          title: c.title || '', description: c.description || '', category: c.category || '', imageUrl: c.imageUrl || '', author: c.author || '', price: c.price || 0, originalPrice: c.originalPrice || 0, rating: c.rating || 4.5, reviewCount: c.reviewCount || 0, adminIds: c.adminIds || [], studentIds: c.studentIds || []
+                        }); 
+                      }}>
                         <Edit2 size={16} />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="rounded-full hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-500 transition-all"
-                        onClick={() => handleDeleteProgram(c.id)}
-                      >
+                      <Button variant="ghost" size="icon" className="rounded-full hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-500 transition-all" onClick={() => { setDeleteTargetId(c.id); setDeleteConfirmType('program'); }}>
                         <Trash2 size={16} />
                       </Button>
                     </div>
@@ -810,7 +743,7 @@ export default function AdminPage() {
                 <CardTitle className="flex items-center gap-2">
                   <PlayerIcon className="h-5 w-5 text-primary" /> Content Portal
                 </CardTitle>
-                <CardDescription>Upload video sessions to your managed program folders.</CardDescription>
+                <CardDescription>Upload video sessions to your program folders.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddLesson} className="space-y-4">
@@ -833,23 +766,23 @@ export default function AdminPage() {
                       <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl text-slate-900" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold text-xs uppercase tracking-tight text-slate-500">YouTube URL (Optional)</Label>
+                      <Label className="font-bold text-xs uppercase tracking-tight text-slate-500">YouTube URL</Label>
                       <Input placeholder="YouTube Link" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold flex items-center gap-2 text-xs uppercase tracking-tight text-slate-500">
-                      <Video size={14} className="text-primary" /> Vimeo URL (Optional)
+                      <Video size={14} className="text-primary" /> Vimeo URL
                     </Label>
-                    <Input placeholder="Vimeo Video Link" value={lessonForm.vimeoUrl} onChange={e => setLessonForm({...lessonForm, vimeoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+                    <Input placeholder="Vimeo Link" value={lessonForm.vimeoUrl} onChange={e => setLessonForm({...lessonForm, vimeoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label className="font-bold">Resources PDF (URL)</Label>
+                      <Label className="font-bold">Resources PDF</Label>
                       <Input placeholder="https://..." value={lessonForm.pdfUrl} onChange={e => setLessonForm({...lessonForm, pdfUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold">Drive Link (Resources)</Label>
+                      <Label className="font-bold">Drive Link</Label>
                       <Input placeholder="Google Drive URL" value={lessonForm.driveUrl} onChange={e => setLessonForm({...lessonForm, driveUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                     </div>
                   </div>
@@ -873,7 +806,6 @@ export default function AdminPage() {
                 <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                   <PlayerIcon className="h-5 w-5 text-primary" /> Published Sessions
                 </h3>
-                
                 <div className="flex items-center gap-2 min-w-[200px]">
                   <Filter size={16} className="text-slate-400" />
                   <Select value={lessonFilter} onValueChange={setLessonFilter}>
@@ -881,7 +813,7 @@ export default function AdminPage() {
                       <SelectValue placeholder="Filter by program" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">All Managed Programs</SelectItem>
+                      <SelectItem value="all">All Tracks</SelectItem>
                       {courses?.map((c: any) => (
                         <SelectItem key={c.id} value={c.id}>{c.title}</SelectItem>
                       ))}
@@ -902,12 +834,7 @@ export default function AdminPage() {
                     <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-4 flex items-center justify-between group">
                       <div className="flex items-center gap-4">
                         <div className="relative w-16 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800">
-                          <Image 
-                            src={l.thumbnailUrl || `https://picsum.photos/seed/${l.id}/200/120`}
-                            alt={l.title || "Thumbnail"}
-                            fill
-                            className="object-cover"
-                          />
+                          <Image src={l.thumbnailUrl || `https://picsum.photos/seed/${l.id}/200/120`} alt={l.title || "Thumbnail"} fill className="object-cover" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
@@ -920,19 +847,12 @@ export default function AdminPage() {
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
                           const url = `${window.location.origin}/lesson/${l.dayNumber}?courseId=${l.courseId}`;
-                          navigator.clipboard.Text(url);
+                          navigator.clipboard.writeText(url);
                           toast({ title: "Session Link Copied", description: "Share this link with your enrolled students." });
                         }}>
                           <Share2 size={16} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-red-500" onClick={() => {
-                          if (confirm("Delete this session?")) {
-                            deleteDoc(doc(firestore, 'lessons', l.id))
-                              .catch(async (err) => {
-                                errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'delete' }));
-                              });
-                          }
-                        }}>
+                        <Button variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-red-500" onClick={() => { setDeleteTargetId(l.id); setDeleteConfirmType('lesson'); }}>
                           <Trash2 size={16} />
                         </Button>
                       </div>
@@ -941,7 +861,7 @@ export default function AdminPage() {
                 }) : (
                   <div className="flex flex-col items-center justify-center py-20 bg-slate-50 dark:bg-slate-900 rounded-3xl border border-dashed text-slate-400 space-y-4">
                     <Info size={32} />
-                    <p className="font-bold">No sessions found in the selected program track.</p>
+                    <p className="font-bold">No sessions found in this track.</p>
                   </div>
                 )}
               </div>
@@ -949,6 +869,29 @@ export default function AdminPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmType} onOpenChange={(open) => !open && setDeleteConfirmType(null)}>
+        <DialogContent className="rounded-3xl max-w-sm">
+          <DialogHeader className="items-center text-center">
+            <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-2">
+              <AlertTriangle className="text-red-500 h-8 w-8" />
+            </div>
+            <DialogTitle className="text-2xl font-black">Confirm Deletion</DialogTitle>
+            <DialogDescription className="font-medium text-slate-500">
+              {deleteConfirmType === 'program' ? "Are you sure? This will permanently delete the program and all its sessions." : 
+               deleteConfirmType === 'member' ? "Are you sure? This will permanently delete this member's profile." : 
+               "Are you sure you want to remove this session?"}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 mt-4">
+            <Button onClick={performDeletion} disabled={isDeleting} className="w-full h-12 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold">
+              {isDeleting ? "Processing..." : "Confirm & Delete"}
+            </Button>
+            <Button variant="ghost" onClick={() => setDeleteConfirmType(null)} className="w-full h-12 rounded-xl font-bold">Cancel</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Member Edit Dialog */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
@@ -960,24 +903,11 @@ export default function AdminPage() {
           <form onSubmit={handleUpdateUser} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label className="font-bold">Full Name</Label>
-              <Input 
-                value={editUserForm.displayName} 
-                onChange={e => setEditUserForm({...editUserForm, displayName: e.target.value})}
-                placeholder="Name" 
-                required 
-                className="rounded-xl h-12 text-slate-900"
-              />
+              <Input value={editUserForm.displayName} onChange={e => setEditUserForm({...editUserForm, displayName: e.target.value})} placeholder="Name" required className="rounded-xl h-12 text-slate-900" />
             </div>
             <div className="space-y-2">
               <Label className="font-bold">Email Address</Label>
-              <Input 
-                type="email"
-                value={editUserForm.email} 
-                onChange={e => setEditUserForm({...editUserForm, email: e.target.value})}
-                placeholder="your@email.com" 
-                required 
-                className="rounded-xl h-12 text-slate-900"
-              />
+              <Input type="email" value={editUserForm.email} onChange={e => setEditUserForm({...editUserForm, email: e.target.value})} placeholder="your@email.com" required className="rounded-xl h-12 text-slate-900" />
             </div>
             <div className="space-y-2">
               <Label className="font-bold">Role</Label>
@@ -999,6 +929,7 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Program Config Dialog */}
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
         <DialogContent className="rounded-3xl max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1011,19 +942,11 @@ export default function AdminPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Title</Label>
-                    <Input 
-                      value={editFields.title} 
-                      onChange={(e) => setEditFields({...editFields, title: e.target.value})}
-                      className="rounded-xl h-12 text-slate-900"
-                    />
+                    <Input value={editFields.title} onChange={(e) => setEditFields({...editFields, title: e.target.value})} className="rounded-xl h-12 text-slate-900" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Description</Label>
-                    <Textarea 
-                      value={editFields.description} 
-                      onChange={(e) => setEditFields({...editFields, description: e.target.value})}
-                      className="rounded-xl min-h-[120px] text-slate-900"
-                    />
+                    <Textarea value={editFields.description} onChange={(e) => setEditFields({...editFields, description: e.target.value})} className="rounded-xl min-h-[120px] text-slate-900" />
                   </div>
                 </div>
 
@@ -1032,63 +955,40 @@ export default function AdminPage() {
                     <CardTitle className="text-base flex items-center gap-2">
                       <Users size={18} className="text-primary" /> Student Enrollment
                     </CardTitle>
-                    <CardDescription className="text-xs">Add new or existing students. Provide a password to register new members.</CardDescription>
+                    <CardDescription className="text-xs">Add students. Provide a password to register new members.</CardDescription>
                   </CardHeader>
                   <CardContent className="p-5 pt-4 space-y-4">
                     <div className="space-y-3">
                       <div className="space-y-2">
                         <Label className="text-[10px] font-bold uppercase text-slate-400">Email Address</Label>
-                        <Input 
-                          placeholder="student@email.com" 
-                          value={enrollmentEmail}
-                          onChange={(e) => setEnrollmentEmail(e.target.value)}
-                          className="rounded-xl h-11 text-slate-900"
-                        />
+                        <Input placeholder="student@email.com" value={enrollmentEmail} onChange={(e) => setEnrollmentEmail(e.target.value)} className="rounded-xl h-11 text-slate-900" />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-bold uppercase text-slate-400">Password (Required for new members)</Label>
+                        <Label className="text-[10px] font-bold uppercase text-slate-400">Password (For new members)</Label>
                         <div className="relative">
-                          <Input 
-                            type={showEnrollPassword ? "text" : "password"}
-                            placeholder="Set student password" 
-                            value={enrollmentPassword}
-                            onChange={(e) => setEnrollmentPassword(e.target.value)}
-                            className="rounded-xl h-11 text-slate-900 pr-10"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowEnrollPassword(!showEnrollPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                          >
+                          <Input type={showEnrollPassword ? "text" : "password"} placeholder="Set student password" value={enrollmentPassword} onChange={(e) => setEnrollmentPassword(e.target.value)} className="rounded-xl h-11 text-slate-900 pr-10" />
+                          <button type="button" onClick={() => setShowEnrollPassword(!showEnrollPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
                             {showEnrollPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                           </button>
                         </div>
                       </div>
                       <Button onClick={handleEnrollStudent} disabled={enrolling} className="w-full rounded-xl h-11 font-bold mt-2">
-                        {enrolling ? "Syncing..." : "Register & Enroll Student"}
+                        {enrolling ? "Syncing..." : "Register & Enroll"}
                       </Button>
                     </div>
-                    
                     <div className="space-y-2 mt-6 max-h-[200px] overflow-y-auto pr-2">
                       <Label className="text-[10px] font-bold uppercase text-slate-400">Enrolled Members ({editFields.studentIds.length})</Label>
                       {editFields.studentIds.length === 0 ? (
-                        <div className="text-[10px] text-slate-400 text-center py-4 border border-dashed rounded-lg font-bold">
-                          No students enrolled yet.
-                        </div>
+                        <div className="text-[10px] text-slate-400 text-center py-4 border border-dashed rounded-lg font-bold">No students enrolled yet.</div>
                       ) : editFields.studentIds.map(sid => {
                         const student = users?.find(u => u.uid === sid);
                         return (
                           <div key={sid} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border group">
                             <div className="flex flex-col">
                               <span className="text-xs font-black text-slate-700 dark:text-slate-300">{student?.displayName || sid.substring(0, 8)}</span>
-                              <span className="text-[10px] text-slate-400 font-medium">{student?.email || 'Student ID: ' + sid.substring(0, 6)}</span>
+                              <span className="text-[10px] text-slate-400 font-medium">{student?.email || 'ID: ' + sid.substring(0, 6)}</span>
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => removeStudent(sid)}
-                              className="h-7 w-7 text-slate-400 hover:text-red-500 rounded-full"
-                            >
+                            <Button variant="ghost" size="icon" onClick={() => removeStudent(sid)} className="h-7 w-7 text-slate-400 hover:text-red-500 rounded-full">
                               <Trash2 size={14} />
                             </Button>
                           </div>
@@ -1104,14 +1004,9 @@ export default function AdminPage() {
                   <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail Link</Label>
                   <div className="relative">
                     <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input 
-                      value={editFields.imageUrl} 
-                      onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})}
-                      className="rounded-xl h-12 pl-10 text-slate-900"
-                    />
+                    <Input value={editFields.imageUrl} onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})} className="rounded-xl h-12 pl-10 text-slate-900" />
                   </div>
                 </div>
-                
                 {isMainAdmin && (
                   <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
                     <CardHeader className="p-4 pb-2">
@@ -1123,17 +1018,10 @@ export default function AdminPage() {
                     <CardContent className="p-4 pt-0">
                       <div className="space-y-3 mt-2">
                         {adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
-                          <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
-                            No other sub admins registered.
-                          </div>
+                          <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">No other sub admins registered.</div>
                         ) : adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
                           <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
-                            <Checkbox 
-                              id={`admin-${u.uid}`} 
-                              checked={editFields.adminIds.includes(u.uid)}
-                              onCheckedChange={() => toggleAdminAssignment(u.uid)}
-                              className="rounded-md"
-                            />
+                            <Checkbox id={`admin-${u.uid}`} checked={editFields.adminIds.includes(u.uid)} onCheckedChange={() => toggleAdminAssignment(u.uid)} className="rounded-md" />
                             <Label htmlFor={`admin-${u.uid}`} className="flex flex-col cursor-pointer">
                               <span className="text-sm font-black text-slate-700 dark:text-slate-300">{u.displayName}</span>
                               <span className="text-[10px] text-slate-400 font-bold">{u.email}</span>
@@ -1143,15 +1031,6 @@ export default function AdminPage() {
                       </div>
                     </CardContent>
                   </Card>
-                )}
-
-                {!isMainAdmin && (
-                  <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
-                    <ShieldAlert size={20} className="text-amber-500 shrink-0" />
-                    <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                      You are managing this program session. You can build lessons, add students, and share enrollment links.
-                    </p>
-                  </div>
                 )}
               </div>
             </div>

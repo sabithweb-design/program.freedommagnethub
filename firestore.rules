@@ -4,12 +4,9 @@ service cloud.firestore {
   match /databases/{database}/documents {
     
     // Helper to check if a user is the absolute platform owner
+    // Using token email is the most reliable method
     function isSuperAdmin() {
-      return request.auth != null && (
-        request.auth.token.email == 'admin@freedommagnethub.com' ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@freedommagnethub.com')
-      );
+      return request.auth != null && request.auth.token.email == 'admin@freedommagnethub.com';
     }
 
     // Any user with an 'admin' role (Main or Sub)
@@ -37,7 +34,8 @@ service cloud.firestore {
     // Lessons: Managed by Admins (Main and Sub)
     match /lessons/{lessonId} {
       allow read: if request.auth != null;
-      allow write, create, delete: if isAdmin();
+      allow write, create: if isAdmin();
+      allow delete: if isSuperAdmin() || isAdmin();
     }
 
     // Courses: 
@@ -50,7 +48,7 @@ service cloud.firestore {
       
       // Management: SuperAdmin or the assigned Sub-Admins
       allow update: if isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds);
-      allow delete: if request.auth != null && (isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds));
+      allow delete: if isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds);
     }
   }
 }
