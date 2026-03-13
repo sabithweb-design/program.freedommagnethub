@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs } from 'firebase/firestore';
+import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs, writeBatch } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
@@ -106,7 +106,6 @@ export default function AdminPage() {
 
   const lessonsQuery = useMemo(() => {
     if (!firestore) return null;
-    // We order by dayNumber but fetch all to ensure visibility
     return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc'));
   }, [firestore]);
 
@@ -189,7 +188,6 @@ export default function AdminPage() {
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newUserForm.email, newUserForm.password);
       const uid = userCredential.user.uid;
 
-      // Only Main Admin can assign 'admin' role. Sub Admins can only create 'student' roles.
       const roleToAssign = isMainAdmin ? newUserForm.role : 'student';
 
       const userProfile = {
@@ -359,21 +357,30 @@ export default function AdminPage() {
       });
   };
 
-  const handleDeleteProgram = (programId: string) => {
+  const handleDeleteProgram = async (programId: string) => {
     if (!firestore) return;
-    if (!confirm("Are you sure you want to remove this program? This action cannot be undone.")) return;
+    if (!confirm("Are you sure you want to remove this program? This action will also delete all associated sessions. This cannot be undone.")) return;
 
-    const programRef = doc(firestore, 'courses', programId);
-    deleteDoc(programRef)
-      .then(() => {
-        toast({ title: "Program Removed", description: "The program has been deleted." });
-      })
-      .catch(async (err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
-          path: programRef.path, 
-          operation: 'delete'
-        }));
-      });
+    try {
+      // 1. Find and delete associated lessons
+      const q = query(collection(firestore, 'lessons'), where('courseId', '==', programId));
+      const lessonSnaps = await getDocs(q);
+      
+      const batch = writeBatch(firestore);
+      lessonSnaps.docs.forEach((d) => batch.delete(d.ref));
+      
+      // 2. Delete the course itself
+      const programRef = doc(firestore, 'courses', programId);
+      batch.delete(programRef);
+      
+      await batch.commit();
+      toast({ title: "Program Removed", description: "The program and all its sessions have been deleted." });
+    } catch (err: any) {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+        path: `courses/${programId}`, 
+        operation: 'delete'
+      }));
+    }
   };
 
   const handleAddLesson = (e: React.FormEvent) => {
@@ -435,15 +442,19 @@ export default function AdminPage() {
 
   const adminUsers = users?.filter((u: any) => u.role === 'admin') || [];
   
-  // Refined lesson filtering for Sub Admins vs Main Admin
   const filteredLessons = useMemo(() => {
-    if (!lessons) return [];
-    if (isMainAdmin) return lessons; // Main Admin sees all orphaned or assigned sessions
-    if (!courses) return [];
+    if (!lessons || !courses) return [];
     
-    // Sub Admins only see sessions for courses they manage
-    return lessons.filter(l => courses.some(c => c.id === l.courseId));
-  }, [lessons, courses, isMainAdmin]);
+    // Filter out lessons that belong to courses that no longer exist (orphaned)
+    // and apply role-based visibility
+    return lessons.filter(l => {
+      const courseExists = courses.some(c => c.id === l.courseId);
+      if (!courseExists) return false;
+      
+      if (isMainAdmin) return true;
+      return courses.some(c => c.id === l.courseId && c.adminIds?.includes(currentUser?.uid));
+    });
+  }, [lessons, courses, isMainAdmin, currentUser]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500 text-slate-900 dark:text-slate-100">

@@ -7,7 +7,8 @@ service cloud.firestore {
     function isSuperAdmin() {
       return request.auth != null && (
         request.auth.token.email == 'admin@freedommagnethub.com' ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@freedommagnethub.com'
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email == 'admin@freedommagnethub.com')
       );
     }
 
@@ -15,7 +16,8 @@ service cloud.firestore {
     function isAdmin() {
        return request.auth != null && (
          isSuperAdmin() ||
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
        );
     }
 
