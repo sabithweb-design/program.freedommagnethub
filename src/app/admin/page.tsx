@@ -104,7 +104,11 @@ export default function AdminPage() {
     return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', currentUser.uid));
   }, [firestore, currentUser, isMainAdmin]);
 
-  const lessonsQuery = useMemo(() => firestore ? query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc')) : null, [firestore]);
+  const lessonsQuery = useMemo(() => {
+    if (!firestore) return null;
+    // We order by dayNumber but fetch all to ensure visibility
+    return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc'));
+  }, [firestore]);
 
   const { data: users, loading: usersLoading } = useCollection<any>(usersQuery);
   const { data: courses, loading: coursesLoading } = useCollection<any>(coursesQuery);
@@ -185,7 +189,7 @@ export default function AdminPage() {
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newUserForm.email, newUserForm.password);
       const uid = userCredential.user.uid;
 
-      // Force 'student' role if the current user is NOT a Main Admin
+      // Only Main Admin can assign 'admin' role. Sub Admins can only create 'student' roles.
       const roleToAssign = isMainAdmin ? newUserForm.role : 'student';
 
       const userProfile = {
@@ -290,7 +294,7 @@ export default function AdminPage() {
     e.preventDefault();
     if (!firestore || !currentUser) return;
 
-    addDoc(collection(firestore, 'courses'), {
+    const newCourseData = {
       ...courseForm,
       title: courseForm.title || "Untitled Program",
       price: Number(courseForm.price),
@@ -303,7 +307,9 @@ export default function AdminPage() {
       adminIds: [currentUser.uid], 
       studentIds: [],
       createdAt: serverTimestamp()
-    }).then(() => {
+    };
+
+    addDoc(collection(firestore, 'courses'), newCourseData).then(() => {
       setCourseForm({ 
         title: '', 
         description: '', 
@@ -317,7 +323,7 @@ export default function AdminPage() {
       });
       toast({ title: "Program Created", description: "Successfully added a new training program folder." });
     }).catch(async (err) => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: courseForm }));
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'courses', operation: 'create', requestResourceData: newCourseData }));
     });
   };
 
@@ -429,11 +435,15 @@ export default function AdminPage() {
 
   const adminUsers = users?.filter((u: any) => u.role === 'admin') || [];
   
-  // Filter lessons based on accessible courses
+  // Refined lesson filtering for Sub Admins vs Main Admin
   const filteredLessons = useMemo(() => {
-    if (!lessons || !courses) return [];
+    if (!lessons) return [];
+    if (isMainAdmin) return lessons; // Main Admin sees all orphaned or assigned sessions
+    if (!courses) return [];
+    
+    // Sub Admins only see sessions for courses they manage
     return lessons.filter(l => courses.some(c => c.id === l.courseId));
-  }, [lessons, courses]);
+  }, [lessons, courses, isMainAdmin]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500 text-slate-900 dark:text-slate-100">
@@ -443,7 +453,7 @@ export default function AdminPage() {
             <ShieldCheck className="text-primary h-10 w-10" /> Management Suite
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            {isMainAdmin ? "Main Admin: Full platform control and sub-admin assignment." : "Sub Admin: Manage assigned programs, enroll your students, and publish sessions."}
+            {isMainAdmin ? "Main Admin: Global control of users, programs, and administrative assignments." : "Sub Admin: Manage your assigned programs, enroll students, and publish content."}
           </p>
         </div>
         <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
@@ -640,7 +650,7 @@ export default function AdminPage() {
 
             <div className="lg:col-span-2 space-y-4">
               <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2">
-                <FolderOpen size={18} className="text-primary" /> {isMainAdmin ? "Full Program Portfolio" : "Assigned Programs"}
+                <FolderOpen size={18} className="text-primary" /> {isMainAdmin ? "Full Program Portfolio" : "My Managed Programs"}
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {coursesLoading ? (
@@ -684,16 +694,14 @@ export default function AdminPage() {
                       >
                         <Edit2 size={16} />
                       </Button>
-                      {(isMainAdmin || c.adminIds?.includes(currentUser?.uid)) && (
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="rounded-full hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-500 transition-all"
-                          onClick={() => handleDeleteProgram(c.id)}
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="rounded-full hover:bg-red-50 dark:hover:bg-red-950 text-slate-400 hover:text-red-500 transition-all"
+                        onClick={() => handleDeleteProgram(c.id)}
+                      >
+                        <Trash2 size={16} />
+                      </Button>
                     </div>
                   </Card>
                 )) : (
@@ -713,7 +721,7 @@ export default function AdminPage() {
                 <CardTitle className="flex items-center gap-2">
                   <PlayerIcon className="h-5 w-5 text-primary" /> Content Portal
                 </CardTitle>
-                <CardDescription>Upload video sessions to your assigned program folders.</CardDescription>
+                <CardDescription>Upload video sessions to your managed program folders.</CardDescription>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleAddLesson} className="space-y-4">
@@ -776,8 +784,11 @@ export default function AdminPage() {
                 <PlayerIcon className="h-5 w-5 text-primary" /> Published Sessions
               </h3>
               <div className="space-y-3">
-                {lessonsLoading ? (
-                  <div className="text-center py-10 text-slate-400">Syncing content...</div>
+                {lessonsLoading || coursesLoading ? (
+                  <div className="text-center py-10 text-slate-400 flex flex-col items-center gap-2 animate-pulse">
+                    <PlayerIcon className="h-10 w-10 text-slate-200" />
+                    <p className="font-bold">Syncing content portfolio...</p>
+                  </div>
                 ) : filteredLessons.length > 0 ? filteredLessons.map((l: any) => {
                   const course = courses?.find(c => c.id === l.courseId);
                   return (
@@ -982,7 +993,7 @@ export default function AdminPage() {
                   <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
                     <ShieldAlert size={20} className="text-amber-500 shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                      You are an Admin managing this program session. You can build lessons, add students, and share enrollment links.
+                      You are managing this program session. You can build lessons, add students, and share enrollment links.
                     </p>
                   </div>
                 )}
