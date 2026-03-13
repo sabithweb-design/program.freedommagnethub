@@ -71,25 +71,18 @@
   aspect-ratio: 16 / 9;
   border-radius: 2rem;
   background-color: #000;
-  /* Deterrent for screen recording on supported browsers */
   -webkit-backface-visibility: hidden;
   -webkit-transform: translateZ(0);
 }
 
-/* 
-  The "Stealth Clip" technique: 
-  We make the iframe larger (120%) and center it. 
-  This physically crops out the top bar (titles) 
-  and the bottom right area (logo).
-*/
+/* Player fills the container completely with no cropping */
 .video-iframe {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 120%;
-  height: 120%;
-  transform: translate(-50%, -50%);
-  pointer-events: auto;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
 
 /* Deterrent class to prevent selection (applied to non-admins) */

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
@@ -216,29 +215,21 @@ function LessonContent() {
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
         {lesson && (lesson.vimeoVideoId || lesson.youtubeVideoId) ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="video-container shadow-2xl ring-4 sm:ring-8 ring-white/50 dark:ring-black/50 relative group select-none overflow-hidden">
+            <div className="video-container shadow-2xl ring-4 sm:ring-8 ring-white/50 dark:ring-black/50 relative overflow-hidden group">
               {lesson.vimeoVideoId ? (
                 <iframe 
                   src={`https://player.vimeo.com/video/${lesson.vimeoVideoId}?badge=0&autopause=0&player_id=0&app_id=58479&dnt=1&title=0&byline=0&portrait=0`}
-                  className="video-iframe border-none" 
+                  className="video-iframe" 
                   allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
                   title={lesson.title || `Day ${day}`}
                 />
               ) : lesson.youtubeVideoId ? (
-                <>
-                  <iframe 
-                    src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1&playsinline=1&enablejsapi=1&origin=${origin}`}
-                    className="video-iframe border-none" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    title={lesson.title || `Day ${day}`}
-                  />
-                  {!isAdmin && (
-                    <>
-                      <div className="absolute top-0 left-0 right-0 h-[15%] z-20 bg-transparent cursor-default" />
-                      <div className="absolute bottom-0 right-0 w-[25%] h-[12%] z-20 bg-transparent cursor-default" />
-                    </>
-                  )}
-                </>
+                <iframe 
+                  src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&playsinline=1&enablejsapi=1&origin=${origin}`}
+                  className="video-iframe" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  title={lesson.title || `Day ${day}`}
+                />
               ) : null}
             </div>
 
@@ -339,7 +330,7 @@ function LessonContent() {
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="video-container shadow-2xl ring-4 sm:ring-8 ring-white/50 dark:ring-black/50 flex flex-col items-center justify-center text-white/30 bg-slate-800 p-8 text-center">
               <div className="bg-slate-700/50 p-4 rounded-full mb-4">
-                <PlayerIcon className="h-8 w-8 sm:h-10 sm:w-10 text-slate-400" />
+                <PlayerIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
               </div>
               <h3 className="text-lg sm:text-xl font-black text-white mb-2">No Video Content</h3>
               <p className="text-slate-400 text-xs sm:text-sm max-w-[250px] font-medium">
@@ -386,7 +377,7 @@ function LessonContent() {
         ) : (
           <div className="text-center py-20 sm:py-32 bg-card text-card-foreground rounded-[2rem] sm:rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800 mx-auto max-w-2xl">
             <div className="bg-background w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-               <PlayerIcon className="h-8 w-8 sm:h-12 sm:w-12 text-primary" />
+               <PlayerIcon className="h-10 w-10 sm:h-14 sm:w-14 text-primary" />
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-foreground mb-2">Session Not Found</h2>
             <p className="text-slate-400 mb-8 max-w-xs mx-auto text-xs sm:text-sm font-medium">This session hasn't been uploaded yet or you don't have access.</p>
