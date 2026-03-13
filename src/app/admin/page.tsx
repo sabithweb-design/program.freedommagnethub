@@ -63,7 +63,8 @@ import {
   EyeOff,
   FolderOpen,
   Info,
-  ExternalLink
+  ExternalLink,
+  Video
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -125,6 +126,7 @@ export default function AdminPage() {
     description: '', 
     dayNumber: 1, 
     youtubeUrl: '', 
+    driveVideoUrl: '',
     thumbnailUrl: '', 
     pdfUrl: '', 
     driveUrl: '',
@@ -372,7 +374,8 @@ export default function AdminPage() {
       return;
     }
 
-    const extractId = (url: string) => {
+    const extractYoutubeId = (url: string) => {
+      if (!url) return '';
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
       const match = url.match(regExp);
       return (match && match[2].length === 11) ? match[2] : url;
@@ -384,7 +387,8 @@ export default function AdminPage() {
       description: lessonForm.description || '',
       actionPlan: lessonForm.actionPlan || '',
       dayNumber: Number(lessonForm.dayNumber),
-      youtubeVideoId: extractId(lessonForm.youtubeUrl),
+      youtubeVideoId: extractYoutubeId(lessonForm.youtubeUrl),
+      driveVideoUrl: lessonForm.driveVideoUrl || '',
       thumbnailUrl: lessonForm.thumbnailUrl || '',
       pdfUrl: lessonForm.pdfUrl || '',
       driveUrl: lessonForm.driveUrl || '',
@@ -393,7 +397,7 @@ export default function AdminPage() {
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', thumbnailUrl: '', pdfUrl: '', driveUrl: '', actionPlan: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', driveVideoUrl: '', thumbnailUrl: '', pdfUrl: '', driveUrl: '', actionPlan: '' });
       toast({ title: "Lesson Published", description: `Session Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData }));
@@ -722,9 +726,15 @@ export default function AdminPage() {
                       <Input type="number" min="1" max="90" value={lessonForm.dayNumber} onChange={e => setLessonForm({...lessonForm, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl text-slate-900" />
                     </div>
                     <div className="space-y-2">
-                      <Label className="font-bold">Video URL</Label>
-                      <Input placeholder="YouTube Link" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} required className="h-12 rounded-xl text-slate-900" />
+                      <Label className="font-bold">YouTube URL</Label>
+                      <Input placeholder="YouTube Link" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold flex items-center gap-2">
+                      <Video size={14} className="text-primary" /> Drive Video Link
+                    </Label>
+                    <Input placeholder="Google Drive Shared Link" value={lessonForm.driveVideoUrl} onChange={e => setLessonForm({...lessonForm, driveVideoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -978,3 +988,4 @@ export default function AdminPage() {
     </div>
   );
 }
+

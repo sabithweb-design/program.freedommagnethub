@@ -33,7 +33,8 @@ interface LessonData {
   title?: string;
   description?: string;
   actionPlan?: string;
-  youtubeVideoId: string;
+  youtubeVideoId?: string;
+  driveVideoUrl?: string;
   thumbnailUrl?: string;
   pdfUrl?: string;
   driveUrl?: string;
@@ -150,6 +151,16 @@ export default function LessonPage() {
     }
   };
 
+  const getDriveEmbedUrl = (url: string) => {
+    if (!url) return '';
+    // Format: https://drive.google.com/file/d/FILE_ID/preview
+    const fileIdMatch = url.match(/\/d\/([^/]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/file/d/${fileIdMatch[1]}/preview`;
+    }
+    return url;
+  };
+
   if (loading || fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -214,7 +225,14 @@ export default function LessonPage() {
         {lesson ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="video-container shadow-2xl ring-8 ring-white/50 dark:ring-black/50 relative group select-none">
-              {lesson.youtubeVideoId ? (
+              {lesson.driveVideoUrl ? (
+                <iframe 
+                  src={getDriveEmbedUrl(lesson.driveVideoUrl)}
+                  className="video-iframe border-none" 
+                  allow="autoplay"
+                  title={lesson.title || `Day ${day}`}
+                />
+              ) : lesson.youtubeVideoId ? (
                 <>
                   <iframe 
                     src={`https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&showinfo=0&iv_load_policy=3&disablekb=1&fs=0&autohide=1`}
