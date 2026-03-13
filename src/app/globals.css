@@ -64,38 +64,37 @@
 }
 
 /* Precision-Crop Video Layout */
-.video-container {
+.video-mask {
   position: relative;
-  width: 100%;
-  max-width: 1280px; /* Locked to standard 720p desktop width */
+  width: 1280px; /* Base desktop width */
+  max-width: 100%; /* Responsive scaling */
   aspect-ratio: 16 / 9;
-  overflow: hidden; /* Hides elements outside the container */
+  overflow: hidden; /* Key to the cropping technique */
+  margin: 0 auto;
   border-radius: 2rem;
   background-color: #000;
-  margin-left: auto;
-  margin-right: auto;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
 .video-iframe {
   position: absolute;
-  /* Slightly overscale to push top-right icons outside the container */
-  width: 108%; 
-  height: 108%;
-  left: 50%;
-  /* Shifted slightly up (48% instead of 50%) to ensure bottom playbar remains visible */
-  top: 48%; 
-  transform: translate(-50%, -50%);
+  /* Over-scale to push branding outside the mask */
+  width: 115%;
+  height: 115%;
+  /* Strategically offset: -10% at top hides social icons, 
+     leaving the bottom controls visible within the 100% height container */
+  top: -10%; 
+  left: -7.5%;
   border: none;
 }
 
-/* Top-Right click shield for social icons */
+/* Click shield for remaining top-right hotspots */
 .video-click-shield {
   position: absolute;
   top: 0;
   right: 0;
-  width: 150px;
-  height: 100px;
+  width: 180px;
+  height: 120px;
   z-index: 10;
   background-color: transparent;
   cursor: default;
