@@ -141,6 +141,10 @@ export default function AdminPage() {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
+  // User Edit State
+  const [editingUser, setEditingUser] = useState<any | null>(null);
+  const [editUserForm, setEditUserForm] = useState({ displayName: '', email: '', role: 'student' as 'student' | 'admin' });
+
   const [enrollmentEmail, setEnrollmentEmail] = useState('');
   const [enrollmentPassword, setEnrollmentPassword] = useState('');
   const [showEnrollPassword, setShowEnrollPassword] = useState(false);
@@ -173,6 +177,54 @@ export default function AdminPage() {
       })
       .catch(async (err) => {
         errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userRef.path, operation: 'update', requestResourceData: { status: !currentStatus } }));
+      });
+  };
+
+  const handleRemoveUser = (userId: string) => {
+    if (!firestore) return;
+    if (!confirm("Are you sure you want to permanently remove this member? This will delete their profile data.")) return;
+
+    const userRef = doc(firestore, 'users', userId);
+    deleteDoc(userRef)
+      .then(() => {
+        toast({ title: "Member Removed", description: "The account has been deleted from the directory." });
+      })
+      .catch(async (err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: userRef.path, operation: 'delete' }));
+      });
+  };
+
+  const handleOpenEditUser = (user: any) => {
+    setEditingUser(user);
+    setEditUserForm({
+      displayName: user.displayName || '',
+      email: user.email || '',
+      role: user.role || 'student'
+    });
+  };
+
+  const handleUpdateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !editingUser) return;
+
+    const userRef = doc(firestore, 'users', editingUser.id);
+    const updateData = {
+      displayName: editUserForm.displayName,
+      email: editUserForm.email,
+      role: editUserForm.role
+    };
+
+    updateDoc(userRef, updateData)
+      .then(() => {
+        toast({ title: "Profile Updated", description: "Member details have been successfully changed." });
+        setEditingUser(null);
+      })
+      .catch(async (err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: userRef.path, 
+          operation: 'update', 
+          requestResourceData: updateData 
+        }));
       });
   };
 
@@ -575,7 +627,7 @@ export default function AdminPage() {
                       <TableHead className="pl-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Name & Email</TableHead>
                       <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Role</TableHead>
                       <TableHead className="h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Status</TableHead>
-                      <TableHead className="text-right pr-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Control</TableHead>
+                      <TableHead className="text-right pr-6 h-14 font-black text-slate-400 dark:text-slate-500 uppercase text-[10px] tracking-widest">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -604,13 +656,30 @@ export default function AdminPage() {
                         </TableCell>
                         <TableCell className="text-right pr-6">
                           {u.email !== MAIN_ADMIN_EMAIL && (
-                            <div className="flex items-center justify-end gap-3">
-                              <span className="text-[10px] font-bold text-slate-400 dark:text-slate-600 uppercase">{u.status === false ? "Enable" : "Disable"}</span>
-                              <Switch 
-                                checked={u.status !== false} 
-                                onCheckedChange={() => handleToggleUserStatus(u.id, u.status !== false)}
-                                className="data-[state=checked]:bg-emerald-500"
-                              />
+                            <div className="flex items-center justify-end gap-2">
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="rounded-full h-8 w-8 text-slate-400 hover:text-primary transition-all"
+                                onClick={() => handleOpenEditUser(u)}
+                              >
+                                <Edit2 size={14} />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="rounded-full h-8 w-8 text-slate-400 hover:text-red-500 transition-all"
+                                onClick={() => handleRemoveUser(u.id)}
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                              <div className="flex items-center gap-2 ml-2">
+                                <Switch 
+                                  checked={u.status !== false} 
+                                  onCheckedChange={() => handleToggleUserStatus(u.id, u.status !== false)}
+                                  className="data-[state=checked]:bg-emerald-500 scale-75"
+                                />
+                              </div>
                             </div>
                           )}
                         </TableCell>
@@ -623,6 +692,9 @@ export default function AdminPage() {
           )}
         </TabsContent>
 
+        {/* ... (rest of the TabsContent for courses and lessons remains unchanged) ... */}
+        
+        {/* Course management tab content */}
         <TabsContent value="courses">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
@@ -848,7 +920,7 @@ export default function AdminPage() {
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
                           const url = `${window.location.origin}/lesson/${l.dayNumber}?courseId=${l.courseId}`;
-                          navigator.clipboard.writeText(url);
+                          navigator.clipboard.Text(url);
                           toast({ title: "Session Link Copied", description: "Share this link with your enrolled students." });
                         }}>
                           <Share2 size={16} />
@@ -877,6 +949,55 @@ export default function AdminPage() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Member Edit Dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="rounded-3xl max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Member Details</DialogTitle>
+            <DialogDescription>Update the profile information for this member.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateUser} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label className="font-bold">Full Name</Label>
+              <Input 
+                value={editUserForm.displayName} 
+                onChange={e => setEditUserForm({...editUserForm, displayName: e.target.value})}
+                placeholder="Name" 
+                required 
+                className="rounded-xl h-12 text-slate-900"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Email Address</Label>
+              <Input 
+                type="email"
+                value={editUserForm.email} 
+                onChange={e => setEditUserForm({...editUserForm, email: e.target.value})}
+                placeholder="your@email.com" 
+                required 
+                className="rounded-xl h-12 text-slate-900"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Role</Label>
+              <Select value={editUserForm.role} onValueChange={(val: any) => setEditUserForm({...editUserForm, role: val})}>
+                <SelectTrigger className="h-12 rounded-xl text-slate-900">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="student">Student (Hub Access)</SelectItem>
+                  <SelectItem value="admin">Admin (Co-Admin Access)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <DialogFooter className="pt-4 gap-2">
+              <Button type="button" variant="ghost" onClick={() => setEditingUser(null)} className="rounded-xl h-12 font-bold">Cancel</Button>
+              <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 dark:text-slate-900">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
         <DialogContent className="rounded-3xl max-w-5xl max-h-[90vh] overflow-y-auto">
