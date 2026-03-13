@@ -82,24 +82,23 @@ export const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) =>
 
 export default function AdminPage() {
   const firestore = useFirestore();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isAdmin } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('courses');
 
   const isMainAdmin = currentUser?.email === MAIN_ADMIN_EMAIL;
 
   const usersQuery = useMemo(() => {
-    // Only fetch the full list for the Main Admin to avoid permission overhead
-    if (!firestore || !isMainAdmin) return null;
+    if (!firestore || !isAdmin) return null;
+    // Main Admin sees everything, Sub Admins only list for search purposes
     return query(collection(firestore, 'users'));
-  }, [firestore, isMainAdmin]);
+  }, [firestore, isAdmin]);
   
   const coursesQuery = useMemo(() => {
     if (!firestore || !currentUser) return null;
     if (isMainAdmin) {
       return query(collection(firestore, 'courses'));
     }
-    // Sub Admins only see courses where they are in adminIds
     return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', currentUser.uid));
   }, [firestore, currentUser, isMainAdmin]);
 
@@ -388,7 +387,7 @@ export default function AdminPage() {
             <ShieldCheck className="text-primary h-10 w-10" /> Management Suite
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-2 font-medium">
-            {isMainAdmin ? "Main Admin: Full platform control, program creation, and Sub Admin assignment." : "Sub Admin: Manage assigned programs, lessons, and student enrollment."}
+            {isMainAdmin ? "Main Admin: Full platform control and sub-admin assignment." : "Sub Admin: Manage assigned programs, lessons, and your team of co-admins and students."}
           </p>
         </div>
         <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
@@ -400,7 +399,7 @@ export default function AdminPage() {
           <DialogContent className="rounded-3xl max-w-md">
             <DialogHeader>
               <DialogTitle>Register Account</DialogTitle>
-              <DialogDescription>Create a student or sub-admin account. Only Main Admins should create other admins.</DialogDescription>
+              <DialogDescription>Create a student or co-admin account. New admins can be assigned to help you manage programs.</DialogDescription>
             </DialogHeader>
             <form onSubmit={handleCreateUser} className="space-y-4 py-4">
               <div className="space-y-2">
@@ -452,7 +451,7 @@ export default function AdminPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="student">Student (Hub Access)</SelectItem>
-                    {isMainAdmin && <SelectItem value="admin">Sub Admin (Folder Access)</SelectItem>}
+                    <SelectItem value="admin">Admin (Co-Admin Access)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -752,7 +751,7 @@ export default function AdminPage() {
         <DialogContent className="rounded-3xl max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Program Configuration</DialogTitle>
-            <DialogDescription>Manage content, assign sub-admins, and enroll students for this program session.</DialogDescription>
+            <DialogDescription>Manage content, assign co-admins, and enroll students for this program session.</DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-8 text-slate-900">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -834,44 +833,42 @@ export default function AdminPage() {
                   </div>
                 </div>
                 
-                {isMainAdmin && (
-                  <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
-                    <CardHeader className="p-4 pb-2">
-                      <CardTitle className="text-sm flex items-center gap-2">
-                        <ShieldCheck size={16} className="text-primary" /> Sub Admin Assignment
-                      </CardTitle>
-                      <CardDescription className="text-[10px]">Assign Sub Admins to manage this specific folder.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <div className="space-y-3 mt-2">
-                        {adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
-                          <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
-                            Register a Sub Admin in the Directory first.
-                          </div>
-                        ) : adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
-                          <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
-                            <Checkbox 
-                              id={`admin-${u.uid}`} 
-                              checked={editFields.adminIds.includes(u.uid)}
-                              onCheckedChange={() => toggleAdminAssignment(u.uid)}
-                              className="rounded-md"
-                            />
-                            <Label htmlFor={`admin-${u.uid}`} className="flex flex-col cursor-pointer">
-                              <span className="text-sm font-black text-slate-700 dark:text-slate-300">{u.displayName}</span>
-                              <span className="text-[10px] text-slate-400 font-bold">{u.email}</span>
-                            </Label>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
+                <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
+                  <CardHeader className="p-4 pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-primary" /> Admin Assignment
+                    </CardTitle>
+                    <CardDescription className="text-[10px]">Invite co-admins to help manage this program.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <div className="space-y-3 mt-2">
+                      {adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
+                        <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">
+                          Register an Admin in the Register Member dialog first.
+                        </div>
+                      ) : adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
+                        <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
+                          <Checkbox 
+                            id={`admin-${u.uid}`} 
+                            checked={editFields.adminIds.includes(u.uid)}
+                            onCheckedChange={() => toggleAdminAssignment(u.uid)}
+                            className="rounded-md"
+                          />
+                          <Label htmlFor={`admin-${u.uid}`} className="flex flex-col cursor-pointer">
+                            <span className="text-sm font-black text-slate-700 dark:text-slate-300">{u.displayName}</span>
+                            <span className="text-[10px] text-slate-400 font-bold">{u.email}</span>
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {!isMainAdmin && (
                   <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-2xl border border-amber-100 dark:border-amber-900 flex gap-3">
                     <ShieldAlert size={20} className="text-amber-500 shrink-0" />
                     <p className="text-xs text-amber-700 dark:text-amber-300 font-medium">
-                      As a Sub Admin, you can edit content and enroll students, but only the Main Admin can assign additional management roles.
+                      As a Sub Admin, you can enroll students and assign co-admins to help you with this session.
                     </p>
                   </div>
                 )}
