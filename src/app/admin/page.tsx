@@ -185,11 +185,14 @@ export default function AdminPage() {
       const userCredential = await createUserWithEmailAndPassword(secondaryAuth, newUserForm.email, newUserForm.password);
       const uid = userCredential.user.uid;
 
+      // Force 'student' role if the current user is NOT a Main Admin
+      const roleToAssign = isMainAdmin ? newUserForm.role : 'student';
+
       const userProfile = {
         uid,
         displayName: newUserForm.displayName,
         email: newUserForm.email,
-        role: newUserForm.role,
+        role: roleToAssign,
         status: true,
         cohortStartDate: serverTimestamp()
       };
@@ -199,7 +202,7 @@ export default function AdminPage() {
 
       toast({
         title: "Account Registered",
-        description: `${newUserForm.displayName} now has ${newUserForm.role} access.`,
+        description: `${newUserForm.displayName} now has ${roleToAssign} access.`,
       });
 
       setNewUserForm({ displayName: '', email: '', password: '', role: 'student' });

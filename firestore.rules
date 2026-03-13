@@ -3,8 +3,7 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Super Admin: Has full control over the platform.
-    // Checked via token for efficiency in collection queries.
+    // Helper to check if a user is the absolute platform owner
     function isSuperAdmin() {
       return request.auth != null && (
         request.auth.token.email == 'admin@freedommagnethub.com' ||
@@ -23,7 +22,8 @@ service cloud.firestore {
     // User profiles: Users see their own. Admins can manage all.
     match /users/{userId} {
       allow get: if request.auth != null && (request.auth.uid == userId || isAdmin());
-      allow list, create: if request.auth != null && isAdmin(); 
+      allow list: if request.auth != null && isAdmin(); 
+      allow create: if request.auth != null; 
       allow update, delete: if request.auth != null && (request.auth.uid == userId || isSuperAdmin());
       
       match /completedLessons/{lessonId} {
@@ -38,11 +38,7 @@ service cloud.firestore {
     }
 
     // Courses: 
-    // Super Admin: List all.
-    // Sub Admin: List programs where they are in adminIds.
-    // Students: Read programs where they are in studentIds.
     match /courses/{courseId} {
-      // We use resource.data here to allow for query-level validation (listing)
       allow read: if request.auth != null && (
         isSuperAdmin() || 
         (resource != null && request.auth.uid in resource.data.adminIds) || 
@@ -50,8 +46,8 @@ service cloud.firestore {
       );
       allow create: if isAdmin();
       allow update: if isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds);
-      // Fixed: Allow delete if Super Admin OR if the admin is assigned to this course
-      allow delete: if isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds);
+      // Main Admin (SuperAdmin) or an assigned Sub-Admin can delete
+      allow delete: if request.auth != null && (isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds));
     }
   }
 }
