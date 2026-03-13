@@ -75,13 +75,18 @@
   -webkit-transform: translateZ(0);
 }
 
-/* Player fills the container completely with no cropping */
+/* 
+ * Precision-Crop Logic:
+ * We over-scale the iframe slightly and shift it UP.
+ * This crops the top-right branding/social icons (Love, Share, Watch Later)
+ * while keeping the bottom progress bar and play buttons visible within the frame.
+ */
 .video-iframe {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  top: -6%; /* Shifts up to hide top social icons */
+  left: -1%; /* Shifts left to hide potential right-side edges */
+  width: 102%; /* Makes it slightly wider to compensate for shifting */
+  height: 108%; /* Makes it taller to ensure the bottom controls stay in frame */
   border: 0;
 }
 
