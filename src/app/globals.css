@@ -67,9 +67,9 @@
 .video-container {
   position: relative;
   width: 100%;
-  max-width: 1280px; /* Fixed target max width */
+  max-width: 1280px; /* Locked to standard 720p desktop width */
   aspect-ratio: 16 / 9;
-  overflow: hidden; /* Key to cropping outside elements */
+  overflow: hidden; /* Hides elements outside the container */
   border-radius: 2rem;
   background-color: #000;
   margin-left: auto;
@@ -79,12 +79,26 @@
 
 .video-iframe {
   position: absolute;
-  top: 50%;
+  /* Slightly overscale to push top-right icons outside the container */
+  width: 108%; 
+  height: 108%;
   left: 50%;
-  width: 112%; /* Overscaled to push icons outside the container */
-  height: 112%;
+  /* Shifted slightly up (48% instead of 50%) to ensure bottom playbar remains visible */
+  top: 48%; 
   transform: translate(-50%, -50%);
   border: none;
+}
+
+/* Top-Right click shield for social icons */
+.video-click-shield {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 150px;
+  height: 100px;
+  z-index: 10;
+  background-color: transparent;
+  cursor: default;
 }
 
 /* Deterrent class to prevent selection (applied to non-admins) */

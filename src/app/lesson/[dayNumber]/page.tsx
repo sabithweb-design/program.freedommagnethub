@@ -217,9 +217,12 @@ function LessonContent() {
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Precision-Crop Video Player */}
             <div className="video-container">
+              {/* Click shield for top-right social icons */}
+              <div className="video-click-shield" />
+              
               {lesson.vimeoVideoId ? (
                 <iframe 
-                  src={`https://player.vimeo.com/video/${lesson.vimeoVideoId}?title=0&byline=0&portrait=0&badge=0&autopause=0&dnt=1&playbar=1`}
+                  src={`https://player.vimeo.com/video/${lesson.vimeoVideoId}?title=0&byline=0&portrait=0&badge=0&autopause=0&dnt=1&controls=1&speed=1&playbar=1`}
                   className="video-iframe" 
                   allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
                   title={lesson.title || `Day ${day}`}
