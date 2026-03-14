@@ -46,7 +46,7 @@ interface LessonData {
 
 /**
  * A professional, high-end LMS video player using Plyr.js.
- * Provides a white-labeled experience with modern controls like Udemy.
+ * Provides a white-labeled experience with modern controls like Udemy or Netflix.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const playerRef = useRef<HTMLDivElement>(null);
