@@ -33,6 +33,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
 import dynamic from "next/dynamic";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Dynamic import for ReactPlayer to avoid SSR issues
 const ReactPlayer = dynamic(() => import("react-player/lazy"), { ssr: false });
@@ -55,6 +56,7 @@ interface LessonData {
 /**
  * Professional LMS Video Player
  * Fix: Unresponsive Laptop clicks, 1280x720 Desktop footprint, Precision-Crop masking.
+ * Added: Mobile auto-hide logic for controls while preserving laptop logic.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [playing, setPlaying] = useState(false);
@@ -65,8 +67,38 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [showControls, setShowControls] = useState(true);
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const togglePlay = () => setPlaying(prev => !prev);
+  const togglePlay = () => {
+    setPlaying(prev => !prev);
+    if (isMobile) setShowControls(true);
+  };
+
+  // Mobile Auto-Hide Logic: Hide controls after 2 seconds of inactivity when playing
+  useEffect(() => {
+    if (isMobile && playing && showControls) {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2000);
+    }
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [isMobile, playing, showControls]);
+
+  const handleInteraction = () => {
+    if (isMobile) {
+      if (!showControls) {
+        setShowControls(true);
+      } else {
+        togglePlay();
+      }
+    } else {
+      togglePlay();
+    }
+  };
 
   const formatTime = (seconds: number) => {
     const date = new Date(seconds * 1000);
@@ -81,6 +113,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
     const newPlayed = value[0] / 100;
     setPlayed(newPlayed);
     playerRef.current?.seekTo(newPlayed);
+    if (isMobile) setShowControls(true);
   };
 
   const toggleFullscreen = () => {
@@ -95,14 +128,14 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
     <div 
       ref={containerRef}
       className="w-full flex justify-center items-center px-4 sm:px-0 mb-12"
-      onMouseEnter={() => setShowControls(true)}
-      onMouseLeave={() => playing && setShowControls(false)}
+      onMouseEnter={() => !isMobile && setShowControls(true)}
+      onMouseLeave={() => !isMobile && playing && setShowControls(false)}
     >
       <div className={cn(
         "relative overflow-hidden bg-black shadow-2xl transition-all duration-500",
         "rounded-[1.5rem] sm:rounded-[3rem]",
         "w-full aspect-video",
-        "lg:w-[1280px] lg:h-[720px] lg:aspect-auto lg:mx-auto" // Desktop 1280x720 Footprint
+        "lg:w-[1280px] lg:h-[720px] lg:aspect-auto lg:mx-auto" 
       )}>
         
         {/* Core Video Engine with Precision Crop (115% scale to hide branding) */}
@@ -113,7 +146,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
             width="100%"
             height="100%"
             playing={playing}
-            muted={true} // Add muted initially to help bypass autoplay policies
+            muted={true} 
             playbackRate={playbackRate}
             onReady={() => setIsReady(true)}
             onProgress={(state) => setPlayed(state.played)}
@@ -140,7 +173,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
         {/* Interaction Layer - Captures Background Clicks */}
         <div 
           className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
-          onClick={togglePlay}
+          onClick={handleInteraction}
         />
 
         {/* Central Cinematic Play Button (Highest Priority z-index: 999) */}
@@ -177,7 +210,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
               onValueChange={handleSeekChange}
               className="cursor-pointer pointer-events-auto"
               trackClassName="h-1 bg-white/20"
-              rangeClassName="bg-[#8B5CF6]" // Thin Purple Scrubber
+              rangeClassName="bg-[#8B5CF6]" 
               thumbClassName="w-3 h-3 bg-[#8B5CF6] border-none opacity-0 group-hover:opacity-100 transition-opacity"
             />
           </div>
