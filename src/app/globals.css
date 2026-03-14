@@ -72,35 +72,12 @@
 }
 
 .video-iframe {
-  width: 115%; /* Aggressive Masking: Scale to push icons out */
+  width: 115%; /* Precision Crop: Scale to push icons out */
   height: 115%;
   position: absolute;
   top: -7.5%; /* Center the over-scaled iframe */
   left: -7.5%;
   border: none;
-}
-
-/* Click Shields to Block Direct External Links */
-.click-shield-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 18%; /* Block YouTube Title clicks and top-edge overlays */
-  background: transparent;
-  z-index: 30;
-  cursor: default;
-}
-
-.click-shield-bottom-right {
-  position: absolute;
-  bottom: 8%; /* Leave the control bar reachable */
-  right: 0;
-  width: 25%; /* Block YouTube logo and "Watch on YouTube" button */
-  height: 15%;
-  background: transparent;
-  z-index: 30;
-  cursor: default;
 }
 
 /* Deterrent class to prevent selection (applied to non-admins) */
@@ -109,4 +86,17 @@
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+}
+
+/* Custom Radix Slider Styling for LMS Player */
+[data-radix-slider-track] {
+  @apply relative grow rounded-full bg-white/20;
+}
+
+[data-radix-slider-range] {
+  @apply absolute h-full rounded-full bg-[#8b5cf6];
+}
+
+[data-radix-slider-thumb] {
+  @apply block h-4 w-4 rounded-full bg-white shadow-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition-transform;
 }

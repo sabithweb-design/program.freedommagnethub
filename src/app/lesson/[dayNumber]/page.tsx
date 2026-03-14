@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Slider } from "@/components/ui/slider";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -16,7 +17,17 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle
+  AlertCircle,
+  Play,
+  Pause,
+  RotateCcw,
+  RotateCw,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Settings,
+  Type,
+  MoreVertical
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -24,6 +35,7 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
+import { cn } from "@/lib/utils";
 
 interface LessonData {
   id?: string;
@@ -38,6 +50,209 @@ interface LessonData {
   driveUrl?: string;
   dayNumber: number;
   isLocked?: boolean;
+}
+
+function formatTime(seconds: number) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, lessonId: string, onComplete: () => void }) {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [showControls, setShowControls] = useState(true);
+  
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Communication with YouTube Iframe API
+  const sendCommand = useCallback((command: string, args: any[] = []) => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: command, args }),
+        "*"
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (typeof event.data !== 'string') return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.event === 'infoDelivery' && data.info) {
+          if (data.info.currentTime !== undefined) setCurrentTime(data.info.currentTime);
+          if (data.info.duration !== undefined) setDuration(data.info.duration);
+          if (data.info.playerState !== undefined) {
+            setIsPlaying(data.info.playerState === 1);
+          }
+        }
+      } catch (e) {}
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
+  const togglePlay = () => {
+    if (isPlaying) {
+      sendCommand("pauseVideo");
+    } else {
+      sendCommand("playVideo");
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const skip = (seconds: number) => {
+    sendCommand("seekTo", [currentTime + seconds, true]);
+  };
+
+  const handleSeek = (value: number[]) => {
+    const seekTime = value[0];
+    setCurrentTime(seekTime);
+    sendCommand("seekTo", [seekTime, true]);
+  };
+
+  const toggleMute = () => {
+    const nextMute = !isMuted;
+    setIsMuted(nextMute);
+    sendCommand(nextMute ? "mute" : "unMute");
+  };
+
+  const changeRate = () => {
+    const rates = [1, 1.25, 1.5, 2];
+    const currentIndex = rates.indexOf(playbackRate);
+    const nextRate = rates[(currentIndex + 1) % rates.length];
+    setPlaybackRate(nextRate);
+    sendCommand("setPlaybackRate", [nextRate]);
+  };
+
+  const handleMouseMove = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
+  };
+
+  const toggleFullscreen = () => {
+    const container = iframeRef.current?.parentElement?.parentElement;
+    if (!container) return;
+    if (document.fullscreenElement) {
+      document.exitFullscreen();
+    } else {
+      container.requestFullscreen();
+    }
+  };
+
+  return (
+    <div 
+      className="video-mask group relative rounded-[2.5rem] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10"
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => isPlaying && setShowControls(false)}
+    >
+      {/* Precision Crop Iframe */}
+      <iframe
+        ref={iframeRef}
+        src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+        className="video-iframe pointer-events-none"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+      />
+
+      {/* Click Shield / Interaction Layer */}
+      <div 
+        className="absolute inset-0 z-10 cursor-pointer" 
+        onClick={togglePlay}
+      />
+
+      {/* Central Play Button */}
+      <div className={cn(
+        "absolute inset-0 flex items-center justify-center z-20 pointer-events-none transition-all duration-500",
+        (!isPlaying || showControls) ? "opacity-100 scale-100" : "opacity-0 scale-110"
+      )}>
+        {!isPlaying && (
+          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl animate-in zoom-in-75 duration-300">
+            <Play size={40} className="text-white fill-white ml-2" />
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Controls Overlay */}
+      <div className={cn(
+        "absolute bottom-0 left-0 right-0 z-30 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-20 pb-8 px-8",
+        (showControls || !isPlaying) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+      )}>
+        {/* Progress Bar */}
+        <div className="mb-6 group/progress">
+          <Slider
+            value={[currentTime]}
+            max={duration || 100}
+            step={0.1}
+            onValueChange={handleSeek}
+            className="cursor-pointer"
+            trackClassName="bg-white/20 h-1.5"
+            rangeClassName="bg-[#8b5cf6]" // Premium Lavender/Purple
+            thumbClassName="h-4 w-4 bg-white border-0 shadow-lg scale-0 group-hover/progress:scale-100 transition-transform"
+          />
+        </div>
+
+        {/* Bottom Bar Controls */}
+        <div className="flex items-center justify-between">
+          {/* Left Side: Play, Time, Skips */}
+          <div className="flex items-center gap-6">
+            <button onClick={togglePlay} className="text-white hover:text-[#8b5cf6] transition-colors">
+              {isPlaying ? <Pause size={24} className="fill-white" /> : <Play size={24} className="fill-white" />}
+            </button>
+            
+            <div className="flex items-center gap-4">
+              <button onClick={() => skip(-10)} className="text-white/80 hover:text-white transition-colors">
+                <RotateCcw size={20} />
+              </button>
+              <button onClick={() => skip(10)} className="text-white/80 hover:text-white transition-colors">
+                <RotateCw size={20} />
+              </button>
+            </div>
+
+            <div className="text-white/90 text-sm font-bold tracking-tight">
+              {formatTime(currentTime)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
+            </div>
+          </div>
+
+          {/* Right Side: Volume, Rate, CC, Gear, Fullscreen */}
+          <div className="flex items-center gap-5">
+            <div className="flex items-center gap-3">
+              <button onClick={toggleMute} className="text-white/80 hover:text-white transition-colors">
+                {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+              </button>
+              {/* Optional: Tiny Volume Slider here */}
+            </div>
+
+            <button 
+              onClick={changeRate}
+              className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[11px] font-black tracking-widest transition-all"
+            >
+              {playbackRate}x
+            </button>
+
+            <button className="text-white/80 hover:text-white transition-colors">
+              <Type size={18} />
+            </button>
+
+            <button className="text-white/80 hover:text-white transition-colors">
+              <Settings size={18} />
+            </button>
+
+            <button onClick={toggleFullscreen} className="text-white/80 hover:text-white transition-colors">
+              <Maximize size={20} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function LessonContent() {
@@ -171,19 +386,9 @@ function LessonContent() {
     );
   }
 
-  const getEmbedUrl = () => {
-    if (!lesson) return "";
-    if (lesson.youtubeVideoId) {
-      return `https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&iv_load_policy=3&disablekb=1&fs=1&autoplay=0`;
-    }
-    if (lesson.vimeoVideoId) {
-      return `https://player.vimeo.com/video/${lesson.vimeoVideoId}?title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479&controls=1`;
-    }
-    return "";
-  };
-
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
+      {/* Dynamic Navbar */}
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -219,52 +424,48 @@ function LessonContent() {
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {lesson && (lesson.vimeoVideoId || lesson.youtubeVideoId) ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Premium LMS Masked Video Player */}
-            <div className="video-mask mx-auto shadow-2xl bg-black">
-              <iframe 
-                key={lessonId || day}
-                src={getEmbedUrl()}
-                className="video-iframe"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-              {/* Aggressive Click Shields to block external navigation */}
-              <div className="click-shield-top" />
-              <div className="click-shield-bottom-right" />
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            {/* Custom LMS Premium Player */}
+            <div className="max-w-4xl mx-auto">
+               <CustomLmsPlayer 
+                  videoId={lesson.youtubeVideoId || lesson.vimeoVideoId || ""} 
+                  lessonId={lessonId || ""}
+                  onComplete={handleToggleComplete}
+               />
             </div>
 
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
-              <div className="flex-1 space-y-8">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                  <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground leading-tight">
+            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-12">
+              <div className="flex-1 space-y-10">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 border-b dark:border-slate-800 pb-8">
+                  <div className="space-y-2">
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight leading-none">
                       {lesson.title || `Day ${day} Session`}
                     </h1>
-                    <div className="flex gap-4 pt-2">
-                      <span className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase tracking-widest">
-                        <BookOpen size={12} /> Training Hub
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                        <Clock size={12} /> DAY {day}
+                    <div className="flex gap-4 pt-4">
+                      <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest">
+                        Module 01
+                      </Badge>
+                      <span className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                        <Clock size={12} /> SESSION {day}
                       </span>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-4">
                     <Button 
                       onClick={handleToggleComplete}
                       disabled={completing}
-                      className={`rounded-full h-11 sm:h-12 px-6 sm:px-8 font-black transition-all shadow-lg text-xs sm:text-sm uppercase tracking-wider ${
+                      className={cn(
+                        "rounded-full h-14 px-10 font-black transition-all shadow-xl text-xs uppercase tracking-widest border-2",
                         isCompleted 
-                          ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
-                          : "bg-slate-900 dark:bg-slate-100 dark:text-slate-900 shadow-slate-900/20"
-                      }`}
+                          ? "bg-emerald-500 border-emerald-400 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
+                          : "bg-slate-900 dark:bg-slate-100 border-transparent dark:text-slate-900 shadow-slate-900/20"
+                      )}
                     >
                       {isCompleted ? (
-                        <><CheckCircle2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Completed</>
+                        <><CheckCircle2 className="mr-3 h-5 w-5" /> Completed</>
                       ) : (
-                        "Mark as Complete"
+                        "Mark Session Complete"
                       )}
                     </Button>
                   </div>
@@ -272,19 +473,24 @@ function LessonContent() {
 
                 {lesson.description && (
                   <div className="prose prose-slate dark:prose-invert max-w-none">
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base sm:text-lg whitespace-pre-wrap font-medium">
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg sm:text-xl whitespace-pre-wrap font-medium">
                       {lesson.description}
                     </p>
                   </div>
                 )}
 
                 {lesson.actionPlan && (
-                  <Card className="border-none shadow-sm rounded-3xl bg-primary/5 dark:bg-primary/10 p-6 sm:p-8 border-l-4 border-primary">
-                    <h3 className="font-black text-primary text-lg sm:text-xl mb-4 flex items-center gap-3">
-                      <ClipboardList size={20} className="sm:size-6" />
-                      Action Steps
+                  <Card className="border-none shadow-2xl rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-8 sm:p-12 border-l-8 border-primary relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-10">
+                      <ClipboardList size={80} className="text-primary" />
+                    </div>
+                    <h3 className="font-black text-primary text-xl sm:text-2xl mb-6 flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                        <ClipboardList size={20} />
+                      </div>
+                      Action & Implementation
                     </h3>
-                    <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-bold text-sm sm:text-base whitespace-pre-wrap">
+                    <div className="text-slate-700 dark:text-slate-200 leading-relaxed font-bold text-base sm:text-lg whitespace-pre-wrap relative z-10">
                       {lesson.actionPlan}
                     </div>
                   </Card>
@@ -292,34 +498,34 @@ function LessonContent() {
               </div>
 
               {(lesson.pdfUrl || lesson.driveUrl) && (
-                <div className="md:w-72 shrink-0 space-y-4">
-                  <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl bg-card text-card-foreground p-6">
-                    <h3 className="font-black text-foreground text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
-                      <FileText size={16} className="text-primary" />
-                      Materials
+                <div className="lg:w-80 shrink-0 space-y-6">
+                  <Card className="border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[2.5rem] bg-card text-card-foreground p-8">
+                    <h3 className="font-black text-foreground text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
+                      <FileText size={18} className="text-primary" />
+                      Learning Assets
                     </h3>
-                    <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 mb-5 font-bold leading-relaxed">
-                      Access supplemental resources for today's session.
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 font-bold leading-relaxed">
+                      Download the supplemental materials to reinforce your training.
                     </p>
-                    <div className="flex flex-col gap-3">
+                    <div className="flex flex-col gap-4">
                       {lesson.pdfUrl && (
                         <Button 
                           variant="secondary"
-                          className="w-full rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-bold text-xs"
+                          className="w-full h-14 rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-black text-xs uppercase tracking-widest shadow-sm"
                           asChild
                         >
                           <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                            <FileText className="mr-2 h-4 w-4" /> Download PDF
+                            <FileText className="mr-3 h-5 w-5 text-primary" /> Workbook PDF
                           </a>
                         </Button>
                       )}
                       {lesson.driveUrl && (
                         <Button 
-                          className="w-full rounded-2xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border-none font-bold text-xs"
+                          className="w-full h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border-none font-black text-xs uppercase tracking-widest shadow-sm"
                           asChild
                         >
                           <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
-                            <Clock className="mr-2 h-4 w-4" /> Drive Resources
+                            <PlayerIcon className="mr-3 h-5 w-5" /> Resource Drive
                           </a>
                         </Button>
                       )}
@@ -330,22 +536,22 @@ function LessonContent() {
             </div>
           </div>
         ) : lesson ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-20">
-             <div className="bg-background w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-               <PlayerIcon className="h-10 w-10 sm:h-14 sm:w-14 text-primary" />
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-24">
+             <div className="bg-slate-50 dark:bg-slate-900 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+               <PlayerIcon className="h-12 w-12 text-slate-300" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-foreground mb-2">Video Not Available</h2>
-            <p className="text-slate-400 mb-8 max-w-xs mx-auto text-xs sm:text-sm font-medium">
-              This session consists of text materials and resources. Review the action plan below.
+            <h2 className="text-3xl font-black text-foreground mb-4">Video Pending</h2>
+            <p className="text-slate-400 mb-12 max-w-sm mx-auto text-sm font-medium leading-relaxed">
+              This session consists of intensive text modules and action steps. Review your implementation plan below.
             </p>
             {lesson.actionPlan && (
-              <div className="max-w-3xl mx-auto text-left">
-                <Card className="border-none shadow-sm rounded-3xl bg-primary/5 dark:bg-primary/10 p-6 sm:p-8 border-l-4 border-primary">
-                  <h3 className="font-black text-primary text-lg sm:text-xl mb-4 flex items-center gap-3">
-                    <ClipboardList size={20} className="sm:size-6" />
-                    Action Steps
+              <div className="max-w-4xl mx-auto text-left">
+                <Card className="border-none shadow-2xl rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-8 sm:p-12 border-l-8 border-primary">
+                  <h3 className="font-black text-primary text-xl sm:text-2xl mb-6 flex items-center gap-4">
+                    <ClipboardList size={24} />
+                    Action & Implementation
                   </h3>
-                  <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-bold text-sm sm:text-base whitespace-pre-wrap">
+                  <div className="text-slate-700 dark:text-slate-200 leading-relaxed font-bold text-base sm:text-lg whitespace-pre-wrap">
                     {lesson.actionPlan}
                   </div>
                 </Card>
@@ -353,13 +559,13 @@ function LessonContent() {
             )}
           </div>
         ) : (
-          <div className="text-center py-20 sm:py-32 bg-card text-card-foreground rounded-[2rem] sm:rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800 mx-auto max-w-2xl">
-            <div className="bg-background w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
-               <PlayerIcon className="h-10 w-10 sm:h-14 sm:w-14 text-primary" />
+          <div className="text-center py-24 sm:py-32 bg-card text-card-foreground rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800 mx-auto max-w-2xl shadow-sm">
+            <div className="bg-slate-50 dark:bg-slate-900 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8">
+               <PlayerIcon className="h-12 w-12 text-slate-200" />
             </div>
-            <h2 className="text-xl sm:text-2xl font-black text-foreground mb-2">Session Not Found</h2>
-            <p className="text-slate-400 mb-8 max-w-xs mx-auto text-xs sm:text-sm font-medium">This session hasn't been uploaded yet or you don't have access.</p>
-            <Button asChild variant="outline" className="rounded-full px-8 h-11 sm:h-12 font-black text-xs uppercase tracking-widest">
+            <h2 className="text-3xl font-black text-foreground mb-4">Session Not Found</h2>
+            <p className="text-slate-400 mb-10 max-w-xs mx-auto text-sm font-medium">This module hasn't been published or your access level doesn't include this track.</p>
+            <Button asChild variant="outline" className="rounded-full px-10 h-14 font-black text-xs uppercase tracking-widest border-2">
               <Link href="/dashboard">Return to Dashboard</Link>
             </Button>
           </div>
