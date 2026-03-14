@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -67,9 +67,11 @@ function LessonContent() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [noAccess, setNoAccess] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Content Protection for non-admins
   useEffect(() => {
+    setMounted(true);
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
@@ -160,6 +162,40 @@ function LessonContent() {
     }
   };
 
+  // Video configuration memoization to prevent unstable re-renders in Plyr
+  const videoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
+  
+  const plyrSource = useMemo(() => ({
+    type: 'video' as const,
+    sources: [
+      {
+        src: videoId,
+        provider: 'youtube' as const,
+      },
+    ],
+  }), [videoId]);
+
+  const plyrOptions = useMemo(() => ({
+    controls: [
+      'play-large',
+      'play',
+      'progress',
+      'current-time',
+      'mute',
+      'volume',
+      'settings',
+      'fullscreen',
+    ],
+    settings: ['quality', 'speed'],
+    youtube: {
+      noCookie: true,
+      rel: 0,
+      showinfo: 0,
+      iv_load_policy: 3,
+      modestbranding: 1,
+    }
+  }), []);
+
   if (loading || fetching) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -184,8 +220,6 @@ function LessonContent() {
       </div>
     );
   }
-
-  const videoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
 
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
@@ -228,37 +262,16 @@ function LessonContent() {
           
           {/* Industry Standard Plyr Implementation */}
           <div className="max-w-[1280px] mx-auto w-full aspect-video rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl bg-black">
-            <Plyr
-              source={{
-                type: 'video',
-                sources: [
-                  {
-                    src: videoId,
-                    provider: 'youtube',
-                  },
-                ],
-              }}
-              options={{
-                controls: [
-                  'play-large',
-                  'play',
-                  'progress',
-                  'current-time',
-                  'mute',
-                  'volume',
-                  'settings',
-                  'fullscreen',
-                ],
-                settings: ['quality', 'speed'],
-                youtube: {
-                  noCookie: true,
-                  rel: 0,
-                  showinfo: 0,
-                  iv_load_policy: 3,
-                  modestbranding: 1,
-                }
-              }}
-            />
+            {mounted && lesson && (
+              <Plyr
+                key={`${videoId}-${lessonId}`}
+                source={plyrSource}
+                options={plyrOptions}
+              />
+            )}
+            {(!mounted || !lesson) && (
+              <div className="aspect-video w-full bg-slate-900 animate-pulse rounded-[1.5rem] lg:rounded-[3rem]" />
+            )}
           </div>
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
