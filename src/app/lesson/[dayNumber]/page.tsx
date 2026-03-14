@@ -27,7 +27,7 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
 
-// Import Plyr CSS globally for this page
+// Import Plyr CSS
 import "plyr/dist/plyr.css";
 
 interface LessonData {
@@ -47,23 +47,23 @@ interface LessonData {
 
 /**
  * A professional LMS-style video player using Plyr.js.
- * Provides a white-labeled experience by overriding YouTube's default controls.
+ * This component provides a clean, white-labeled interface for YouTube content.
  */
-function CleanLmsPlayer({ videoId }: { videoId: string }) {
-  const playerElementRef = useRef<HTMLDivElement>(null);
+function LmsVideoPlayer({ videoId }: { videoId: string }) {
+  const videoRef = useRef<HTMLDivElement>(null);
   const playerInstanceRef = useRef<any>(null);
 
   useEffect(() => {
-    // Only initialize on the client
-    if (typeof window === 'undefined') return;
+    // Only run on client
+    if (typeof window === "undefined" || !videoRef.current) return;
 
-    const initPlyr = async () => {
+    const initPlayer = async () => {
       try {
-        // Dynamic import to avoid SSR 'document is not defined' errors
+        // Dynamic import to avoid SSR errors
         const Plyr = (await import("plyr")).default;
         
-        if (playerElementRef.current) {
-          playerInstanceRef.current = new Plyr(playerElementRef.current, {
+        if (videoRef.current) {
+          playerInstanceRef.current = new Plyr(videoRef.current, {
             title: 'Lesson Video',
             controls: [
               'play-large',
@@ -79,6 +79,7 @@ function CleanLmsPlayer({ videoId }: { videoId: string }) {
               'fullscreen',
             ],
             settings: ['quality', 'speed', 'loop'],
+            speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
             youtube: {
               noCookie: true,
               rel: 0,
@@ -88,14 +89,13 @@ function CleanLmsPlayer({ videoId }: { videoId: string }) {
             },
           });
         }
-      } catch (err) {
-        console.error("Failed to initialize Plyr:", err);
+      } catch (error) {
+        console.error("Error initializing Plyr:", error);
       }
     };
 
-    initPlyr();
+    initPlayer();
 
-    // Cleanup on unmount
     return () => {
       if (playerInstanceRef.current) {
         playerInstanceRef.current.destroy();
@@ -104,15 +104,21 @@ function CleanLmsPlayer({ videoId }: { videoId: string }) {
   }, [videoId]);
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black">
-        {/* Plyr Container */}
-        <div 
-          ref={playerElementRef}
-          data-plyr-provider="youtube"
-          data-plyr-embed-id={videoId}
-          className="w-full h-full"
-        />
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-0">
+      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black group">
+        {/* 
+            MASKING TECHNIQUE:
+            We wrap the player in a container that slightly crops the top 
+            where YouTube usually shows the Title and Avatar on Desktop.
+        */}
+        <div className="absolute inset-0 scale-[1.01] -top-[1%]">
+           <div 
+             ref={videoRef}
+             data-plyr-provider="youtube"
+             data-plyr-embed-id={videoId}
+             className="w-full h-full"
+           />
+        </div>
       </div>
     </div>
   );
@@ -136,7 +142,6 @@ function LessonContent() {
 
   useEffect(() => {
     if (!isAdmin) {
-      // Prevent selection and right-click to protect proprietary content
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
       return () => document.removeEventListener("contextmenu", handleContextMenu);
@@ -251,7 +256,7 @@ function LessonContent() {
     );
   }
 
-  const displayVideoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
+  const videoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
 
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
@@ -289,12 +294,12 @@ function LessonContent() {
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-        {lesson || displayVideoId ? (
-          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* The Professional Plyr.js LMS Player */}
-            <CleanLmsPlayer videoId={displayVideoId} />
+      <main className="max-w-6xl mx-auto py-8">
+        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {/* Professional Plyr.js Player Section */}
+          <LmsVideoPlayer videoId={videoId} />
 
+          <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-12">
               <div className="flex-1 space-y-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 border-b dark:border-slate-800 pb-8">
@@ -396,18 +401,7 @@ function LessonContent() {
               )}
             </div>
           </div>
-        ) : (
-          <div className="text-center py-20 sm:py-32 bg-card text-card-foreground rounded-[1.5rem] sm:rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800 mx-auto max-w-2xl shadow-sm">
-            <div className="bg-slate-50 dark:bg-slate-900 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-8">
-               <PlayerIcon className="h-10 w-10 sm:h-12 sm:w-12 text-slate-200" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-foreground mb-4">Session Not Found</h2>
-            <p className="text-slate-400 mb-10 max-w-xs mx-auto text-sm font-medium">This module hasn't been published or your access level doesn't include this track.</p>
-            <Button asChild variant="outline" className="rounded-full px-8 sm:px-10 h-12 sm:h-14 font-black text-xs uppercase tracking-widest border-2">
-              <Link href="/dashboard">Return to Dashboard</Link>
-            </Button>
-          </div>
-        )}
+        </div>
       </main>
     </div>
   );
