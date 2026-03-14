@@ -3,13 +3,16 @@
 
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp, addDoc, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
+import { useCollection, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent as UICardContent, CardHeader as UICardHeader, CardTitle as UICardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -27,9 +30,12 @@ import {
   Settings,
   CalendarClock,
   RotateCcw,
-  MessageSquare,
   Captions,
-  Loader2
+  Loader2,
+  StickyNote,
+  Send,
+  Trash2,
+  Bookmark
 } from "lucide-react";
 import Link from "next/link";
 import ReactPlayer from "react-player";
@@ -54,6 +60,13 @@ interface LessonData {
   isLocked?: boolean;
 }
 
+interface UserNote {
+  id: string;
+  text: string;
+  timestamp: number;
+  createdAt: any;
+}
+
 const CustomBigButton = ({ playing }: { playing: boolean }) => (
   <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 transition-all shadow-2xl group/btn cursor-pointer">
     {playing ? (
@@ -71,6 +84,7 @@ function LessonContent() {
   const courseId = searchParams.get('courseId');
   const router = useRouter();
   const { user, loading, isAdmin } = useAuth();
+  const firestore = useFirestore();
   const { toast } = useToast();
   
   const [lesson, setLesson] = useState<LessonData | null>(null);
@@ -79,6 +93,10 @@ function LessonContent() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [noAccess, setNoAccess] = useState(false);
+
+  // Notes State
+  const [noteText, setNoteText] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
 
   // Player State
   const [playing, setPlaying] = useState(false);
@@ -152,6 +170,19 @@ function LessonContent() {
     fetchLesson();
   }, [user, loading, day, courseId, router]);
 
+  // Fetch Notes
+  const notesQuery = useMemo(() => {
+    if (!firestore || !user || !lessonId) return null;
+    return query(
+      collection(firestore, "user_notes"),
+      where("userId", "==", user.uid),
+      where("lessonId", "==", lessonId),
+      orderBy("createdAt", "desc")
+    );
+  }, [firestore, user, lessonId]);
+
+  const { data: notes } = useCollection<UserNote>(notesQuery);
+
   const handleToggleComplete = () => {
     if (!user || !lessonId) return;
     if (completing) return;
@@ -181,6 +212,38 @@ function LessonContent() {
         })
         .finally(() => setCompleting(false));
     }
+  };
+
+  const handleSaveNote = async () => {
+    if (!user || !lessonId || !noteText.trim()) return;
+    setSavingNote(true);
+
+    const currentTime = playerRef.current?.getCurrentTime() || 0;
+    const noteData = {
+      userId: user.uid,
+      lessonId: lessonId,
+      courseId: courseId || '',
+      text: noteText,
+      timestamp: currentTime,
+      createdAt: serverTimestamp()
+    };
+
+    addDoc(collection(db, "user_notes"), noteData)
+      .then(() => {
+        setNoteText("");
+        toast({ title: "Note Saved", description: "Timestamped note added to your collection." });
+      })
+      .catch((err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'user_notes', operation: 'create', requestResourceData: noteData }));
+      })
+      .finally(() => setSavingNote(false));
+  };
+
+  const handleDeleteNote = (id: string) => {
+    const noteRef = doc(db, 'user_notes', id);
+    deleteDoc(noteRef).catch((err) => {
+      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: noteRef.path, operation: 'delete' }));
+    });
   };
 
   const formatTime = (seconds: number) => {
@@ -251,7 +314,7 @@ function LessonContent() {
     )}>
       {/* Navigation Header */}
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
-        <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" size="sm" asChild className="rounded-full h-9 px-3 text-slate-600 dark:text-slate-400">
               <Link href="/dashboard">
@@ -283,10 +346,11 @@ function LessonContent() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto py-8">
-        <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          <div className="max-w-5xl mx-auto w-full px-4 sm:px-6">
+          {/* Main Content Area (Video + Details) */}
+          <div className="lg:col-span-8 space-y-12">
             <div 
               ref={containerRef}
               className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-2xl bg-black group"
@@ -409,113 +473,169 @@ function LessonContent() {
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="max-w-6xl mx-auto px-4 sm:px-6">
-            <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-12">
-              <div className="flex-1 space-y-10">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 border-b dark:border-slate-800 pb-8">
-                  <div className="space-y-2">
-                    <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight leading-none">
-                      {lesson?.title || `Day ${day} Session`}
-                    </h1>
-                    <div className="flex gap-4 pt-4">
-                      <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-                        Module 01
-                      </Badge>
-                      <span className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                        <Clock size={12} /> DURATION VARIES
-                      </span>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-4">
-                    {lessonId && (
-                      <Button 
-                        onClick={handleToggleComplete}
-                        disabled={completing}
-                        className={cn(
-                          "rounded-full h-14 px-10 font-black transition-all shadow-xl text-xs uppercase tracking-widest border-2",
-                          isCompleted 
-                            ? "bg-emerald-500 border-emerald-400 hover:bg-emerald-600 text-white" 
-                            : "bg-slate-900 dark:bg-slate-100 border-transparent dark:text-slate-900"
-                        )}
-                      >
-                        {isCompleted ? (
-                          <><CheckCircle2 className="mr-3 h-5 w-5" /> Completed</>
-                        ) : (
-                          "Mark Session Complete"
-                        )}
-                      </Button>
-                    )}
+            <div className="space-y-10">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 border-b dark:border-slate-800 pb-8">
+                <div className="space-y-2">
+                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight leading-none">
+                    {lesson?.title || `Day ${day} Session`}
+                  </h1>
+                  <div className="flex gap-4 pt-4">
+                    <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest">
+                      Module 01
+                    </Badge>
+                    <span className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                      <Clock size={12} /> DURATION VARIES
+                    </span>
                   </div>
                 </div>
-
-                {lesson?.description ? (
-                  <div className="prose prose-slate dark:prose-invert max-w-none">
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg sm:text-xl whitespace-pre-wrap font-medium">
-                      {lesson.description}
-                    </p>
-                  </div>
-                ) : (
-                   <p className="text-slate-400 italic">No detailed session overview provided for this day.</p>
-                )}
-
-                {lesson?.actionPlan && (
-                  <Card className="border-none shadow-2xl rounded-[1.5rem] sm:rounded-[2rem] bg-primary/5 dark:bg-primary/10 p-6 sm:p-12 border-l-8 border-primary relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-                      <ClipboardList className="text-primary size-12 sm:size-20" />
-                    </div>
-                    <h3 className="font-black text-primary text-xl sm:text-2xl mb-6 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
-                        <ClipboardList size={20} />
-                      </div>
-                      Action & Implementation
-                    </h3>
-                    <div className="text-slate-700 dark:text-slate-200 leading-relaxed font-bold text-base sm:text-lg whitespace-pre-wrap relative z-10">
-                      {lesson.actionPlan}
-                    </div>
-                  </Card>
-                )}
+                
+                <div className="flex items-center gap-4">
+                  {lessonId && (
+                    <Button 
+                      onClick={handleToggleComplete}
+                      disabled={completing}
+                      className={cn(
+                        "rounded-full h-14 px-10 font-black transition-all shadow-xl text-xs uppercase tracking-widest border-2",
+                        isCompleted 
+                          ? "bg-emerald-500 border-emerald-400 hover:bg-emerald-600 text-white" 
+                          : "bg-slate-900 dark:bg-slate-100 border-transparent dark:text-slate-900"
+                      )}
+                    >
+                      {isCompleted ? (
+                        <><CheckCircle2 className="mr-3 h-5 w-5" /> Completed</>
+                      ) : (
+                        "Mark Session Complete"
+                      )}
+                    </Button>
+                  )}
+                </div>
               </div>
 
-              {(lesson?.pdfUrl || lesson?.driveUrl) && (
-                <div className="lg:w-80 shrink-0 space-y-6">
-                  <Card className="border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[1.5rem] sm:rounded-[2.5rem] bg-card text-card-foreground p-6 sm:p-8">
-                    <h3 className="font-black text-foreground text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
-                      <FileText size={18} className="text-primary" />
-                      Learning Assets
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-8 font-bold leading-relaxed">
-                      Download the supplemental materials to reinforce your training.
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                <div className="space-y-8">
+                  <h3 className="text-xl font-black flex items-center gap-2">
+                    <AlertCircle size={20} className="text-primary" /> Session Overview
+                  </h3>
+                  {lesson?.description ? (
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg font-medium whitespace-pre-wrap">
+                      {lesson.description}
                     </p>
-                    <div className="flex flex-col gap-4">
-                      {lesson.pdfUrl && (
-                        <Button 
-                          variant="secondary"
-                          className="w-full h-14 rounded-2xl bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 border-none font-black text-xs uppercase tracking-widest shadow-sm"
-                          asChild
-                        >
-                          <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                            <FileText className="mr-3 h-5 w-5 text-primary" /> Workbook PDF
-                          </a>
-                        </Button>
-                      )}
-                      {lesson.driveUrl && (
-                        <Button 
-                          className="w-full h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 border-none font-black text-xs uppercase tracking-widest shadow-sm"
-                          asChild
-                        >
-                          <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
-                            <PlayerIcon className="mr-3 h-5 w-5" /> Resource Drive
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-                  </Card>
+                  ) : (
+                    <p className="text-slate-400 italic">No detailed session overview provided.</p>
+                  )}
                 </div>
-              )}
+
+                <div className="space-y-8">
+                  {lesson?.actionPlan && (
+                    <div className="space-y-6">
+                      <h3 className="text-xl font-black flex items-center gap-2 text-primary">
+                        <ClipboardList size={20} /> Action & Implementation
+                      </h3>
+                      <Card className="border-none shadow-xl rounded-2xl bg-primary/5 dark:bg-primary/10 p-6 relative overflow-hidden">
+                        <div className="text-slate-700 dark:text-slate-200 leading-relaxed font-bold text-base whitespace-pre-wrap relative z-10">
+                          {lesson.actionPlan}
+                        </div>
+                      </Card>
+                    </div>
+                  )}
+
+                  {(lesson?.pdfUrl || lesson?.driveUrl) && (
+                    <div className="space-y-6 pt-4">
+                      <h3 className="text-xl font-black flex items-center gap-2">
+                        <FileText size={20} className="text-primary" /> Resources
+                      </h3>
+                      <div className="flex flex-col gap-3">
+                        {lesson.pdfUrl && (
+                          <Button variant="outline" className="h-12 justify-start rounded-xl font-bold" asChild>
+                            <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                              <FileText className="mr-3 h-5 w-5" /> Download PDF Workbook
+                            </a>
+                          </Button>
+                        )}
+                        {lesson.driveUrl && (
+                          <Button variant="outline" className="h-12 justify-start rounded-xl font-bold" asChild>
+                            <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
+                              <Bookmark className="mr-3 h-5 w-5" /> Resource Drive
+                            </a>
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Interactive Notes Panel */}
+          <div className="lg:col-span-4 h-full">
+            <Card className="border-none shadow-2xl rounded-3xl bg-white dark:bg-slate-900 h-full flex flex-col sticky top-24 max-h-[calc(100vh-120px)] overflow-hidden">
+              <UICardHeader className="border-b dark:border-slate-800 pb-4">
+                <UICardTitle className="text-xl font-black flex items-center gap-2">
+                  <StickyNote size={20} className="text-primary" /> Study Notes
+                </UICardTitle>
+                <p className="text-xs text-slate-400 font-bold">Capture timestamped insights while you watch.</p>
+              </UICardHeader>
+              
+              <div className="p-5 space-y-4">
+                <div className="relative">
+                  <Textarea 
+                    placeholder="Type a key takeaway..."
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    className="min-h-[100px] rounded-2xl bg-slate-50 dark:bg-slate-950 border-none focus-visible:ring-primary font-medium"
+                  />
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                      {formatTime(playerRef.current?.getCurrentTime() || 0)}
+                    </span>
+                    <Button 
+                      size="icon" 
+                      onClick={handleSaveNote} 
+                      disabled={savingNote || !noteText.trim()}
+                      className="rounded-full h-8 w-8 bg-primary shadow-lg shadow-primary/20"
+                    >
+                      {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={14} />}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <ScrollArea className="flex-1 px-5 pb-6">
+                <div className="space-y-4 pt-2">
+                  {notes && notes.length > 0 ? (
+                    notes.map((note) => (
+                      <div key={note.id} className="group bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-transparent hover:border-primary/20 transition-all">
+                        <div className="flex items-start justify-between gap-4">
+                          <button 
+                            onClick={() => playerRef.current?.seekTo(note.timestamp)}
+                            className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
+                          >
+                            <Bookmark size={14} className="fill-primary" />
+                            <span className="text-[10px] font-black uppercase tracking-widest">{formatTime(note.timestamp)}</span>
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteNote(note.id)}
+                            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                        <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                          {note.text}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-30">
+                      <StickyNote size={40} />
+                      <p className="text-xs font-bold">No notes for this session yet.</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </Card>
           </div>
         </div>
       </main>

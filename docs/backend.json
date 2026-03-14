@@ -72,6 +72,20 @@
       "properties": {
         "completedAt": { "type": "object", "description": "Firestore Timestamp" }
       }
+    },
+    "UserNote": {
+      "title": "User Note",
+      "description": "A personal note created by a student during a lesson, optionally linked to a video timestamp.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "lessonId": { "type": "string" },
+        "courseId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "number", "description": "Video playback time in seconds" },
+        "createdAt": { "type": "object", "description": "Firestore Timestamp" }
+      },
+      "required": ["userId", "lessonId", "text"]
     }
   },
   "auth": {
@@ -93,6 +107,10 @@
     "/users/{userId}/completedLessons/{lessonId}": {
       "schema": "UserLessonProgress",
       "description": "Subcollection to track completed lessons per user."
+    },
+    "/user_notes/{noteId}": {
+      "schema": "UserNote",
+      "description": "Collection of personal student notes with timestamps."
     }
   }
 }
