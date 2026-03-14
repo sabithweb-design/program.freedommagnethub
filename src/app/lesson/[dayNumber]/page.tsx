@@ -160,6 +160,8 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
             onReady={() => setIsReady(true)}
             onProgress={(state) => setPlayed(state.played)}
             onDuration={(d) => setDuration(d)}
+            onStart={() => console.log("Video started")}
+            onPlay={() => console.log("Video playing")}
             config={{
               youtube: {
                 playerVars: { 
@@ -197,7 +199,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
             }}
             className={cn(
               "bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto",
-              "w-16 h-16 lg:w-28 lg:h-28" // 20% smaller on mobile
+              "w-16 h-16 lg:w-28 lg:h-28" 
             )}
           >
             {playing ? (
@@ -210,7 +212,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
 
         {/* Professional Control Bar (z-index: 100) */}
         <div className={cn(
-          "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-6 sm:px-8 pb-6 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent",
+          "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-6 sm:px-8 pb-6 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-auto",
           showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         )}>
           {/* Lavender Progress Bar */}
@@ -220,7 +222,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
               max={100}
               step={0.1}
               onValueChange={handleSeekChange}
-              className="cursor-pointer pointer-events-auto"
+              className="cursor-pointer"
               trackClassName="h-1 bg-white/20"
               rangeClassName="bg-[#8B5CF6]" 
               thumbClassName="w-3 h-3 bg-[#8B5CF6] border-none opacity-0 group-hover:opacity-100 transition-opacity"
@@ -228,7 +230,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
           </div>
 
           {/* Controls Row */}
-          <div className="flex items-center justify-between gap-4 pointer-events-auto px-1 sm:px-0">
+          <div className="flex items-center justify-between gap-4 px-1 sm:px-0">
             <div className="flex items-center gap-3 lg:gap-6">
               <button 
                 onClick={(e) => {
