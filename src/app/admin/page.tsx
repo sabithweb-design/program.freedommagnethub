@@ -56,7 +56,6 @@ import {
   Image as ImageIcon,
   Share2,
   ShieldCheck,
-  ShieldAlert,
   Search,
   Eye,
   EyeOff,
@@ -93,9 +92,9 @@ export default function AdminPage() {
   const isMainAdmin = currentUser?.email === MAIN_ADMIN_EMAIL;
 
   const usersQuery = useMemo(() => {
-    if (!firestore || authLoading || !isAdmin) return null;
+    if (!firestore || authLoading || !currentUser || !isAdmin) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, isAdmin, authLoading]);
+  }, [firestore, isAdmin, authLoading, currentUser]);
   
   const coursesQuery = useMemo(() => {
     if (!firestore || authLoading || !currentUser || !isAdmin) return null;
@@ -107,11 +106,16 @@ export default function AdminPage() {
 
   const lessonsQuery = useMemo(() => {
     if (!firestore || authLoading || !currentUser || !isAdmin) return null;
+    
     if (lessonFilter !== 'all') {
-      return query(collection(firestore, 'lessons'), where('courseId', '==', lessonFilter), orderBy('dayNumber', 'asc'));
+      return query(
+        collection(firestore, 'lessons'), 
+        where('courseId', '==', lessonFilter), 
+        orderBy('dayNumber', 'asc')
+      );
     }
-    // For Sub Admins, we don't want to list ALL lessons if they aren't isMainAdmin, 
-    // but the filteredLessons logic handles the separation in UI.
+    
+    // For Sub Admins, we only query what we have permission to list
     return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc'));
   }, [firestore, lessonFilter, currentUser, isAdmin, authLoading]);
 
@@ -565,9 +569,11 @@ export default function AdminPage() {
     if (!lessons || !courses) return [];
     
     return lessons.filter(l => {
+      // Find the parent course to check if it's in the managed courses list
       const managedCourse = courses.find(c => c.id === l.courseId);
       if (!managedCourse) return false;
       
+      // If a specific course filter is selected, strictly obey it
       if (lessonFilter !== 'all' && l.courseId !== lessonFilter) return false;
 
       return true;
@@ -941,7 +947,7 @@ export default function AdminPage() {
 
       {/* Confirmation Dialog */}
       <Dialog open={!!deleteConfirmType} onOpenChange={(open) => !open && setDeleteConfirmType(null)}>
-        <DialogContent className="rounded-3xl max-w-sm">
+        <DialogContent className="rounded-3xl max-sm">
           <DialogHeader className="items-center text-center">
             <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-2">
               <AlertTriangle className="text-red-500 h-8 w-8" />
