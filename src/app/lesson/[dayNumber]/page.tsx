@@ -54,7 +54,7 @@ interface LessonData {
 }
 
 function formatTime(seconds: number) {
-  if (isNaN(seconds)) return "0:00";
+  if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -74,7 +74,6 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Helper to send commands to YouTube Iframe API
   const sendCommand = useCallback((func: string, args: any[] = []) => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
@@ -84,14 +83,11 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
     }
   }, []);
 
-  // Sync state from YouTube messages
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Security: Check origin if needed, but for public embeds '*' is standard
       try {
         const data = JSON.parse(event.data);
         
-        // YouTube API events
         if (data.event === 'infoDelivery' && data.info) {
           if (data.info.currentTime !== undefined && !isDragging) {
             setCurrentTime(data.info.currentTime);
@@ -100,8 +96,8 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
             setDuration(data.info.duration);
           }
           if (data.info.playerState !== undefined) {
-            setIsPlaying(data.info.playerState === 1); // 1 = playing
-            if (data.info.playerState === 0) { // 0 = ended
+            setIsPlaying(data.info.playerState === 1);
+            if (data.info.playerState === 0) {
               onComplete();
             }
           }
@@ -175,7 +171,6 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
     >
-      {/* Precision Crop Iframe */}
       <iframe
         ref={iframeRef}
         src={`https://www.youtube.com/embed/${videoId}?enablejsapi=1&controls=0&modestbranding=1&rel=0&iv_load_policy=3&disablekb=1&fs=0&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
@@ -183,17 +178,14 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
 
-      {/* Interaction Layers */}
       <div 
         className="absolute inset-0 z-10 cursor-pointer" 
         onClick={togglePlay}
       />
 
-      {/* Click-Shield Overlays (Block hidden links) */}
       <div className="absolute top-0 left-0 right-0 h-20 z-20 cursor-default" onClick={(e) => e.stopPropagation()} />
       <div className="absolute bottom-0 right-0 w-32 h-16 z-20 cursor-default" onClick={(e) => e.stopPropagation()} />
 
-      {/* Central Play Button */}
       <div className={cn(
         "absolute inset-0 flex items-center justify-center z-30 pointer-events-none transition-all duration-500",
         (!isPlaying || showControls) ? "opacity-100 scale-100" : "opacity-0 scale-110"
@@ -205,12 +197,10 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
         )}
       </div>
 
-      {/* Bottom Controls Overlay */}
       <div className={cn(
         "absolute bottom-0 left-0 right-0 z-40 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-20 pb-8 px-8",
         (showControls || !isPlaying) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        {/* Custom Progress Bar (LMS Style) */}
         <div className="mb-6 group/progress relative px-1">
           <Slider
             value={[currentTime]}
@@ -226,9 +216,7 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
           />
         </div>
 
-        {/* Bottom Bar Controls */}
         <div className="flex items-center justify-between">
-          {/* Left Side: Play, Time, Skips */}
           <div className="flex items-center gap-6">
             <button 
               onClick={(e) => { e.stopPropagation(); togglePlay(); }} 
@@ -251,7 +239,6 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
             </div>
           </div>
 
-          {/* Right Side: Volume, Rate, CC, Gear, Fullscreen */}
           <div className="flex items-center gap-5">
             <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white/80 hover:text-white transition-colors">
               {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -360,6 +347,7 @@ function LessonContent() {
 
   const handleToggleComplete = () => {
     if (!user || !lessonId) return;
+    if (completing) return;
     setCompleting(true);
 
     const progressRef = doc(db, 'users', user.uid, 'completedLessons', lessonId);
@@ -415,14 +403,13 @@ function LessonContent() {
 
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
-      {/* Dynamic Navbar */}
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" size="sm" asChild className="rounded-full h-9 px-3">
+            <Button variant="ghost" size="sm" asChild className="rounded-full h-9 px-3 text-slate-600 dark:text-slate-400">
               <Link href="/dashboard">
                 <ChevronLeft className="mr-1 h-4 w-4" />
-                <span className="hidden sm:inline">Hub</span>
+                <span className="hidden sm:inline font-bold">Hub</span>
               </Link>
             </Button>
             <div className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5">
@@ -452,7 +439,6 @@ function LessonContent() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {lesson && (lesson.vimeoVideoId || lesson.youtubeVideoId) ? (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* Custom LMS Premium Player */}
             <div className="max-w-4xl mx-auto">
                <CustomLmsPlayer 
                   videoId={lesson.youtubeVideoId || lesson.vimeoVideoId || ""} 
