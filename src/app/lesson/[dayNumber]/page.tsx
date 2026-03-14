@@ -25,7 +25,6 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
-import Plyr from "plyr";
 import "plyr/dist/plyr.css";
 
 interface LessonData {
@@ -45,6 +44,7 @@ interface LessonData {
 
 /**
  * A professional LMS video player using Plyr.js.
+ * Dynamically imported to avoid "document is not defined" SSR errors.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const videoRef = useRef<HTMLDivElement>(null);
@@ -52,34 +52,47 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
   useEffect(() => {
     if (!videoRef.current) return;
 
-    const player = new Plyr(videoRef.current, {
-      controls: [
-        'play-large',
-        'play',
-        'progress',
-        'current-time',
-        'duration',
-        'mute',
-        'volume',
-        'captions',
-        'settings',
-        'pip',
-        'airplay',
-        'fullscreen',
-      ],
-      settings: ['captions', 'quality', 'speed'],
-      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-      youtube: {
-        noCookie: true,
-        rel: 0,
-        showinfo: 0,
-        iv_load_policy: 3,
-        modestbranding: 1,
-      },
-    });
+    let playerInstance: any;
+
+    const initPlyr = async () => {
+      // Dynamically import Plyr to ensure it only runs on the client
+      const Plyr = (await import("plyr")).default;
+      
+      if (videoRef.current) {
+        playerInstance = new Plyr(videoRef.current, {
+          controls: [
+            'play-large',
+            'play',
+            'progress',
+            'current-time',
+            'duration',
+            'mute',
+            'volume',
+            'captions',
+            'settings',
+            'pip',
+            'airplay',
+            'fullscreen',
+          ],
+          settings: ['captions', 'quality', 'speed'],
+          speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+          youtube: {
+            noCookie: true,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3,
+            modestbranding: 1,
+          },
+        });
+      }
+    };
+
+    initPlyr();
 
     return () => {
-      player.destroy();
+      if (playerInstance) {
+        playerInstance.destroy();
+      }
     };
   }, [videoId]);
 
@@ -179,7 +192,7 @@ function LessonContent() {
     if (completing) return;
     setCompleting(true);
 
-    const progressRef = doc(db, 'users', user.uid, 'completedLessons', lessonId);
+    const progressRef = doc(doc(db, 'users', user.uid), 'completedLessons', lessonId);
     
     if (isCompleted) {
       deleteDoc(progressRef)
@@ -230,7 +243,6 @@ function LessonContent() {
     );
   }
 
-  // Use requested video ID if none found in DB, otherwise use DB ID
   const displayVideoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
 
   return (
