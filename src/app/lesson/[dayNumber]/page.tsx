@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import dynamic from 'next/dynamic';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -35,6 +36,9 @@ import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+// Dynamically import ReactPlayer to avoid SSR issues
+const ReactPlayer = dynamic(() => import('react-player/lazy'), { ssr: false });
+
 interface LessonData {
   id?: string;
   courseId?: string;
@@ -51,7 +55,7 @@ interface LessonData {
 }
 
 /**
- * Professional LMS Video Player using Native YouTube IFrame API
+ * Professional LMS Video Player with Laptop Click Fixes and Mobile Auto-Hide
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [playing, setPlaying] = useState(false);
@@ -67,88 +71,25 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isMobile = useIsMobile();
 
-  // Load YouTube IFrame API
-  useEffect(() => {
-    const loadAPI = () => {
-      if (!(window as any).YT) {
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        const firstScriptTag = document.getElementsByTagName('script')[0];
-        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
-      }
-    };
-
-    const initPlayer = () => {
-      playerRef.current = new (window as any).YT.Player('youtube-player', {
-        height: '100%',
-        width: '100%',
-        videoId: videoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-          showinfo: 0,
-          iv_load_policy: 3,
-          disablekb: 1,
-          origin: window.location.origin
-        },
-        events: {
-          onReady: (event: any) => {
-            setIsReady(true);
-            setDuration(event.target.getDuration());
-          },
-          onStateChange: (event: any) => {
-            const state = event.data;
-            if (state === (window as any).YT.PlayerState.PLAYING) setPlaying(true);
-            if (state === (window as any).YT.PlayerState.PAUSED) setPlaying(false);
-            if (state === (window as any).YT.PlayerState.ENDED) setPlaying(false);
-          }
-        }
-      });
-    };
-
-    if (!(window as any).YT || !(window as any).YT.Player) {
-      loadAPI();
-      (window as any).onYouTubeIframeAPIReady = initPlayer;
-    } else {
-      initPlayer();
-    }
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-      }
-    };
-  }, [videoId]);
-
-  // Update progress bar
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function' && playing) {
-        const currentTime = playerRef.current.getCurrentTime();
-        setPlayed(currentTime / duration);
-      }
-    }, 500);
-    return () => clearInterval(interval);
-  }, [playing, duration]);
-
   const togglePlay = () => {
-    if (!playerRef.current || !isReady) return;
-    
-    if (playing) {
-      playerRef.current.pauseVideo();
-    } else {
-      // Audio Policy: Mute for 100ms then unmute to bypass browser block
-      playerRef.current.mute();
-      playerRef.current.playVideo();
-      setTimeout(() => {
-        playerRef.current.unMute();
-        setIsMuted(false);
-      }, 100);
-    }
+    if (!isReady) return;
 
-    if (isMobile) setShowControls(true);
+    const internalPlayer = playerRef.current?.getInternalPlayer();
+    
+    if (!playing) {
+      // Direct Hardware Trigger for Laptop/Desktop
+      if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
+        internalPlayer.playVideo();
+      }
+      // Wake up audio on first interaction
+      setIsMuted(false);
+    } else {
+      if (internalPlayer && typeof internalPlayer.pauseVideo === 'function') {
+        internalPlayer.pauseVideo();
+      }
+    }
+    
+    setPlaying(!playing);
   };
 
   const handleInteraction = () => {
@@ -163,6 +104,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
     }
   };
 
+  // Mobile Auto-Hide Logic (< 768px)
   useEffect(() => {
     if (isMobile && playing && showControls) {
       if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
@@ -175,31 +117,24 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
     };
   }, [isMobile, playing, showControls]);
 
-  const toggleMute = () => {
-    if (!playerRef.current) return;
-    if (isMuted) {
-      playerRef.current.unMute();
-    } else {
-      playerRef.current.mute();
-    }
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setIsMuted(!isMuted);
   };
 
   const handleSeekChange = (value: number[]) => {
-    if (!playerRef.current) return;
     const seekSeconds = (value[0] / 100) * duration;
-    playerRef.current.seekTo(seekSeconds, true);
+    playerRef.current?.seekTo(seekSeconds, 'seconds');
     setPlayed(value[0] / 100);
     if (isMobile) setShowControls(true);
   };
 
   const handleRateChange = (rate: number) => {
-    if (!playerRef.current) return;
-    playerRef.current.setPlaybackRate(rate);
     setPlaybackRate(rate);
   };
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!document.fullscreenElement) {
       containerRef.current?.requestFullscreen();
     } else {
@@ -230,23 +165,52 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
         "lg:w-[1280px] lg:h-[720px] lg:aspect-auto lg:mx-auto" 
       )}>
         
-        {/* Native YouTube Engine with Branding-Hide Scaling */}
-        <div className="absolute inset-0 pointer-events-none scale-[1.15]">
-          <div id="youtube-player" className="w-full h-full" />
-        </div>
-
-        {/* Branding Protectors */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
-
-        {/* Click Interaction Layer (Pointer events pass through unless double click) */}
+        {/* Interaction Layer (Captures taps/clicks) */}
         <div 
-          className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
+          className="absolute inset-0 z-10 cursor-pointer pointer-events-auto" 
           onClick={handleInteraction}
-          onDoubleClick={() => playerRef.current?.playVideo()}
         />
 
-        {/* Central Cinematic Trigger (High Priority) */}
+        {/* Video Engine with Precision Crop */}
+        <div className="absolute inset-0 pointer-events-none scale-[1.15]">
+          <ReactPlayer
+            ref={playerRef}
+            url={`https://www.youtube.com/watch?v=${videoId}`}
+            width="100%"
+            height="100%"
+            playing={playing}
+            muted={isMuted}
+            volume={1.0}
+            playbackRate={playbackRate}
+            onProgress={(state) => setPlayed(state.played)}
+            onDuration={setDuration}
+            onReady={() => setIsReady(true)}
+            onPlay={() => {
+              console.log('Video Playback Started');
+              setPlaying(true);
+            }}
+            onPause={() => setPlaying(false)}
+            config={{
+              youtube: {
+                playerVars: { 
+                  modestbranding: 1, 
+                  rel: 0, 
+                  controls: 0, 
+                  showinfo: 0, 
+                  iv_load_policy: 3,
+                  disablekb: 1,
+                  origin: typeof window !== 'undefined' ? window.location.origin : ''
+                }
+              }
+            }}
+          />
+        </div>
+
+        {/* Branding Protectors (Top & Bottom Gradients - Click-Through Enabled) */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-20" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-20" />
+
+        {/* Central Cinematic Trigger (High Priority Layer) */}
         <div className={cn(
           "absolute inset-0 flex items-center justify-center z-[999] transition-opacity duration-300 pointer-events-none",
           (!playing || showControls) ? "opacity-100" : "opacity-0"
@@ -269,9 +233,9 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
           </button>
         </div>
 
-        {/* Professional LMS Controls (Low-Layer UI) */}
+        {/* Professional LMS Controls (Top Priority Layer) */}
         <div className={cn(
-          "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-6 sm:px-8 pb-6 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none",
+          "absolute inset-x-0 bottom-0 z-[1000] transition-all duration-300 px-6 sm:px-8 pb-6 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none",
           showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
         )}>
           {/* Lavender Scrubber */}
@@ -323,20 +287,14 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
               </div>
 
               <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleMute();
-                }}
+                onClick={toggleMute}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
                 {isMuted ? <VolumeX size={isMobile ? 18 : 20} /> : <Volume2 size={isMobile ? 18 : 20} />}
               </button>
               
               <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFullscreen();
-                }}
+                onClick={toggleFullscreen}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
                 <Maximize size={isMobile ? 18 : 20} />
@@ -522,7 +480,7 @@ function LessonContent() {
       <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* Professional 1280x720 Player */}
+          {/* Professional 1280x720 Centered Player */}
           <LmsVideoPlayer videoId={videoId} />
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
