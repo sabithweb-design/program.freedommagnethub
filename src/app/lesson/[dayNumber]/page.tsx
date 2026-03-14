@@ -611,5 +611,3 @@ export default function LessonPage() {
     </Suspense>
   );
 }
-"
-    
