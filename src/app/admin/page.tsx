@@ -85,7 +85,7 @@ export const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) =>
 
 export default function AdminPage() {
   const firestore = useFirestore();
-  const { user: currentUser, isAdmin } = useAuth();
+  const { user: currentUser, isAdmin, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('courses');
   const [lessonFilter, setLessonFilter] = useState('all');
@@ -93,25 +93,25 @@ export default function AdminPage() {
   const isMainAdmin = currentUser?.email === MAIN_ADMIN_EMAIL;
 
   const usersQuery = useMemo(() => {
-    if (!firestore || !isAdmin) return null;
+    if (!firestore || authLoading || !isAdmin) return null;
     return query(collection(firestore, 'users'));
-  }, [firestore, isAdmin]);
+  }, [firestore, isAdmin, authLoading]);
   
   const coursesQuery = useMemo(() => {
-    if (!firestore || !currentUser) return null;
+    if (!firestore || authLoading || !currentUser || !isAdmin) return null;
     if (isMainAdmin) {
       return query(collection(firestore, 'courses'));
     }
     return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', currentUser.uid));
-  }, [firestore, currentUser, isMainAdmin]);
+  }, [firestore, currentUser, isMainAdmin, isAdmin, authLoading]);
 
   const lessonsQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || authLoading || !currentUser || !isAdmin) return null;
     if (lessonFilter !== 'all') {
       return query(collection(firestore, 'lessons'), where('courseId', '==', lessonFilter), orderBy('dayNumber', 'asc'));
     }
     return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc'));
-  }, [firestore, lessonFilter]);
+  }, [firestore, lessonFilter, currentUser, isAdmin, authLoading]);
 
   const { data: users, loading: usersLoading } = useCollection<any>(usersQuery);
   const { data: courses, loading: coursesLoading } = useCollection<any>(coursesQuery);
@@ -899,7 +899,7 @@ export default function AdminPage() {
 
       {/* Member Edit Dialog */}
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
-        <DialogContent className="rounded-3xl max-w-md">
+        <DialogContent className="rounded-3xl max-md">
           <DialogHeader>
             <DialogTitle>Edit Member Details</DialogTitle>
             <DialogDescription>Update the profile information for this member.</DialogDescription>

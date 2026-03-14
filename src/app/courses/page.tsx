@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useMemo } from 'react';
@@ -30,17 +31,17 @@ interface Course {
 }
 
 export default function CoursesPage() {
-  const { isAdmin } = useAuth();
+  const { user, isAdmin, loading: authLoading } = useAuth();
   const firestore = useFirestore();
 
   const coursesQuery = useMemo(() => {
-    if (!firestore) return null;
+    if (!firestore || authLoading || !user) return null;
     return query(collection(firestore, "courses"));
-  }, [firestore]);
+  }, [firestore, user, authLoading]);
 
-  const { data: courses, loading } = useCollection<Course>(coursesQuery);
+  const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
-  if (loading) {
+  if (authLoading || coursesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -96,7 +97,7 @@ export default function CoursesPage() {
 
           <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="rounded-full text-slate-600 dark:text-slate-400 h-9 w-9 sm:h-10 sm:w-10">
+            <Button variant="ghost" size="icon" className="text-slate-600 dark:text-slate-400 h-9 w-9 sm:h-10 sm:w-10">
               <ShoppingCart className="h-5 w-5" />
             </Button>
           </div>
