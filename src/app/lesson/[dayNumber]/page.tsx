@@ -54,6 +54,7 @@ interface LessonData {
 }
 
 function formatTime(seconds: number) {
+  if (isNaN(seconds)) return "0:00";
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -91,6 +92,9 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
           if (data.info.duration !== undefined) setDuration(data.info.duration);
           if (data.info.playerState !== undefined) {
             setIsPlaying(data.info.playerState === 1);
+            if (data.info.playerState === 0) { // Video ended
+              onComplete();
+            }
           }
         }
       } catch (e) {}
@@ -98,15 +102,15 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [onComplete]);
 
-  const togglePlay = () => {
+  const togglePlay = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     if (isPlaying) {
       sendCommand("pauseVideo");
     } else {
       sendCommand("playVideo");
     }
-    setIsPlaying(!isPlaying);
   };
 
   const skip = (seconds: number) => {
@@ -136,11 +140,13 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
   const handleMouseMove = () => {
     setShowControls(true);
     if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
+    controlsTimeoutRef.current = setTimeout(() => {
+      if (isPlaying) setShowControls(false);
+    }, 3000);
   };
 
   const toggleFullscreen = () => {
-    const container = iframeRef.current?.parentElement?.parentElement;
+    const container = iframeRef.current?.parentElement;
     if (!container) return;
     if (document.fullscreenElement) {
       document.exitFullscreen();
@@ -209,10 +215,10 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
             </button>
             
             <div className="flex items-center gap-4">
-              <button onClick={() => skip(-10)} className="text-white/80 hover:text-white transition-colors">
+              <button onClick={(e) => { e.stopPropagation(); skip(-10); }} className="text-white/80 hover:text-white transition-colors">
                 <RotateCcw size={20} />
               </button>
-              <button onClick={() => skip(10)} className="text-white/80 hover:text-white transition-colors">
+              <button onClick={(e) => { e.stopPropagation(); skip(10); }} className="text-white/80 hover:text-white transition-colors">
                 <RotateCw size={20} />
               </button>
             </div>
@@ -225,13 +231,13 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
           {/* Right Side: Volume, Rate, CC, Gear, Fullscreen */}
           <div className="flex items-center gap-5">
             <div className="flex items-center gap-3">
-              <button onClick={toggleMute} className="text-white/80 hover:text-white transition-colors">
+              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white/80 hover:text-white transition-colors">
                 {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
               </button>
             </div>
 
             <button 
-              onClick={changeRate}
+              onClick={(e) => { e.stopPropagation(); changeRate(); }}
               className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[11px] font-black tracking-widest transition-all"
             >
               {playbackRate}x
@@ -245,7 +251,7 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
               <Settings size={18} />
             </button>
 
-            <button onClick={toggleFullscreen} className="text-white/80 hover:text-white transition-colors">
+            <button onClick={(e) => { e.stopPropagation(); toggleFullscreen(); }} className="text-white/80 hover:text-white transition-colors">
               <Maximize size={20} />
             </button>
           </div>
