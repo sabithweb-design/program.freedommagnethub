@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -17,8 +17,7 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle,
-  Play
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -27,6 +26,9 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
+
+// Import Plyr CSS globally for this page
+import "plyr/dist/plyr.css";
 
 interface LessonData {
   id?: string;
@@ -44,43 +46,73 @@ interface LessonData {
 }
 
 /**
- * A professional LMS-style video player.
- * Uses a "Precision-Crop" technique to hide YouTube's native title and branding.
+ * A professional LMS-style video player using Plyr.js.
+ * Provides a white-labeled experience by overriding YouTube's default controls.
  */
 function CleanLmsPlayer({ videoId }: { videoId: string }) {
-  const [isOverlayVisible, setIsOverlayVisible] = useState(true);
+  const playerElementRef = useRef<HTMLDivElement>(null);
+  const playerInstanceRef = useRef<any>(null);
+
+  useEffect(() => {
+    // Only initialize on the client
+    if (typeof window === 'undefined') return;
+
+    const initPlyr = async () => {
+      try {
+        // Dynamic import to avoid SSR 'document is not defined' errors
+        const Plyr = (await import("plyr")).default;
+        
+        if (playerElementRef.current) {
+          playerInstanceRef.current = new Plyr(playerElementRef.current, {
+            title: 'Lesson Video',
+            controls: [
+              'play-large',
+              'play',
+              'progress',
+              'current-time',
+              'mute',
+              'volume',
+              'captions',
+              'settings',
+              'pip',
+              'airplay',
+              'fullscreen',
+            ],
+            settings: ['quality', 'speed', 'loop'],
+            youtube: {
+              noCookie: true,
+              rel: 0,
+              showinfo: 0,
+              iv_load_policy: 3,
+              modestbranding: 1,
+            },
+          });
+        }
+      } catch (err) {
+        console.error("Failed to initialize Plyr:", err);
+      }
+    };
+
+    initPlyr();
+
+    // Cleanup on unmount
+    return () => {
+      if (playerInstanceRef.current) {
+        playerInstanceRef.current.destroy();
+      }
+    };
+  }, [videoId]);
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black group">
-        
-        {/* The "Precision-Crop" Iframe: Over-scaled to push native branding outside the visible container */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <iframe
-            src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&controls=1&iv_load_policy=3&showinfo=0&autoplay=0`}
-            className="w-[115%] h-[115%] pointer-events-auto border-none transition-opacity duration-500"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          ></iframe>
-        </div>
-
-        {/* Custom Interaction Layer (Blocks Top Bar Links while allowing central play) */}
-        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/40 to-transparent pointer-events-none z-10" />
-        
-        {/* Branding Mask (Prevents clicks on the YouTube Channel/Title on desktop) */}
-        <div className="absolute top-0 left-0 right-0 h-20 z-20" />
-
-        {/* Cinematic Start Overlay (Optional: only shows before the first click) */}
-        {isOverlayVisible && (
-          <div 
-            className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px] cursor-pointer group-hover:bg-black/10 transition-all"
-            onClick={() => setIsOverlayVisible(false)}
-          >
-            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-2xl shadow-primary/40 transform group-hover:scale-110 transition-transform duration-500">
-              <Play size={40} className="fill-current ml-2 sm:size-12" />
-            </div>
-          </div>
-        )}
+      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black">
+        {/* Plyr Container */}
+        <div 
+          ref={playerElementRef}
+          data-plyr-provider="youtube"
+          data-plyr-embed-id={videoId}
+          className="w-full h-full"
+        />
       </div>
     </div>
   );
@@ -260,7 +292,7 @@ function LessonContent() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {lesson || displayVideoId ? (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {/* The Professional LMS Player */}
+            {/* The Professional Plyr.js LMS Player */}
             <CleanLmsPlayer videoId={displayVideoId} />
 
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-12">
