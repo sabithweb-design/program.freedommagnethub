@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useRef, useMemo } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -74,12 +74,11 @@ function LessonContent() {
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
-  const [isReady, setIsReady] = useState(false);
   
   const playerRef = useRef<ReactPlayer>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Content Protection for non-admins
+  // Content Protection
   useEffect(() => {
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -188,8 +187,8 @@ function LessonContent() {
   };
 
   // Player Handlers
-  const handlePlayPause = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
+  const handlePlayPause = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setPlaying(!playing);
     resetControlsTimer();
   };
@@ -248,14 +247,14 @@ function LessonContent() {
   if (noAccess) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-rose-50 dark:bg-rose-950 w-24 h-24 rounded-full flex items-center justify-center mb-8 shadow-xl">
+        <div className="bg-rose-50 dark:bg-rose-950 w-24 h-24 rounded-full flex items-center justify-center mb-8">
           <AlertCircle size={48} className="text-primary" />
         </div>
         <h1 className="text-3xl font-black text-foreground mb-4">Access Denied</h1>
-        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8 leading-relaxed font-medium">
-          You are not enrolled in the program containing this session. Please contact your instructor for access.
+        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
+          You are not enrolled in the program containing this session.
         </p>
-        <Button asChild className="rounded-full px-8 h-12 shadow-lg shadow-primary/20">
+        <Button asChild className="rounded-full px-8 h-12">
           <Link href="/dashboard">Go to My Dashboard</Link>
         </Button>
       </div>
@@ -268,7 +267,7 @@ function LessonContent() {
       !isAdmin && "content-protected"
     )}>
       {/* Navigation Header */}
-      <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
+      <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
             <Button variant="ghost" size="sm" asChild className="rounded-full h-9 px-3 text-slate-600 dark:text-slate-400">
@@ -308,119 +307,113 @@ function LessonContent() {
           <div className="max-w-[1280px] mx-auto w-full px-4 sm:px-6">
             <div 
               id="video-container"
-              className="relative aspect-video w-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3.5rem] overflow-hidden shadow-2xl bg-black group"
+              className="relative aspect-video w-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl bg-black group"
               onMouseMove={resetControlsTimer}
-              onClick={handlePlayPause}
             >
               {/* ReactPlayer with Iframe Isolation (pointer-events-none) */}
-              <div className="absolute inset-0 pointer-events-none scale-[1.15]">
-                <ReactPlayer
-                  ref={playerRef}
-                  url={`https://www.youtube.com/watch?v=${videoId}`}
-                  width="100%"
-                  height="100%"
-                  playing={playing}
-                  volume={volume}
-                  muted={isMuted}
-                  playbackRate={playbackRate}
-                  onReady={() => setIsReady(true)}
-                  onProgress={(state) => setPlayed(state.played)}
-                  onDuration={(d) => setDuration(d)}
-                  config={{
-                    youtube: {
-                      playerVars: { 
-                        modestbranding: 1, 
-                        showinfo: 0, 
-                        rel: 0, 
-                        iv_load_policy: 3, 
-                        controls: 0,
-                        disablekb: 1
+              <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-[inherit]">
+                <div className="w-full h-full scale-[1.15]">
+                  <ReactPlayer
+                    ref={playerRef}
+                    url={`https://www.youtube.com/watch?v=${videoId}`}
+                    width="100%"
+                    height="100%"
+                    playing={playing}
+                    volume={volume}
+                    muted={isMuted}
+                    playbackRate={playbackRate}
+                    onProgress={(state) => setPlayed(state.played)}
+                    onDuration={(d) => setDuration(d)}
+                    config={{
+                      youtube: {
+                        playerVars: { 
+                          modestbranding: 1, 
+                          showinfo: 0, 
+                          rel: 0, 
+                          iv_load_policy: 3, 
+                          controls: 0,
+                          disablekb: 1
+                        }
                       }
-                    }
-                  }}
-                />
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Custom UI Layer (pointer-events-auto) */}
               <div 
                 className={cn(
-                  "absolute inset-0 z-50 flex flex-col justify-between transition-opacity duration-500",
-                  showControls || !playing ? "opacity-100 cursor-auto" : "opacity-0 cursor-none"
+                  "absolute inset-0 z-50 pointer-events-auto flex flex-col justify-between transition-opacity duration-500",
+                  showControls || !playing ? "opacity-100" : "opacity-0"
                 )}
+                onClick={handlePlayPause}
               >
-                {/* Top Overlay Gradient */}
-                <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
-
                 {/* Central Play/Pause Button */}
-                <div className="absolute inset-0 flex items-center justify-center">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
                   <button 
                     onClick={handlePlayPause}
                     className={cn(
-                      "w-16 h-16 sm:w-28 sm:h-28 bg-white/95 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 pointer-events-auto",
-                      playing && isReady ? "opacity-0 scale-50" : "opacity-100 scale-100"
+                      "w-16 h-16 sm:w-24 sm:h-24 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-sm transition-all shadow-2xl pointer-events-auto",
+                      playing ? "opacity-0" : "opacity-100"
                     )}
                   >
-                    {playing ? (
-                      <Pause className="text-black fill-black w-8 h-8 sm:w-12 sm:h-12" />
-                    ) : (
-                      <Play className="text-black fill-black w-8 h-8 sm:w-12 sm:h-12 ml-2" />
-                    )}
+                    {!playing && <Play className="text-white fill-white w-8 h-8 sm:w-12 sm:h-12 ml-2" />}
                   </button>
                 </div>
 
                 {/* Bottom Control Bar */}
-                <div className="mt-auto relative z-50 p-4 sm:p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-auto">
-                  
-                  {/* Purple Progress Slider */}
-                  <div className="group/slider relative px-2 mb-4">
+                <div className="mt-auto w-full p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto flex flex-col gap-3">
+                  {/* Progress Slider */}
+                  <div className="w-full px-1">
                     <Slider
                       value={[played * 100]}
                       max={100}
                       step={0.1}
                       onValueChange={handleSeekChange}
                       className="cursor-pointer"
-                      trackClassName="bg-white/20 h-1 sm:h-1.5"
-                      rangeClassName="bg-purple-600 h-full"
-                      thumbClassName="hidden group-hover/slider:block bg-purple-500 border-none w-3 h-3 sm:w-4 sm:h-4 shadow-lg"
+                      trackClassName="h-1 bg-white/20"
+                      rangeClassName="bg-primary"
+                      thumbClassName="w-3 h-3 bg-primary border-none"
                     />
                   </div>
 
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center justify-between px-1">
                     {/* Left Controls */}
-                    <div className="flex items-center gap-2 sm:gap-6">
-                      <button onClick={handlePlayPause} className="text-white hover:text-purple-400 transition-colors">
-                        {playing ? <Pause size={20} className="sm:size-24" /> : <Play size={20} className="sm:size-24" />}
+                    <div className="flex items-center gap-4 sm:gap-6">
+                      <button onClick={handlePlayPause} className="text-white hover:text-primary transition-colors focus:outline-none">
+                        {playing ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
                       </button>
-                      <button onClick={() => playerRef.current?.seekTo(played - 10 / duration)} className="text-white hover:text-purple-400 transition-colors hidden sm:block">
-                        <RotateCcw size={20} />
+                      <button onClick={(e) => { e.stopPropagation(); playerRef.current?.seekTo(played - 10 / duration); }} className="text-white hover:text-primary transition-colors hidden sm:block">
+                        <RotateCcw className="w-5 h-5" />
                       </button>
                       
-                      <div className="flex items-center gap-3 group/volume">
-                        <button onClick={handleToggleMute} className="text-white hover:text-purple-400 transition-colors">
-                          {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                      <div className="flex items-center gap-3">
+                        <button onClick={handleToggleMute} className="text-white hover:text-primary transition-colors focus:outline-none">
+                          {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
                         </button>
-                        <div className="w-0 overflow-hidden group-hover/volume:w-20 transition-all duration-300">
+                        <div className="hidden sm:block">
                           <Slider 
                             value={[isMuted ? 0 : volume * 100]} 
                             max={100} 
                             onValueChange={handleVolumeChange}
-                            className="w-16 ml-2"
-                            trackClassName="bg-white/20 h-1"
+                            className="w-20"
+                            trackClassName="h-1 bg-white/20"
                             rangeClassName="bg-white"
+                            thumbClassName="w-3 h-3 bg-white border-none"
                           />
                         </div>
                       </div>
 
-                      <div className="text-[10px] sm:text-xs font-black text-white/90 tracking-widest font-mono">
-                        {formatTime(played * duration)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
+                      <div className="text-[10px] sm:text-xs font-bold text-white/90 font-mono tracking-tight">
+                        {formatTime(played * duration)} / {formatTime(duration)}
                       </div>
                     </div>
 
                     {/* Right Controls */}
-                    <div className="flex items-center gap-3 sm:gap-6">
+                    <div className="flex items-center gap-4 sm:gap-6">
                       <div className="relative group/speed">
-                        <button className="flex items-center gap-1 text-[10px] sm:text-xs font-black text-white bg-white/10 px-3 py-1 rounded-full hover:bg-white/20 transition-all uppercase tracking-tighter">
-                          {playbackRate}x <Settings size={12} />
+                        <button className="flex items-center gap-1.5 text-[10px] sm:text-xs font-black text-white bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition-all uppercase tracking-widest">
+                          {playbackRate}x <Settings className="w-3.5 h-3.5" />
                         </button>
                         <div className="absolute bottom-full right-0 mb-4 bg-black/90 rounded-2xl p-2 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all shadow-2xl border border-white/10 min-w-[80px]">
                           {[2, 1.5, 1.25, 1, 0.75].map((rate) => (
@@ -429,7 +422,7 @@ function LessonContent() {
                               onClick={(e) => { e.stopPropagation(); setPlaybackRate(rate); }}
                               className={cn(
                                 "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg transition-colors",
-                                playbackRate === rate ? "bg-purple-600 text-white" : "text-white/60 hover:text-white hover:bg-white/5"
+                                playbackRate === rate ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-white/5"
                               )}
                             >
                               {rate}x
@@ -437,8 +430,8 @@ function LessonContent() {
                           ))}
                         </div>
                       </div>
-                      <button onClick={handleFullscreen} className="text-white hover:text-purple-400 transition-colors">
-                        <Maximize size={20} />
+                      <button onClick={handleFullscreen} className="text-white hover:text-primary transition-colors focus:outline-none">
+                        <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
                       </button>
                     </div>
                   </div>
@@ -472,8 +465,8 @@ function LessonContent() {
                       className={cn(
                         "rounded-full h-14 px-10 font-black transition-all shadow-xl text-xs uppercase tracking-widest border-2",
                         isCompleted 
-                          ? "bg-emerald-500 border-emerald-400 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
-                          : "bg-slate-900 dark:bg-slate-100 border-transparent dark:text-slate-900 shadow-slate-900/20"
+                          ? "bg-emerald-500 border-emerald-400 hover:bg-emerald-600 text-white" 
+                          : "bg-slate-900 dark:bg-slate-100 border-transparent dark:text-slate-900"
                       )}
                     >
                       {isCompleted ? (
@@ -494,12 +487,12 @@ function LessonContent() {
                 )}
 
                 {lesson?.actionPlan && (
-                  <Card className="border-none shadow-2xl rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-6 sm:p-12 border-l-8 border-primary relative overflow-hidden">
+                  <Card className="border-none shadow-2xl rounded-[1.5rem] sm:rounded-[2rem] bg-primary/5 dark:bg-primary/10 p-6 sm:p-12 border-l-8 border-primary relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
                       <ClipboardList className="text-primary size-12 sm:size-20" />
                     </div>
                     <h3 className="font-black text-primary text-xl sm:text-2xl mb-6 flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                      <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg">
                         <ClipboardList size={20} />
                       </div>
                       Action & Implementation
