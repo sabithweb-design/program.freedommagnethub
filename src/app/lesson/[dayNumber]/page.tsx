@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -16,7 +17,8 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle
+  AlertCircle,
+  Play
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -25,7 +27,6 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
-import "plyr/dist/plyr.css";
 
 interface LessonData {
   id?: string;
@@ -43,69 +44,43 @@ interface LessonData {
 }
 
 /**
- * A professional LMS video player using Plyr.js.
- * Dynamically imported to avoid "document is not defined" SSR errors.
+ * A professional LMS-style video player.
+ * Uses a "Precision-Crop" technique to hide YouTube's native title and branding.
  */
-function LmsVideoPlayer({ videoId }: { videoId: string }) {
-  const videoRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!videoRef.current) return;
-
-    let playerInstance: any;
-
-    const initPlyr = async () => {
-      // Dynamically import Plyr to ensure it only runs on the client
-      const Plyr = (await import("plyr")).default;
-      
-      if (videoRef.current) {
-        playerInstance = new Plyr(videoRef.current, {
-          controls: [
-            'play-large',
-            'play',
-            'progress',
-            'current-time',
-            'duration',
-            'mute',
-            'volume',
-            'captions',
-            'settings',
-            'pip',
-            'airplay',
-            'fullscreen',
-          ],
-          settings: ['captions', 'quality', 'speed'],
-          speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-          youtube: {
-            noCookie: true,
-            rel: 0,
-            showinfo: 0,
-            iv_load_policy: 3,
-            modestbranding: 1,
-          },
-        });
-      }
-    };
-
-    initPlyr();
-
-    return () => {
-      if (playerInstance) {
-        playerInstance.destroy();
-      }
-    };
-  }, [videoId]);
+function CleanLmsPlayer({ videoId }: { videoId: string }) {
+  const [isOverlayVisible, setIsOverlayVisible] = useState(true);
 
   return (
     <div className="w-full max-w-5xl mx-auto">
-      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black">
-        <div 
-          ref={videoRef} 
-          className="plyr__video-embed" 
-          id="player"
-          data-plyr-provider="youtube" 
-          data-plyr-embed-id={videoId}
-        />
+      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black group">
+        
+        {/* The "Precision-Crop" Iframe: Over-scaled to push native branding outside the visible container */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&controls=1&iv_load_policy=3&showinfo=0&autoplay=0`}
+            className="w-[115%] h-[115%] pointer-events-auto border-none transition-opacity duration-500"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+
+        {/* Custom Interaction Layer (Blocks Top Bar Links while allowing central play) */}
+        <div className="absolute top-0 left-0 right-0 h-24 bg-gradient-to-b from-black/40 to-transparent pointer-events-none z-10" />
+        
+        {/* Branding Mask (Prevents clicks on the YouTube Channel/Title on desktop) */}
+        <div className="absolute top-0 left-0 right-0 h-20 z-20" />
+
+        {/* Cinematic Start Overlay (Optional: only shows before the first click) */}
+        {isOverlayVisible && (
+          <div 
+            className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px] cursor-pointer group-hover:bg-black/10 transition-all"
+            onClick={() => setIsOverlayVisible(false)}
+          >
+            <div className="w-20 h-20 sm:w-28 sm:h-28 rounded-full bg-primary/90 text-white flex items-center justify-center shadow-2xl shadow-primary/40 transform group-hover:scale-110 transition-transform duration-500">
+              <Play size={40} className="fill-current ml-2 sm:size-12" />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -129,6 +104,7 @@ function LessonContent() {
 
   useEffect(() => {
     if (!isAdmin) {
+      // Prevent selection and right-click to protect proprietary content
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
       return () => document.removeEventListener("contextmenu", handleContextMenu);
@@ -247,6 +223,7 @@ function LessonContent() {
 
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
+      {/* Navigation Header */}
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -283,7 +260,8 @@ function LessonContent() {
       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
         {lesson || displayVideoId ? (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <LmsVideoPlayer videoId={displayVideoId} />
+            {/* The Professional LMS Player */}
+            <CleanLmsPlayer videoId={displayVideoId} />
 
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-12">
               <div className="flex-1 space-y-10">
