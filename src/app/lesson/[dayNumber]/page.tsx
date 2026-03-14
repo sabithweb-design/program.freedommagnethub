@@ -58,12 +58,15 @@ interface LessonData {
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [playing, setPlaying] = useState(false);
+  const [isReady, setIsReady] = useState(false);
   const [played, setPlayed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const togglePlay = () => setPlaying(prev => !prev);
 
   const formatTime = (seconds: number) => {
     const date = new Date(seconds * 1000);
@@ -110,7 +113,9 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
             width="100%"
             height="100%"
             playing={playing}
+            muted={true} // Add muted initially to help bypass autoplay policies
             playbackRate={playbackRate}
+            onReady={() => setIsReady(true)}
             onProgress={(state) => setPlayed(state.played)}
             onDuration={(d) => setDuration(d)}
             config={{
@@ -128,25 +133,25 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
           />
         </div>
 
-        {/* Branding Shields - Set to pointer-events-none so clicks pass through to interaction layer */}
+        {/* Branding Shields - pointer-events-none so clicks pass through */}
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
 
-        {/* Interaction Layer - Captures Background Clicks to toggle play/pause */}
+        {/* Interaction Layer - Captures Background Clicks */}
         <div 
           className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
-          onClick={() => setPlaying(!playing)}
+          onClick={togglePlay}
         />
 
-        {/* Central Cinematic Play Button (Highest Priority z-index: 100) */}
+        {/* Central Cinematic Play Button (Highest Priority z-index: 999) */}
         <div className={cn(
-          "absolute inset-0 flex items-center justify-center z-[100] transition-opacity duration-300 pointer-events-none",
+          "absolute inset-0 flex items-center justify-center z-[999] transition-opacity duration-300 pointer-events-none",
           !playing || showControls ? "opacity-100" : "opacity-0"
         )}>
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              setPlaying(!playing);
+              if (isReady) togglePlay();
             }}
             className="w-20 h-20 sm:w-28 sm:h-28 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto"
           >
@@ -158,7 +163,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
           </button>
         </div>
 
-        {/* Professional Control Bar (Highest Priority z-index: 100) */}
+        {/* Professional Control Bar (z-index: 100) */}
         <div className={cn(
           "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-4 sm:px-8 pb-4 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent",
           showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
@@ -183,14 +188,14 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  setPlaying(!playing);
+                  togglePlay();
                 }}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
                 {playing ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
               </button>
               
-              <div className="text-[10px] sm:text-sm font-bold text-white/90 tabular-nums">
+              <div className="text-[10px] sm:text-xs md:text-sm font-bold text-white/90 tabular-nums">
                 {formatTime(played * duration)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
               </div>
             </div>
