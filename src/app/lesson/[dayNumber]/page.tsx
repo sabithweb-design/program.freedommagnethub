@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useRef } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -27,9 +27,6 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
 
-// Import Plyr CSS
-import "plyr/dist/plyr.css";
-
 interface LessonData {
   id?: string;
   courseId?: string;
@@ -46,75 +43,19 @@ interface LessonData {
 }
 
 /**
- * A professional LMS-style video player using Plyr.js.
- * This component provides a clean, white-labeled interface for YouTube content.
+ * A clean, responsive 16:9 video player component.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
-  const videoRef = useRef<HTMLDivElement>(null);
-  const playerInstanceRef = useRef<any>(null);
-
-  useEffect(() => {
-    // Only run on client
-    if (typeof window === "undefined" || !videoRef.current) return;
-
-    const initPlayer = async () => {
-      try {
-        // Dynamic import to avoid SSR errors
-        const Plyr = (await import("plyr")).default;
-        
-        if (videoRef.current) {
-          playerInstanceRef.current = new Plyr(videoRef.current, {
-            title: 'Lesson Video',
-            controls: [
-              'play-large',
-              'play',
-              'progress',
-              'current-time',
-              'mute',
-              'volume',
-              'captions',
-              'settings',
-              'pip',
-              'airplay',
-              'fullscreen',
-            ],
-            settings: ['quality', 'speed', 'loop'],
-            speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2] },
-            youtube: {
-              noCookie: true,
-              rel: 0,
-              showinfo: 0,
-              iv_load_policy: 3,
-              modestbranding: 1,
-            },
-          });
-        }
-      } catch (error) {
-        console.error("Error initializing Plyr:", error);
-      }
-    };
-
-    initPlayer();
-
-    return () => {
-      if (playerInstanceRef.current) {
-        playerInstanceRef.current.destroy();
-      }
-    };
-  }, [videoId]);
-
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-0">
-      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black group">
-        {/* Force Plyr to fill the aspect-video container */}
-        <div className="absolute inset-0 w-full h-full">
-           <div 
-             ref={videoRef}
-             data-plyr-provider="youtube"
-             data-plyr-embed-id={videoId}
-             className="w-full h-full"
-           />
-        </div>
+      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&iv_load_policy=3&showinfo=0`}
+          className="absolute inset-0 w-full h-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+          title="Lesson Video"
+        />
       </div>
     </div>
   );
@@ -292,7 +233,7 @@ function LessonContent() {
 
       <main className="max-w-6xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {/* Professional Plyr.js Player Section */}
+          {/* Responsive 16:9 Video Player Section */}
           <LmsVideoPlayer videoId={videoId} />
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
