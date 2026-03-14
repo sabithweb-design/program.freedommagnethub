@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useState, Suspense, useRef, useMemo } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -189,9 +188,9 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
         </div>
       </div>
 
-      {/* Deterrent Overlays to block YT links - pointer-events-none so we can click central play */}
-      <div className="absolute top-0 left-0 right-0 h-20 z-10 pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-40 h-20 z-10 pointer-events-none" />
+      {/* Deterrent Overlays to block YT links - pointer-events-none so we can click custom UI */}
+      <div className="absolute top-0 left-0 right-0 h-20 z-10 pointer-events-auto" />
+      <div className="absolute bottom-0 right-0 w-40 h-20 z-10 pointer-events-auto" />
 
       {/* Main Interaction Area (Toggles Play/Pause) */}
       <div 
