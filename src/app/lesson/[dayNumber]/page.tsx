@@ -174,7 +174,6 @@ function LessonContent() {
   const getEmbedUrl = () => {
     if (!lesson) return "";
     if (lesson.youtubeVideoId) {
-      // Modest branding and parameters for custom feel
       return `https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&iv_load_policy=3&disablekb=1&fs=1&autoplay=0`;
     }
     if (lesson.vimeoVideoId) {
@@ -230,7 +229,7 @@ function LessonContent() {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
-              {/* Invisible Shields to block external navigation and logo links */}
+              {/* Aggressive Click Shields to block external navigation */}
               <div className="click-shield-top" />
               <div className="click-shield-bottom-right" />
             </div>
