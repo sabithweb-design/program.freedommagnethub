@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -8,6 +9,7 @@ import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -16,7 +18,12 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle
+  AlertCircle,
+  Play,
+  Pause,
+  Maximize,
+  Settings,
+  Volume2
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -25,9 +32,10 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
+import dynamic from "next/dynamic";
 
-// Plyr Styles
-import "plyr/dist/plyr.css";
+// Dynamic import for ReactPlayer to avoid SSR issues
+const ReactPlayer = dynamic(() => import("react-player/lazy"), { ssr: false });
 
 interface LessonData {
   id?: string;
@@ -45,68 +53,176 @@ interface LessonData {
 }
 
 /**
- * A professional, high-end LMS video player using Plyr.js.
- * Provides a white-labeled experience with modern controls like Udemy or Netflix.
+ * Professional LMS Video Player
+ * Features: 1280x720 Desktop mode, Custom UI, Precision-Crop masking, and Scrubbing logic.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
-  const playerRef = useRef<HTMLDivElement>(null);
-  const plyrInstance = useRef<any>(null);
+  const [playing, setPlaying] = useState(false);
+  const [played, setPlayed] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showControls, setShowControls] = useState(true);
+  const playerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    let player: any;
+  const formatTime = (seconds: number) => {
+    const date = new Date(seconds * 1000);
+    const hh = date.getUTCHours();
+    const mm = date.getUTCMinutes();
+    const ss = date.getUTCSeconds().toString().padStart(2, '0');
+    if (hh) return `${hh}:${mm.toString().padStart(2, '0')}:${ss}`;
+    return `${mm}:${ss}`;
+  };
 
-    const initPlyr = async () => {
-      // Dynamic import to avoid 'document is not defined' during SSR evaluation
-      const Plyr = (await import("plyr")).default;
-      
-      if (playerRef.current) {
-        player = new Plyr(playerRef.current, {
-          controls: [
-            'play-large',      // The large play button in the center
-            'play',            // Play/pause on the bottom bar
-            'progress',        // The progress bar
-            'current-time',    // The current time of playback
-            'duration',        // The full duration of the media
-            'mute',            // Toggle mute
-            'volume',          // Volume control
-            'settings',        // Settings menu (speed, quality)
-            'fullscreen',      // Toggle fullscreen
-          ],
-          settings: ['speed'],
-          speed: { selected: 1, options: [0.5, 1, 1.25, 1.5, 2] },
-          youtube: {
-            noCookie: true,
-            rel: 0,
-            showinfo: 0,
-            iv_load_policy: 3,
-            modestbranding: 1
-          },
-          tooltips: { controls: true, seek: true },
-        });
+  const handleSeekChange = (value: number[]) => {
+    const newPlayed = value[0] / 100;
+    setPlayed(newPlayed);
+    playerRef.current?.seekTo(newPlayed);
+  };
 
-        plyrInstance.current = player;
-      }
-    };
-
-    initPlyr();
-
-    // Cleanup on unmount or videoId change
-    return () => {
-      if (plyrInstance.current) {
-        plyrInstance.current.destroy();
-      }
-    };
-  }, [videoId]);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      containerRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   return (
-    <div className="w-full max-w-5xl mx-auto px-4 sm:px-0">
-      <div className="rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black aspect-video group">
+    <div 
+      ref={containerRef}
+      className="w-full flex justify-center items-center px-4 sm:px-0 mb-12"
+      onMouseEnter={() => setShowControls(true)}
+      onMouseLeave={() => playing && setShowControls(false)}
+    >
+      <div className={cn(
+        "relative overflow-hidden bg-black shadow-2xl transition-all duration-500",
+        "rounded-[1.5rem] sm:rounded-[3rem]",
+        "w-full aspect-video",
+        "lg:w-[1280px] lg:h-[720px] lg:aspect-auto" // Desktop Fixed Size
+      )}>
+        
+        {/* Core Video Engine with Precision Crop */}
+        <div className="absolute inset-0 pointer-events-none scale-[1.15]">
+          <ReactPlayer
+            ref={playerRef}
+            url={`https://www.youtube.com/watch?v=${videoId}`}
+            width="100%"
+            height="100%"
+            playing={playing}
+            playbackRate={playbackRate}
+            onProgress={(state) => setPlayed(state.played)}
+            onDuration={(d) => setDuration(d)}
+            config={{
+              youtube: {
+                playerVars: { 
+                  modestbranding: 1, 
+                  rel: 0, 
+                  showinfo: 0, 
+                  iv_load_policy: 3,
+                  controls: 0,
+                  disablekb: 1
+                }
+              }
+            }}
+          />
+        </div>
+
+        {/* Branding Shields (Pointer Events None to let clicks through) */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
+        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
+
+        {/* Interaction Layer - Captures Background Clicks */}
         <div 
-          ref={playerRef} 
-          data-plyr-provider="youtube" 
-          data-plyr-embed-id={videoId}
-          className="w-full h-full"
+          className="absolute inset-0 z-20 cursor-pointer" 
+          onClick={() => setPlaying(!playing)}
         />
+
+        {/* Central Cinematic Play Button (Highest Priority) */}
+        <div className={cn(
+          "absolute inset-0 flex items-center justify-center z-[100] transition-opacity duration-300 pointer-events-none",
+          !playing || showControls ? "opacity-100" : "opacity-0"
+        )}>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              setPlaying(!playing);
+            }}
+            className="w-20 h-20 sm:w-28 sm:h-28 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto"
+          >
+            {playing ? (
+              <Pause size={40} className="text-slate-900 fill-slate-900 ml-0" />
+            ) : (
+              <Play size={40} className="text-slate-900 fill-slate-900 ml-2" />
+            )}
+          </button>
+        </div>
+
+        {/* Professional Control Bar */}
+        <div className={cn(
+          "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-4 sm:px-8 pb-4 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent",
+          showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
+        )}>
+          {/* Thin Purple Progress Bar */}
+          <div className="mb-4 sm:mb-6 group">
+            <Slider
+              value={[played * 100]}
+              max={100}
+              step={0.1}
+              onValueChange={handleSeekChange}
+              className="cursor-pointer pointer-events-auto"
+              trackClassName="h-1 bg-white/20"
+              rangeClassName="bg-purple-500"
+              thumbClassName="w-3 h-3 bg-purple-500 border-none opacity-0 group-hover:opacity-100 transition-opacity"
+            />
+          </div>
+
+          {/* Controls Row */}
+          <div className="flex items-center justify-between gap-4 pointer-events-auto">
+            <div className="flex items-center gap-4 sm:gap-6">
+              <button 
+                onClick={() => setPlaying(!playing)}
+                className="text-white hover:text-purple-400 transition-colors"
+              >
+                {playing ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+              </button>
+              
+              {/* Responsive Timer */}
+              <div className="text-[10px] sm:text-sm font-bold text-white/90 tabular-nums">
+                {formatTime(played * duration)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 sm:gap-6">
+              {/* Speed Selector */}
+              <div className="flex items-center gap-2">
+                <Settings size={16} className="text-white/40 hidden sm:block" />
+                <select 
+                  value={playbackRate}
+                  onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
+                  className="bg-transparent text-white text-[10px] sm:text-xs font-black uppercase tracking-widest outline-none cursor-pointer hover:text-purple-400 transition-colors"
+                >
+                  <option value="0.5" className="text-slate-900">0.5x</option>
+                  <option value="1" className="text-slate-900">1.0x</option>
+                  <option value="1.25" className="text-slate-900">1.25x</option>
+                  <option value="1.5" className="text-slate-900">1.5x</option>
+                  <option value="2" className="text-slate-900">2.0x</option>
+                </select>
+              </div>
+
+              <button className="text-white hover:text-purple-400 transition-colors hidden sm:block">
+                <Volume2 size={20} />
+              </button>
+              
+              <button 
+                onClick={toggleFullscreen}
+                className="text-white hover:text-purple-400 transition-colors"
+              >
+                <Maximize size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -129,7 +245,6 @@ function LessonContent() {
   const [noAccess, setNoAccess] = useState(false);
 
   useEffect(() => {
-    // Basic screen selection prevention for non-admins
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
@@ -283,9 +398,10 @@ function LessonContent() {
         </div>
       </div>
 
-      <main className="max-w-6xl mx-auto py-8">
+      <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {/* Custom Plyr.js Video Player Section */}
+          
+          {/* Professional 1280x720 Desktop Player / Responsive Mobile */}
           <LmsVideoPlayer videoId={videoId} />
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
