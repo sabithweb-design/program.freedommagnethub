@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { User, onAuthStateChanged } from "firebase/auth";
+import { User, onAuthStateChanged, signOut } from "firebase/auth";
 import { doc, getDoc, Timestamp } from "firebase/firestore";
 import { useAuth as useFirebaseAuth, useFirestore } from "@/firebase";
 
@@ -37,10 +37,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      if (user) {
-        const docRef = doc(db, "users", user.uid);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // Implementation of 3-day session expiration
+        const lastSignInTime = firebaseUser.metadata.lastSignInTime;
+        if (lastSignInTime) {
+          const lastSignInDate = new Date(lastSignInTime).getTime();
+          const threeDaysInMs = 3 * 24 * 60 * 60 * 1000;
+          
+          if (Date.now() - lastSignInDate > threeDaysInMs) {
+            // Session expired (3+ days since last login)
+            await signOut(auth);
+            setUser(null);
+            setProfile(null);
+            setLoading(false);
+            return;
+          }
+        }
+
+        setUser(firebaseUser);
+        const docRef = doc(db, "users", firebaseUser.uid);
         try {
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
@@ -53,6 +69,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setProfile(null);
         }
       } else {
+        setUser(null);
         setProfile(null);
       }
       setLoading(false);
