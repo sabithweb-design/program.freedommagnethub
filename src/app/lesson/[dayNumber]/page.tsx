@@ -3,7 +3,7 @@
 
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp, addDoc, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useFirestore } from "@/firebase";
@@ -35,7 +35,8 @@ import {
   StickyNote,
   Send,
   Trash2,
-  Bookmark
+  Bookmark,
+  Activity
 } from "lucide-react";
 import Link from "next/link";
 import ReactPlayer from "react-player";
@@ -97,6 +98,7 @@ function LessonContent() {
   // Notes State
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [capturedTimestamp, setCapturedTimestamp] = useState<number | null>(null);
 
   // Player State
   const [playing, setPlaying] = useState(false);
@@ -214,23 +216,35 @@ function LessonContent() {
     }
   };
 
+  const handleNoteFocus = () => {
+    if (playing) {
+      setPlaying(false);
+      const currentTime = playerRef.current?.getCurrentTime() || 0;
+      setCapturedTimestamp(currentTime);
+    } else if (capturedTimestamp === null) {
+      const currentTime = playerRef.current?.getCurrentTime() || 0;
+      setCapturedTimestamp(currentTime);
+    }
+  };
+
   const handleSaveNote = async () => {
-    if (!user || !lessonId || !noteText.trim()) return;
+    if (!user || !lessonId || !noteText.trim() || capturedTimestamp === null) return;
     setSavingNote(true);
 
-    const currentTime = playerRef.current?.getCurrentTime() || 0;
     const noteData = {
       userId: user.uid,
       lessonId: lessonId,
       courseId: courseId || '',
       text: noteText,
-      timestamp: currentTime,
+      timestamp: capturedTimestamp,
       createdAt: serverTimestamp()
     };
 
     addDoc(collection(db, "user_notes"), noteData)
       .then(() => {
         setNoteText("");
+        setCapturedTimestamp(null);
+        setPlaying(true); // Resume playback on save
         toast({ title: "Note Saved", description: "Timestamped note added to your collection." });
       })
       .catch((err) => {
@@ -269,7 +283,9 @@ function LessonContent() {
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen();
+      containerRef.current.requestFullscreen().catch(err => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
     } else {
       document.exitFullscreen();
     }
@@ -575,7 +591,7 @@ function LessonContent() {
                 <UICardTitle className="text-xl font-black flex items-center gap-2">
                   <StickyNote size={20} className="text-primary" /> Study Notes
                 </UICardTitle>
-                <p className="text-xs text-slate-400 font-bold">Capture timestamped insights while you watch.</p>
+                <p className="text-xs text-slate-400 font-bold">Video pauses while you type for focus.</p>
               </UICardHeader>
               
               <div className="p-5 space-y-4">
@@ -583,18 +599,29 @@ function LessonContent() {
                   <Textarea 
                     placeholder="Type a key takeaway..."
                     value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
+                    onFocus={handleNoteFocus}
+                    onChange={(e) => {
+                      setNoteText(e.target.value);
+                      if (capturedTimestamp === null) {
+                        handleNoteFocus();
+                      }
+                    }}
                     className="min-h-[100px] rounded-2xl bg-slate-50 dark:bg-slate-950 border-none focus-visible:ring-primary font-medium"
                   />
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                      {formatTime(playerRef.current?.getCurrentTime() || 0)}
-                    </span>
+                  <div className="absolute bottom-3 right-3 flex items-center gap-3">
+                    {capturedTimestamp !== null && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-full animate-pulse">
+                        <Activity size={10} className="stroke-[3]" />
+                        <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">
+                          Syncing {formatTime(capturedTimestamp)}
+                        </span>
+                      </div>
+                    )}
                     <Button 
                       size="icon" 
                       onClick={handleSaveNote} 
                       disabled={savingNote || !noteText.trim()}
-                      className="rounded-full h-8 w-8 bg-primary shadow-lg shadow-primary/20"
+                      className="rounded-full h-8 w-8 bg-primary shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                     >
                       {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={14} />}
                     </Button>
@@ -609,7 +636,10 @@ function LessonContent() {
                       <div key={note.id} className="group bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-transparent hover:border-primary/20 transition-all">
                         <div className="flex items-start justify-between gap-4">
                           <button 
-                            onClick={() => playerRef.current?.seekTo(note.timestamp)}
+                            onClick={() => {
+                              playerRef.current?.seekTo(note.timestamp);
+                              setPlaying(true);
+                            }}
                             className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
                           >
                             <Bookmark size={14} className="fill-primary" />
@@ -642,17 +672,6 @@ function LessonContent() {
     </div>
   );
 }
-
-const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
-  <svg 
-    viewBox="0 0 24 24" 
-    xmlns="http://www.w3.org/2000/svg" 
-    className={className}
-    fill="currentColor"
-  >
-    <path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" />
-  </svg>
-);
 
 export default function LessonPage() {
   return (
