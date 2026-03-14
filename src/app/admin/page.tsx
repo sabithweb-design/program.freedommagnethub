@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -106,8 +107,11 @@ export default function AdminPage() {
 
   const lessonsQuery = useMemo(() => {
     if (!firestore) return null;
+    if (lessonFilter !== 'all') {
+      return query(collection(firestore, 'lessons'), where('courseId', '==', lessonFilter), orderBy('dayNumber', 'asc'));
+    }
     return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc'));
-  }, [firestore]);
+  }, [firestore, lessonFilter]);
 
   const { data: users, loading: usersLoading } = useCollection<any>(usersQuery);
   const { data: courses, loading: coursesLoading } = useCollection<any>(coursesQuery);
@@ -499,13 +503,14 @@ export default function AdminPage() {
     if (!lessons || !courses) return [];
     
     return lessons.filter(l => {
-      const courseExists = courses.some(c => c.id === l.courseId);
-      if (!courseExists) return false;
+      const managedCourse = courses.find(c => c.id === l.courseId);
+      if (!managedCourse) return false;
+      
       if (lessonFilter !== 'all' && l.courseId !== lessonFilter) return false;
-      if (isMainAdmin) return true;
-      return courses.some(c => c.id === l.courseId && c.adminIds?.includes(currentUser?.uid));
+
+      return true;
     });
-  }, [lessons, courses, isMainAdmin, currentUser, lessonFilter]);
+  }, [lessons, courses, lessonFilter]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500 text-slate-900 dark:text-slate-100">
