@@ -9,7 +9,6 @@ import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import dynamic from 'next/dynamic';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -18,24 +17,16 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle
+  AlertCircle,
+  Play
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
-import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
-
-// Plyr for industry-standard professional video experience
-import "plyr/dist/plyr.css";
-
-// Dynamically import Plyr to avoid SSR issues
-const Plyr = dynamic(() => import("plyr-react").then((mod) => mod.default || mod), { 
-  ssr: false,
-  loading: () => <div className="aspect-video w-full bg-slate-900 animate-pulse rounded-[1.5rem] lg:rounded-[3rem]" />
-});
 
 interface LessonData {
   id?: string;
@@ -67,17 +58,23 @@ function LessonContent() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [noAccess, setNoAccess] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  
+  // Facade Logic: Start with loaded = false
+  const [isLoaded, setIsLoaded] = useState(false);
 
   // Content Protection for non-admins
   useEffect(() => {
-    setMounted(true);
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
       return () => document.removeEventListener("contextmenu", handleContextMenu);
     }
   }, [isAdmin]);
+
+  // Reset Facade when day changes
+  useEffect(() => {
+    setIsLoaded(false);
+  }, [day]);
 
   useEffect(() => {
     if (loading) return;
@@ -160,39 +157,8 @@ function LessonContent() {
     }
   };
 
-  // Memoize stable source to prevent unnecessary player remounts
-  const videoId = useMemo(() => lesson?.youtubeVideoId || "P5_rBMem0cE", [lesson?.youtubeVideoId]);
-  
-  const plyrSource = useMemo(() => ({
-    type: 'video' as const,
-    sources: [
-      {
-        src: videoId,
-        provider: 'youtube' as const,
-      },
-    ],
-  }), [videoId]);
-
-  const plyrOptions = useMemo(() => ({
-    controls: [
-      'play-large',
-      'play',
-      'progress',
-      'current-time',
-      'mute',
-      'volume',
-      'settings',
-      'fullscreen',
-    ],
-    settings: ['quality', 'speed'],
-    youtube: {
-      noCookie: true,
-      rel: 0,
-      showinfo: 0,
-      iv_load_policy: 3,
-      modestbranding: 1,
-    }
-  }), []);
+  const videoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1&rel=0&showinfo=0`;
 
   if (loading || (fetching && !lesson)) {
     return (
@@ -220,7 +186,10 @@ function LessonContent() {
   }
 
   return (
-    <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
+    <div className={cn(
+      "min-h-screen bg-background text-foreground pb-20 font-body transition-colors",
+      !isAdmin && "content-protected"
+    )}>
       {/* Navigation Header */}
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
         <div className="max-w-4xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -258,18 +227,51 @@ function LessonContent() {
       <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* Industry Standard Plyr Implementation */}
-          <div className="max-w-[1280px] mx-auto w-full aspect-video rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl bg-black">
-            {mounted && !fetching && lesson && (
-              <Plyr
-                key={videoId} // Stable key based only on videoId to prevent race conditions in IFrame API
-                source={plyrSource}
-                options={plyrOptions}
-              />
-            )}
-            {(!mounted || fetching || !lesson) && (
-              <div className="aspect-video w-full bg-slate-900 animate-pulse rounded-[1.5rem] lg:rounded-[3rem]" />
-            )}
+          {/* Industry Standard Click-to-Load Facade Pattern */}
+          <div className="max-w-[1280px] mx-auto w-full px-4 sm:px-6">
+            <div className="relative aspect-video w-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl bg-slate-950">
+              {!isLoaded ? (
+                // Facade View
+                <div 
+                  className="absolute inset-0 cursor-pointer group flex items-center justify-center"
+                  onClick={() => setIsLoaded(true)}
+                >
+                  {/* Background Thumbnail if available, else dark placeholder */}
+                  {lesson?.thumbnailUrl ? (
+                    <Image 
+                      src={lesson.thumbnailUrl} 
+                      alt={lesson.title || "Session Thumbnail"} 
+                      fill 
+                      className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+                    />
+                  ) : (
+                    <Image 
+                      src={`https://picsum.photos/seed/${videoId}/1280/720`}
+                      alt="Session Placeholder"
+                      fill
+                      className="object-cover opacity-30 group-hover:scale-105 transition-transform duration-700"
+                    />
+                  )}
+                  
+                  {/* High-Impact Central Play Button */}
+                  <div className="relative z-10 w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-white rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 active:scale-95 transition-all pointer-events-auto">
+                    <Play className="text-slate-950 fill-slate-950 w-6 h-6 sm:w-10 sm:h-10 lg:w-12 lg:h-12 ml-1" />
+                  </div>
+
+                  {/* Overlay branding gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                </div>
+              ) : (
+                // Native Iframe View (Loads only after interaction)
+                <iframe
+                  src={embedUrl}
+                  className="w-full h-full border-none"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                  title={lesson?.title || `Session ${day}`}
+                />
+              )}
+            </div>
           </div>
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -364,7 +366,7 @@ function LessonContent() {
                           asChild
                         >
                           <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
-                            <PlayerIcon className="mr-3 h-5 w-5" /> Resource Drive
+                            <svg viewBox="0 0 24 24" className="mr-3 h-5 w-5" fill="currentColor"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z" /></svg> Resource Drive
                           </a>
                         </Button>
                       )}
