@@ -66,7 +66,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); // Start muted to satisfy browser policies
   const [showControls, setShowControls] = useState(true);
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,9 +74,30 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const togglePlay = () => {
-    if (!isReady) return;
-    setPlaying(prev => !prev);
+    if (!isReady || !playerRef.current) return;
+    
+    const newPlaying = !playing;
+    setPlaying(newPlaying);
+    
+    // Direct trigger for YouTube Internal Player to bypass state delays
+    const internalPlayer = playerRef.current.getInternalPlayer();
+    if (internalPlayer) {
+      if (newPlaying) {
+        internalPlayer.playVideo();
+      } else {
+        internalPlayer.pauseVideo();
+      }
+    }
+
     if (isMobile) setShowControls(true);
+  };
+
+  const handleStart = () => {
+    console.log("Video started playing");
+    // Muted Start Policy: Switch to unmuted after 500ms of successful playback
+    setTimeout(() => {
+      setIsMuted(false);
+    }, 500);
   };
 
   const toggleMute = () => {
@@ -160,7 +181,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
             onReady={() => setIsReady(true)}
             onProgress={(state) => setPlayed(state.played)}
             onDuration={(d) => setDuration(d)}
-            onStart={() => console.log("Video started")}
+            onStart={handleStart}
             onPlay={() => console.log("Video playing")}
             config={{
               youtube: {
@@ -185,9 +206,14 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
         <div 
           className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
           onClick={handleInteraction}
+          onDoubleClick={() => {
+            const internal = playerRef.current?.getInternalPlayer();
+            if (internal) internal.playVideo();
+          }}
         />
 
         {/* Central Cinematic Play Button (Highest Priority z-index: 999) */}
+        {/* Container is pointer-events-none but button icon is pointer-events-auto */}
         <div className={cn(
           "absolute inset-0 flex items-center justify-center z-[999] transition-opacity duration-300 pointer-events-none",
           (!playing || showControls) ? "opacity-100" : "opacity-0"
@@ -585,3 +611,5 @@ export default function LessonPage() {
     </Suspense>
   );
 }
+"
+    
