@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -9,7 +9,6 @@ import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
 import dynamic from 'next/dynamic';
 import { 
   ChevronLeft, 
@@ -19,12 +18,7 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle,
-  Play,
-  Pause,
-  Maximize,
-  Volume2,
-  VolumeX
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -34,8 +28,9 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
 
-// Dynamically import ReactPlayer to avoid SSR issues
-const ReactPlayer = dynamic(() => import('react-player/lazy'), { ssr: false });
+// Plyr for industry-standard video experience
+import "plyr/dist/plyr.css";
+const Plyr = dynamic(() => import("plyr-react"), { ssr: false });
 
 interface LessonData {
   id?: string;
@@ -50,234 +45,6 @@ interface LessonData {
   driveUrl?: string;
   dayNumber: number;
   isLocked?: boolean;
-}
-
-/**
- * Professional LMS Video Player with Direct Hardware Control.
- * Optimized for Laptop browsers to solve the frozen playback issues.
- */
-function LmsVideoPlayer({ videoId }: { videoId: string }) {
-  const [playing, setPlaying] = useState(false);
-  const [played, setPlayed] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [isMuted, setIsMuted] = useState(true); // Start muted for autoplay safety
-  const [showControls, setShowControls] = useState(true);
-  const [hasInteracted, setHasInteracted] = useState(false);
-  
-  const playerRef = useRef<any>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Handle auto-hide logic for mobile (< 768px)
-  useEffect(() => {
-    const handleInactivity = () => {
-      // Only apply auto-hide to mobile
-      if (typeof window !== 'undefined' && window.innerWidth < 768 && playing) {
-        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-        controlsTimeoutRef.current = setTimeout(() => {
-          setShowControls(false);
-        }, 2000);
-      }
-    };
-
-    if (playing) {
-      handleInactivity();
-    } else {
-      setShowControls(true);
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    }
-
-    return () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    };
-  }, [playing]);
-
-  const togglePlay = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    
-    // Direct Hardware Control for Laptop Compatibility
-    const internalPlayer = playerRef.current?.getInternalPlayer();
-    
-    if (!playing) {
-      // Initial Interaction: Ensure the first click toggles muted to false to wake up audio engine
-      if (!hasInteracted) {
-        setIsMuted(false);
-        setHasInteracted(true);
-      }
-      
-      setPlaying(true);
-      if (internalPlayer?.playVideo) {
-        internalPlayer.playVideo();
-      }
-    } else {
-      setPlaying(false);
-      if (internalPlayer?.pauseVideo) {
-        internalPlayer.pauseVideo();
-      }
-    }
-    
-    setShowControls(true);
-  };
-
-  const handleSeekChange = (value: number[]) => {
-    const seekSeconds = (value[0] / 100) * duration;
-    playerRef.current?.seekTo(seekSeconds, 'seconds');
-    setPlayed(value[0] / 100);
-  };
-
-  const formatTime = (seconds: number) => {
-    const date = new Date(seconds * 1000);
-    const mm = date.getUTCMinutes();
-    const ss = date.getUTCSeconds().toString().padStart(2, '0');
-    return `${mm}:${ss}`;
-  };
-
-  const handleInteraction = () => {
-    setShowControls(true);
-  };
-
-  return (
-    <div 
-      className={cn(
-        "relative mx-auto overflow-hidden bg-black shadow-2xl group cursor-pointer transition-all duration-500",
-        "rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem]",
-        "w-full aspect-video",
-        "lg:w-[1280px] lg:h-[720px] lg:aspect-auto"
-      )}
-      onClick={handleInteraction}
-    >
-      {/* Precision Branding Crop (115% Scale) */}
-      <div className="absolute inset-0 scale-[1.15] pointer-events-none">
-        <ReactPlayer
-          ref={playerRef}
-          url={`https://www.youtube.com/watch?v=${videoId}`}
-          playing={playing}
-          width="100%"
-          height="100%"
-          controls={false}
-          muted={isMuted}
-          playbackRate={playbackRate}
-          onProgress={(state) => setPlayed(state.played)}
-          onDuration={setDuration}
-          onPlay={() => setPlaying(true)}
-          onPause={() => setPlaying(false)}
-          config={{
-            youtube: {
-              playerVars: { 
-                modestbranding: 1, 
-                rel: 0, 
-                showinfo: 0, 
-                iv_load_policy: 3,
-                disablekb: 1
-              }
-            }
-          }}
-        />
-      </div>
-
-      {/* Transparent Branding Mask (Click-Through for Laptop) */}
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/20 via-transparent to-black/20 z-0" />
-
-      {/* Central Play Trigger (z-index: 999 with explicit pointer-events-auto) */}
-      <div 
-        className={cn(
-          "absolute inset-0 flex items-center justify-center z-[999] transition-opacity duration-300 pointer-events-none",
-          (!playing || showControls) ? "opacity-100" : "opacity-0"
-        )}
-      >
-        <button 
-          onClick={togglePlay}
-          className={cn(
-            "bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform pointer-events-auto",
-            "w-16 h-16 sm:w-20 sm:h-20 lg:w-28 lg:h-28"
-          )}
-        >
-          {playing ? (
-            <Pause className="text-black fill-black w-6 h-6 sm:w-8 sm:h-8 lg:w-12 lg:h-12" />
-          ) : (
-            <Play className="text-black fill-black ml-1 w-6 h-6 sm:w-8 sm:h-8 lg:w-12 lg:h-12" />
-          )}
-        </button>
-      </div>
-
-      {/* Bespoke LMS Controls (z-index: 1000) */}
-      <div 
-        className={cn(
-          "absolute inset-x-0 bottom-0 z-[1000] p-4 sm:p-6 lg:p-8 bg-gradient-to-t from-black/90 to-transparent transition-opacity duration-300 pointer-events-none",
-          (showControls || !playing) ? "opacity-100" : "opacity-0"
-        )}
-      >
-        {/* Lavender Scrubber */}
-        <div className="mb-4 pointer-events-auto">
-          <Slider
-            value={[played * 100]}
-            max={100}
-            step={0.1}
-            onValueChange={handleSeekChange}
-            trackClassName="h-1 bg-white/20"
-            rangeClassName="bg-[#8B5CF6]"
-            thumbClassName="w-3 h-3 bg-[#8B5CF6] border-none"
-          />
-        </div>
-
-        <div className="flex items-center justify-between gap-4 pointer-events-auto">
-          <div className="flex items-center gap-3 sm:gap-4 lg:gap-6">
-            <button 
-              onClick={togglePlay}
-              className="text-white hover:text-[#8B5CF6] transition-colors"
-            >
-              {playing ? <Pause size={20} className="lg:size-6" /> : <Play size={20} className="lg:size-6 ml-0.5" />}
-            </button>
-            
-            <div className="text-[10px] sm:text-xs font-bold text-white tabular-nums tracking-tight">
-              {formatTime(played * duration)} <span className="text-white/40 mx-0.5 sm:mx-1">/</span> {formatTime(duration)}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 sm:gap-4 lg:gap-6">
-            <div className="flex items-center gap-2">
-              <select 
-                value={playbackRate}
-                onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
-                className="bg-transparent text-white text-[9px] sm:text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer hover:text-[#8B5CF6] transition-colors border-none"
-              >
-                <option value="0.5" className="text-slate-900">0.5x</option>
-                <option value="1" className="text-slate-900">1.0x</option>
-                <option value="1.25" className="text-slate-900">1.25x</option>
-                <option value="1.5" className="text-slate-900">1.5x</option>
-                <option value="2" className="text-slate-900">2.0x</option>
-              </select>
-            </div>
-
-            <button 
-              onClick={() => setIsMuted(!isMuted)}
-              className="text-white hover:text-[#8B5CF6] transition-colors"
-            >
-              {isMuted ? <VolumeX size={18} className="lg:size-5" /> : <Volume2 size={18} className="lg:size-5" />}
-            </button>
-            
-            <button 
-              onClick={() => {
-                const el = document.querySelector('.aspect-video');
-                if (el) {
-                  if (!document.fullscreenElement) {
-                    el.requestFullscreen().catch(err => {
-                      console.error(`Error attempting to enable full-screen mode: ${err.message}`);
-                    });
-                  } else {
-                    document.exitFullscreen();
-                  }
-                }
-              }}
-              className="text-white hover:text-[#8B5CF6] transition-colors hidden sm:block"
-            >
-              <Maximize size={18} className="lg:size-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function LessonContent() {
@@ -296,6 +63,7 @@ function LessonContent() {
   const [completing, setCompleting] = useState(false);
   const [noAccess, setNoAccess] = useState(false);
 
+  // Content Protection for non-admins
   useEffect(() => {
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -453,8 +221,40 @@ function LessonContent() {
       <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* Professional 1280x720 Centered Player */}
-          <LmsVideoPlayer videoId={videoId} />
+          {/* Professional Plyr Video Player */}
+          <div className="max-w-[1280px] mx-auto w-full aspect-video rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl bg-black">
+            <Plyr
+              source={{
+                type: 'video',
+                sources: [
+                  {
+                    src: videoId,
+                    provider: 'youtube',
+                  },
+                ],
+              }}
+              options={{
+                controls: [
+                  'play-large',
+                  'play',
+                  'progress',
+                  'current-time',
+                  'mute',
+                  'volume',
+                  'settings',
+                  'fullscreen',
+                ],
+                settings: ['quality', 'speed'],
+                youtube: {
+                  noCookie: true,
+                  rel: 0,
+                  showinfo: 0,
+                  iv_load_policy: 3,
+                  modestbranding: 1,
+                }
+              }}
+            />
+          </div>
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-12">
