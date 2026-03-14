@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -60,42 +59,44 @@
   }
 }
 
-/* Premium LMS Video Player Classes */
+/* Premium LMS Video Player Masking Classes */
 .video-mask {
-  width: 1280px;
-  height: 720px;
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
   position: relative;
   overflow: hidden;
-  max-width: 100%;
   aspect-ratio: 16/9;
   background: black;
+  border-radius: var(--radius);
 }
 
 .video-iframe {
-  width: 115%;
-  height: 115%;
+  width: 110%; /* Masking Technique: Scale to push icons out */
+  height: 110%;
   position: absolute;
-  top: -7.5%; /* Push Title Bar out of frame */
-  left: -7.5%; /* Push Left side branding out */
+  top: -5%; /* Center the over-scaled iframe */
+  left: -5%;
   border: none;
 }
 
+/* Click Shields to Block Direct External Links */
 .click-shield-top {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
-  height: 15%; /* Block Title clicks */
+  height: 15%; /* Block YouTube Title clicks */
   background: transparent;
   z-index: 20;
 }
 
 .click-shield-bottom-right {
   position: absolute;
-  bottom: 10%; /* Leave the playbar visible */
+  bottom: 8%; /* Leave the control bar reachable */
   right: 0;
-  width: 15%; /* Block YouTube logo/link */
-  height: 15%;
+  width: 20%; /* Block YouTube logo and "Watch on YouTube" links */
+  height: 12%;
   background: transparent;
   z-index: 20;
 }

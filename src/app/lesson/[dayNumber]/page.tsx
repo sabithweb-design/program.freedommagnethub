@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
@@ -175,6 +174,7 @@ function LessonContent() {
   const getEmbedUrl = () => {
     if (!lesson) return "";
     if (lesson.youtubeVideoId) {
+      // Modest branding and parameters for custom feel
       return `https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&iv_load_policy=3&disablekb=1&fs=1&autoplay=0`;
     }
     if (lesson.vimeoVideoId) {
@@ -221,8 +221,8 @@ function LessonContent() {
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {lesson && (lesson.vimeoVideoId || lesson.youtubeVideoId) ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Premium LMS Video Mask Container */}
-            <div className="video-mask mx-auto shadow-2xl rounded-[2rem] bg-black overflow-hidden border dark:border-slate-800">
+            {/* Premium LMS Masked Video Player */}
+            <div className="video-mask mx-auto shadow-2xl bg-black">
               <iframe 
                 key={lessonId || day}
                 src={getEmbedUrl()}
@@ -230,7 +230,7 @@ function LessonContent() {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                 allowFullScreen
               />
-              {/* Invisible Click Shields to Block Title and Logo Links */}
+              {/* Invisible Shields to block external navigation and logo links */}
               <div className="click-shield-top" />
               <div className="click-shield-bottom-right" />
             </div>
@@ -239,7 +239,9 @@ function LessonContent() {
               <div className="flex-1 space-y-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                   <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground leading-tight">{lesson.title || `Day ${day} Session`}</h1>
+                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground leading-tight">
+                      {lesson.title || `Day ${day} Session`}
+                    </h1>
                     <div className="flex gap-4 pt-2">
                       <span className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase tracking-widest">
                         <BookOpen size={12} /> Training Hub
@@ -329,52 +331,27 @@ function LessonContent() {
             </div>
           </div>
         ) : lesson ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="aspect-video flex flex-col items-center justify-center text-white/30 bg-slate-800 p-8 text-center rounded-[2rem]">
-              <div className="bg-slate-700/50 p-4 rounded-full mb-4">
-                <PlayerIcon className="h-10 w-10 sm:h-12 sm:w-12 text-primary" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-black text-white mb-2">No Video Content</h3>
-              <p className="text-slate-400 text-xs sm:text-sm max-w-[250px] font-medium">
-                This session consists of text materials and resources. Review the action plan below.
-              </p>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-20">
+             <div className="bg-background w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
+               <PlayerIcon className="h-10 w-10 sm:h-14 sm:w-14 text-primary" />
             </div>
-            
-            <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
-              <div className="flex-1 space-y-8">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                  <div className="space-y-1">
-                    <h1 className="text-2xl sm:text-3xl md:text-4xl font-black text-foreground leading-tight">{lesson.title || `Day ${day} Session`}</h1>
-                    <div className="flex gap-4 pt-2">
-                      <span className="flex items-center gap-1.5 text-[10px] font-black text-primary uppercase tracking-widest">
-                        <BookOpen size={12} /> Training Hub
-                      </span>
-                      <span className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                        <Clock size={12} /> DAY {day}
-                      </span>
-                    </div>
+            <h2 className="text-xl sm:text-2xl font-black text-foreground mb-2">Video Not Available</h2>
+            <p className="text-slate-400 mb-8 max-w-xs mx-auto text-xs sm:text-sm font-medium">
+              This session consists of text materials and resources. Review the action plan below.
+            </p>
+            {lesson.actionPlan && (
+              <div className="max-w-3xl mx-auto text-left">
+                <Card className="border-none shadow-sm rounded-3xl bg-primary/5 dark:bg-primary/10 p-6 sm:p-8 border-l-4 border-primary">
+                  <h3 className="font-black text-primary text-lg sm:text-xl mb-4 flex items-center gap-3">
+                    <ClipboardList size={20} className="sm:size-6" />
+                    Action Steps
+                  </h3>
+                  <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-bold text-sm sm:text-base whitespace-pre-wrap">
+                    {lesson.actionPlan}
                   </div>
-                  <Button 
-                    onClick={handleToggleComplete}
-                    disabled={completing}
-                    className={`rounded-full h-11 sm:h-12 px-6 sm:px-8 font-black transition-all shadow-lg text-xs sm:text-sm uppercase tracking-wider ${
-                      isCompleted 
-                        ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/20" 
-                        : "bg-slate-900 dark:bg-slate-100 dark:text-slate-900 shadow-slate-900/20"
-                    }`}
-                  >
-                    {isCompleted ? <><CheckCircle2 className="mr-2 h-4 w-4 sm:h-5 sm:w-5" /> Completed</> : "Mark as Complete"}
-                  </Button>
-                </div>
-                {lesson.description && <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-base sm:text-lg whitespace-pre-wrap font-medium">{lesson.description}</p>}
-                {lesson.actionPlan && (
-                  <Card className="border-none shadow-sm rounded-3xl bg-primary/5 dark:bg-primary/10 p-6 sm:p-8 border-l-4 border-primary">
-                    <h3 className="font-black text-primary text-lg sm:text-xl mb-4 flex items-center gap-3"><ClipboardList size={20} className="sm:size-6" /> Action Steps</h3>
-                    <div className="text-slate-700 dark:text-slate-300 leading-relaxed font-bold text-sm sm:text-base whitespace-pre-wrap">{lesson.actionPlan}</div>
-                  </Card>
-                )}
+                </Card>
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <div className="text-center py-20 sm:py-32 bg-card text-card-foreground rounded-[2rem] sm:rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800 mx-auto max-w-2xl">
