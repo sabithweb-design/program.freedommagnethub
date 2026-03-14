@@ -95,6 +95,7 @@ function LessonContent() {
     }
 
     const fetchLesson = async () => {
+      setFetching(true);
       try {
         const q = query(
           collection(db, "lessons"), 
@@ -103,21 +104,18 @@ function LessonContent() {
         );
         const querySnapshot = await getDocs(q);
         
-        let currentLessonId = null;
-        let currentLesson = null;
-
         if (!querySnapshot.empty) {
-          currentLessonId = querySnapshot.docs[0].id;
-          currentLesson = querySnapshot.docs[0].data() as LessonData;
-        }
+          const lId = querySnapshot.docs[0].id;
+          const lData = querySnapshot.docs[0].data() as LessonData;
+          setLessonId(lId);
+          setLesson(lData);
 
-        setLessonId(currentLessonId);
-        setLesson(currentLesson);
-
-        if (currentLessonId) {
-          const progressRef = doc(db, 'users', user.uid, 'completedLessons', currentLessonId);
+          const progressRef = doc(db, 'users', user.uid, 'completedLessons', lId);
           const docSnap = await getDoc(progressRef);
           setIsCompleted(docSnap.exists());
+        } else {
+          setLessonId(null);
+          setLesson(null);
         }
       } catch (error: any) {
         if (error.code === 'permission-denied') {
@@ -162,8 +160,8 @@ function LessonContent() {
     }
   };
 
-  // Video configuration memoization to prevent unstable re-renders in Plyr
-  const videoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
+  // Memoize stable source to prevent unnecessary player remounts
+  const videoId = useMemo(() => lesson?.youtubeVideoId || "P5_rBMem0cE", [lesson?.youtubeVideoId]);
   
   const plyrSource = useMemo(() => ({
     type: 'video' as const,
@@ -196,7 +194,7 @@ function LessonContent() {
     }
   }), []);
 
-  if (loading || fetching) {
+  if (loading || (fetching && !lesson)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
@@ -262,14 +260,14 @@ function LessonContent() {
           
           {/* Industry Standard Plyr Implementation */}
           <div className="max-w-[1280px] mx-auto w-full aspect-video rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl bg-black">
-            {mounted && lesson && (
+            {mounted && !fetching && lesson && (
               <Plyr
-                key={`${videoId}-${lessonId}`}
+                key={videoId} // Stable key based only on videoId to prevent race conditions in IFrame API
                 source={plyrSource}
                 options={plyrOptions}
               />
             )}
-            {(!mounted || !lesson) && (
+            {(!mounted || fetching || !lesson) && (
               <div className="aspect-video w-full bg-slate-900 animate-pulse rounded-[1.5rem] lg:rounded-[3rem]" />
             )}
           </div>
