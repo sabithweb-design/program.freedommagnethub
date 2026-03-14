@@ -189,18 +189,18 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
       </div>
 
       {/* Deterrent Overlays to block YT links - pointer-events-none so we can click custom UI */}
-      <div className="absolute top-0 left-0 right-0 h-20 z-10 pointer-events-auto" />
-      <div className="absolute bottom-0 right-0 w-40 h-20 z-10 pointer-events-auto" />
+      <div className="absolute top-0 left-0 right-0 h-20 z-10 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-40 h-20 z-10 pointer-events-none" />
 
       {/* Main Interaction Area (Toggles Play/Pause) */}
       <div 
-        className="absolute inset-0 z-20 cursor-pointer" 
+        className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
         onClick={() => handlePlayPause()}
       />
 
       {/* Central Play Button Overlay */}
       <div className={cn(
-        "absolute inset-0 flex items-center justify-center z-30 pointer-events-none transition-all duration-500",
+        "absolute inset-0 flex items-center justify-center z-50 pointer-events-none transition-all duration-500",
         (!playing || showControls) ? "opacity-100 scale-100" : "opacity-0 scale-110"
       )}>
         {!playing && (
@@ -216,7 +216,7 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
 
       {/* Bottom Controls Bar */}
       <div className={cn(
-        "absolute bottom-0 left-0 right-0 z-40 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-24 pb-8 px-8 pointer-events-auto",
+        "absolute bottom-0 left-0 right-0 z-50 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-24 pb-8 px-8 pointer-events-auto",
         (showControls || !playing) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )} onClick={(e) => e.stopPropagation()}>
         

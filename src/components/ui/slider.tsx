@@ -12,33 +12,38 @@ const Slider = React.forwardRef<
     rangeClassName?: string
     thumbClassName?: string
   }
->(({ className, trackClassName, rangeClassName, thumbClassName, ...props }, ref) => (
-  <SliderPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative flex w-full touch-none select-none items-center",
-      className
-    )}
-    {...props}
-  >
-    <SliderPrimitive.Track
+>(({ className, trackClassName, rangeClassName, thumbClassName, ...props }, ref) => {
+  // Destructure custom props to avoid passing them to the root DOM element
+  const rootProps = props;
+
+  return (
+    <SliderPrimitive.Root
+      ref={ref}
       className={cn(
-        "relative h-2 w-full grow overflow-hidden rounded-full bg-secondary",
-        trackClassName
+        "relative flex w-full touch-none select-none items-center",
+        className
       )}
+      {...rootProps}
     >
-      <SliderPrimitive.Range
-        className={cn("absolute h-full bg-primary", rangeClassName)}
+      <SliderPrimitive.Track
+        className={cn(
+          "relative h-2 w-full grow overflow-hidden rounded-full bg-secondary",
+          trackClassName
+        )}
+      >
+        <SliderPrimitive.Range
+          className={cn("absolute h-full bg-primary", rangeClassName)}
+        />
+      </SliderPrimitive.Track>
+      <SliderPrimitive.Thumb
+        className={cn(
+          "block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+          thumbClassName
+        )}
       />
-    </SliderPrimitive.Track>
-    <SliderPrimitive.Thumb
-      className={cn(
-        "block h-5 w-5 rounded-full border-2 border-primary bg-background ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-        thumbClassName
-      )}
-    />
-  </SliderPrimitive.Root>
-))
+    </SliderPrimitive.Root>
+  );
+})
 Slider.displayName = SliderPrimitive.Root.displayName
 
 export { Slider }
