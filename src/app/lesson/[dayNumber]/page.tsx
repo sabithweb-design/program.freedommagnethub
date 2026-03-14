@@ -54,7 +54,7 @@ interface LessonData {
 
 /**
  * Professional LMS Video Player
- * Features: 1280x720 Desktop mode, Custom UI, Precision-Crop masking, and Scrubbing logic.
+ * Fix: Unresponsive Laptop clicks, 1280x720 Desktop footprint, Precision-Crop masking.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [playing, setPlaying] = useState(false);
@@ -99,10 +99,10 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
         "relative overflow-hidden bg-black shadow-2xl transition-all duration-500",
         "rounded-[1.5rem] sm:rounded-[3rem]",
         "w-full aspect-video",
-        "lg:w-[1280px] lg:h-[720px] lg:aspect-auto" // Desktop Fixed Size
+        "lg:w-[1280px] lg:h-[720px] lg:aspect-auto lg:mx-auto" // Desktop 1280x720 Footprint
       )}>
         
-        {/* Core Video Engine with Precision Crop */}
+        {/* Core Video Engine with Precision Crop (115% scale to hide branding) */}
         <div className="absolute inset-0 pointer-events-none scale-[1.15]">
           <ReactPlayer
             ref={playerRef}
@@ -128,17 +128,17 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
           />
         </div>
 
-        {/* Branding Shields (Pointer Events None to let clicks through) */}
+        {/* Branding Shields - Set to pointer-events-none so clicks pass through to interaction layer */}
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
 
-        {/* Interaction Layer - Captures Background Clicks */}
+        {/* Interaction Layer - Captures Background Clicks to toggle play/pause */}
         <div 
-          className="absolute inset-0 z-20 cursor-pointer" 
+          className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
           onClick={() => setPlaying(!playing)}
         />
 
-        {/* Central Cinematic Play Button (Highest Priority) */}
+        {/* Central Cinematic Play Button (Highest Priority z-index: 100) */}
         <div className={cn(
           "absolute inset-0 flex items-center justify-center z-[100] transition-opacity duration-300 pointer-events-none",
           !playing || showControls ? "opacity-100" : "opacity-0"
@@ -151,19 +151,19 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
             className="w-20 h-20 sm:w-28 sm:h-28 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto"
           >
             {playing ? (
-              <Pause size={40} className="text-slate-900 fill-slate-900 ml-0" />
+              <Pause size={40} className="text-slate-900 fill-slate-900" />
             ) : (
               <Play size={40} className="text-slate-900 fill-slate-900 ml-2" />
             )}
           </button>
         </div>
 
-        {/* Professional Control Bar */}
+        {/* Professional Control Bar (Highest Priority z-index: 100) */}
         <div className={cn(
           "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-4 sm:px-8 pb-4 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent",
           showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         )}>
-          {/* Thin Purple Progress Bar */}
+          {/* Lavender Progress Bar */}
           <div className="mb-4 sm:mb-6 group">
             <Slider
               value={[played * 100]}
@@ -172,8 +172,8 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
               onValueChange={handleSeekChange}
               className="cursor-pointer pointer-events-auto"
               trackClassName="h-1 bg-white/20"
-              rangeClassName="bg-purple-500"
-              thumbClassName="w-3 h-3 bg-purple-500 border-none opacity-0 group-hover:opacity-100 transition-opacity"
+              rangeClassName="bg-[#8B5CF6]" // Thin Purple Scrubber
+              thumbClassName="w-3 h-3 bg-[#8B5CF6] border-none opacity-0 group-hover:opacity-100 transition-opacity"
             />
           </div>
 
@@ -181,26 +181,27 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
           <div className="flex items-center justify-between gap-4 pointer-events-auto">
             <div className="flex items-center gap-4 sm:gap-6">
               <button 
-                onClick={() => setPlaying(!playing)}
-                className="text-white hover:text-purple-400 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPlaying(!playing);
+                }}
+                className="text-white hover:text-[#8B5CF6] transition-colors"
               >
                 {playing ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
               </button>
               
-              {/* Responsive Timer */}
               <div className="text-[10px] sm:text-sm font-bold text-white/90 tabular-nums">
                 {formatTime(played * duration)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
               </div>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-6">
-              {/* Speed Selector */}
               <div className="flex items-center gap-2">
                 <Settings size={16} className="text-white/40 hidden sm:block" />
                 <select 
                   value={playbackRate}
                   onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
-                  className="bg-transparent text-white text-[10px] sm:text-xs font-black uppercase tracking-widest outline-none cursor-pointer hover:text-purple-400 transition-colors"
+                  className="bg-transparent text-white text-[10px] sm:text-xs font-black uppercase tracking-widest outline-none cursor-pointer hover:text-[#8B5CF6] transition-colors"
                 >
                   <option value="0.5" className="text-slate-900">0.5x</option>
                   <option value="1" className="text-slate-900">1.0x</option>
@@ -210,13 +211,16 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
                 </select>
               </div>
 
-              <button className="text-white hover:text-purple-400 transition-colors hidden sm:block">
+              <button className="text-white hover:text-[#8B5CF6] transition-colors hidden sm:block">
                 <Volume2 size={20} />
               </button>
               
               <button 
-                onClick={toggleFullscreen}
-                className="text-white hover:text-purple-400 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFullscreen();
+                }}
+                className="text-white hover:text-[#8B5CF6] transition-colors"
               >
                 <Maximize size={20} />
               </button>
