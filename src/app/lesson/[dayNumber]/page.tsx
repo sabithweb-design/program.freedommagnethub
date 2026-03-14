@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -26,6 +25,8 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
+import Plyr from "plyr";
+import "plyr/dist/plyr.css";
 
 interface LessonData {
   id?: string;
@@ -43,18 +44,54 @@ interface LessonData {
 }
 
 /**
- * A clean, responsive YouTube player using standard iframe embed.
+ * A professional LMS video player using Plyr.js.
  */
-function ResponsiveYoutubePlayer({ videoId }: { videoId: string }) {
+function LmsVideoPlayer({ videoId }: { videoId: string }) {
+  const videoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!videoRef.current) return;
+
+    const player = new Plyr(videoRef.current, {
+      controls: [
+        'play-large',
+        'play',
+        'progress',
+        'current-time',
+        'duration',
+        'mute',
+        'volume',
+        'captions',
+        'settings',
+        'pip',
+        'airplay',
+        'fullscreen',
+      ],
+      settings: ['captions', 'quality', 'speed'],
+      speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+      youtube: {
+        noCookie: true,
+        rel: 0,
+        showinfo: 0,
+        iv_load_policy: 3,
+        modestbranding: 1,
+      },
+    });
+
+    return () => {
+      player.destroy();
+    };
+  }, [videoId]);
+
   return (
-    <div className="w-full max-w-4xl mx-auto">
-      <div className="relative w-full aspect-video rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black">
-        <iframe
-          src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&controls=1&showinfo=0`}
-          title="Lesson Video"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowFullScreen
-          className="absolute inset-0 w-full h-full border-none"
+    <div className="w-full max-w-5xl mx-auto">
+      <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black">
+        <div 
+          ref={videoRef} 
+          className="plyr__video-embed" 
+          id="player"
+          data-plyr-provider="youtube" 
+          data-plyr-embed-id={videoId}
         />
       </div>
     </div>
@@ -193,6 +230,9 @@ function LessonContent() {
     );
   }
 
+  // Use requested video ID if none found in DB, otherwise use DB ID
+  const displayVideoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
+
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
@@ -228,17 +268,17 @@ function LessonContent() {
         </div>
       </div>
 
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {lesson && (lesson.youtubeVideoId || lesson.vimeoVideoId) ? (
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
+        {lesson || displayVideoId ? (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <ResponsiveYoutubePlayer videoId={lesson.youtubeVideoId || ""} />
+            <LmsVideoPlayer videoId={displayVideoId} />
 
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-12">
               <div className="flex-1 space-y-10">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 border-b dark:border-slate-800 pb-8">
                   <div className="space-y-2">
                     <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight leading-none">
-                      {lesson.title || `Day ${day} Session`}
+                      {lesson?.title || `Day ${day} Session`}
                     </h1>
                     <div className="flex gap-4 pt-4">
                       <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest">
@@ -270,7 +310,7 @@ function LessonContent() {
                   </div>
                 </div>
 
-                {lesson.description && (
+                {lesson?.description && (
                   <div className="prose prose-slate dark:prose-invert max-w-none">
                     <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg sm:text-xl whitespace-pre-wrap font-medium">
                       {lesson.description}
@@ -278,7 +318,7 @@ function LessonContent() {
                   </div>
                 )}
 
-                {lesson.actionPlan && (
+                {lesson?.actionPlan && (
                   <Card className="border-none shadow-2xl rounded-[1.5rem] sm:rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-6 sm:p-12 border-l-8 border-primary relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
                       <ClipboardList className="text-primary size-12 sm:size-20" />
@@ -296,7 +336,7 @@ function LessonContent() {
                 )}
               </div>
 
-              {(lesson.pdfUrl || lesson.driveUrl) && (
+              {(lesson?.pdfUrl || lesson?.driveUrl) && (
                 <div className="lg:w-80 shrink-0 space-y-6">
                   <Card className="border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[1.5rem] sm:rounded-[2.5rem] bg-card text-card-foreground p-6 sm:p-8">
                     <h3 className="font-black text-foreground text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
@@ -333,29 +373,6 @@ function LessonContent() {
                 </div>
               )}
             </div>
-          </div>
-        ) : lesson ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-16 sm:py-24">
-             <div className="bg-slate-50 dark:bg-slate-900 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-               <PlayerIcon className="h-10 w-10 sm:h-12 sm:w-12 text-slate-300" />
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-foreground mb-4">Video Pending</h2>
-            <p className="text-slate-400 mb-12 max-w-sm mx-auto text-sm font-medium leading-relaxed">
-              This session consists of intensive text modules and action steps. Review your implementation plan below.
-            </p>
-            {lesson.actionPlan && (
-              <div className="max-w-4xl mx-auto text-left">
-                <Card className="border-none shadow-2xl rounded-[1.5rem] sm:rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-6 sm:p-12 border-l-8 border-primary">
-                  <h3 className="font-black text-primary text-xl sm:text-2xl mb-6 flex items-center gap-4">
-                    <ClipboardList size={24} />
-                    Action & Implementation
-                  </h3>
-                  <div className="text-slate-700 dark:text-slate-200 leading-relaxed font-bold text-base sm:text-lg whitespace-pre-wrap">
-                    {lesson.actionPlan}
-                  </div>
-                </Card>
-              </div>
-            )}
           </div>
         ) : (
           <div className="text-center py-20 sm:py-32 bg-card text-card-foreground rounded-[1.5rem] sm:rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800 mx-auto max-w-2xl shadow-sm">

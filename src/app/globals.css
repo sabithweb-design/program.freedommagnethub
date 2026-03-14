@@ -24,6 +24,11 @@
     --input: 250 10% 85%;
     --ring: 0 84% 60%;
     --radius: 1.5rem;
+
+    /* Plyr Theme Overrides */
+    --plyr-color-main: hsl(var(--primary));
+    --plyr-video-control-background-hover: rgba(0, 0, 0, 0.2);
+    --plyr-control-radius: 8px;
   }
 
   .dark {
@@ -59,27 +64,6 @@
   }
 }
 
-/* Premium LMS Video Player Masking Classes */
-.video-mask {
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  position: relative;
-  overflow: hidden;
-  aspect-ratio: 16/9;
-  background: black;
-  border-radius: var(--radius);
-}
-
-.video-iframe {
-  width: 115%; /* Precision Crop: Scale to push icons out */
-  height: 115%;
-  position: absolute;
-  top: -7.5%; /* Center the over-scaled iframe */
-  left: -7.5%;
-  border: none;
-}
-
 /* Deterrent class to prevent selection (applied to non-admins) */
 .content-protected {
   -webkit-user-select: none;
@@ -88,15 +72,20 @@
   user-select: none;
 }
 
-/* Custom Radix Slider Styling for LMS Player */
-[data-radix-slider-track] {
-  @apply relative grow rounded-full bg-white/20;
+/* Plyr Polish */
+.plyr {
+  border-radius: inherit;
+  font-family: inherit;
 }
 
-[data-radix-slider-range] {
-  @apply absolute h-full rounded-full bg-[#8b5cf6];
+.plyr--video .plyr__controls {
+  padding-bottom: 15px;
+  padding-left: 15px;
+  padding-right: 15px;
+  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75));
 }
 
-[data-radix-slider-thumb] {
-  @apply block h-4 w-4 rounded-full bg-white shadow-xl focus:outline-none focus:ring-2 focus:ring-[#8b5cf6] transition-transform;
+.plyr__play-large {
+  padding: 25px;
+  background: hsl(var(--primary));
 }
