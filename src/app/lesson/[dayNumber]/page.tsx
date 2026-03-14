@@ -111,11 +111,13 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
     playerRef.current?.seekTo(currentTime + seconds);
   };
 
-  const toggleMute = () => {
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
     setMuted(!muted);
   };
 
-  const cycleRate = () => {
+  const cycleRate = (e: React.MouseEvent) => {
+    e.stopPropagation();
     const rates = [1, 1.25, 1.5, 2];
     const currentIndex = rates.indexOf(playbackRate);
     const nextRate = rates[(currentIndex + 1) % rates.length];
@@ -130,7 +132,8 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
     }, 3000);
   };
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!containerRef.current) return;
     if (document.fullscreenElement) {
       document.exitFullscreen();
@@ -152,11 +155,11 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
   return (
     <div 
       ref={containerRef}
-      className="video-mask group relative rounded-[2.5rem] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10 mx-auto w-full max-w-[1280px] aspect-video"
+      className="video-mask group relative rounded-[1.5rem] sm:rounded-[2.5rem] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10 mx-auto w-full max-w-[1280px] aspect-video"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => playing && setShowControls(false)}
     >
-      {/* Precision Crop Wrapper */}
+      {/* Precision Crop Wrapper - Non-interactive by default */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute w-[115%] h-[115%] top-[-7.5%] left-[-7.5%]">
           <ReactPlayer
@@ -188,17 +191,17 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
         </div>
       </div>
 
-      {/* Deterrent Overlays to block YT links - pointer-events-none so we can click custom UI */}
-      <div className="absolute top-0 left-0 right-0 h-20 z-10 pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-40 h-20 z-10 pointer-events-none" />
+      {/* Invisible Click Deterrents - Block underlying iframe links but pass through to our UI if needed */}
+      <div className="absolute top-0 left-0 right-0 h-16 sm:h-20 z-10 pointer-events-none" />
+      <div className="absolute bottom-0 right-0 w-32 sm:w-40 h-16 sm:h-20 z-10 pointer-events-none" />
 
-      {/* Main Interaction Area (Toggles Play/Pause) */}
+      {/* Main Interaction Area (Toggles Play/Pause) - HIGHEST priority for background clicks */}
       <div 
         className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
         onClick={() => handlePlayPause()}
       />
 
-      {/* Central Play Button Overlay */}
+      {/* Central Play Button Overlay - z-50 for absolute priority */}
       <div className={cn(
         "absolute inset-0 flex items-center justify-center z-50 pointer-events-none transition-all duration-500",
         (!playing || showControls) ? "opacity-100 scale-100" : "opacity-0 scale-110"
@@ -206,22 +209,22 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
         {!playing && (
           <button 
             type="button"
-            className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl animate-in zoom-in-75 duration-300 pointer-events-auto cursor-pointer hover:bg-white/30 transition-all active:scale-90" 
+            className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl animate-in zoom-in-75 duration-300 pointer-events-auto cursor-pointer hover:bg-white/30 transition-all active:scale-90" 
             onClick={handlePlayPause}
           >
-            <Play size={40} className="text-white fill-white ml-2" />
+            <Play className="text-white fill-white ml-1 sm:ml-2 size-8 sm:size-10" />
           </button>
         )}
       </div>
 
-      {/* Bottom Controls Bar */}
+      {/* Bottom Controls Bar - z-50 for absolute priority */}
       <div className={cn(
-        "absolute bottom-0 left-0 right-0 z-50 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-24 pb-8 px-8 pointer-events-auto",
+        "absolute bottom-0 left-0 right-0 z-50 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-12 sm:pt-24 pb-4 sm:pb-8 px-4 sm:px-8 pointer-events-auto",
         (showControls || !playing) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )} onClick={(e) => e.stopPropagation()}>
         
         {/* Progress Bar (Lavender Scrubber) */}
-        <div className="mb-6 group/progress relative px-1">
+        <div className="mb-4 sm:mb-6 group/progress relative px-1">
           <Slider
             value={[played]}
             max={1}
@@ -230,59 +233,61 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
             onValueChange={handleSeekChange}
             onValueCommit={handleSeekMouseUp}
             className="cursor-pointer"
-            trackClassName="bg-white/20 h-1.5"
+            trackClassName="bg-white/20 h-1 sm:h-1.5"
             rangeClassName="bg-[#C4B5FD]"
-            thumbClassName="h-4 w-4 bg-white border-0 shadow-lg scale-0 group-hover/progress:scale-100 transition-transform hover:scale-125"
+            thumbClassName="h-3 w-3 sm:h-4 sm:w-4 bg-white border-0 shadow-lg scale-0 group-hover/progress:scale-100 transition-transform hover:scale-125"
           />
         </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 w-full sm:w-auto">
             <button 
               type="button"
               onClick={handlePlayPause} 
               className="text-white hover:text-primary transition-colors active:scale-90"
             >
-              {playing ? <Pause size={28} className="fill-white" /> : <Play size={28} className="fill-white" />}
+              {playing ? <Pause className="fill-white size-6 sm:size-7" /> : <Play className="fill-white size-6 sm:size-7" />}
             </button>
             
-            <div className="flex items-center gap-4">
-              <button type="button" onClick={() => handleSkip(-10)} className="text-white/80 hover:text-white transition-colors active:scale-90">
-                <RotateCcw size={22} />
+            <div className="flex items-center gap-3 sm:gap-4">
+              <button type="button" onClick={(e) => { e.stopPropagation(); handleSkip(-10); }} className="text-white/80 hover:text-white transition-colors active:scale-90">
+                <RotateCcw className="size-5 sm:size-6" />
               </button>
-              <button type="button" onClick={() => handleSkip(10)} className="text-white/80 hover:text-white transition-colors active:scale-90">
-                <RotateCw size={22} />
+              <button type="button" onClick={(e) => { e.stopPropagation(); handleSkip(10); }} className="text-white/80 hover:text-white transition-colors active:scale-90">
+                <RotateCw className="size-5 sm:size-6" />
               </button>
             </div>
 
-            <div className="text-white/90 text-sm font-black tracking-widest font-mono">
-              {formatTime(currentTime)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
+            <div className="text-white/90 text-[10px] sm:text-xs font-black tracking-widest font-mono whitespace-nowrap">
+              {formatTime(currentTime)} <span className="text-white/40 mx-0.5 sm:mx-1">/</span> {formatTime(duration)}
             </div>
           </div>
 
-          <div className="flex items-center gap-5">
+          <div className="flex items-center justify-center sm:justify-end gap-4 sm:gap-5 w-full sm:w-auto">
             <button type="button" onClick={toggleMute} className="text-white/80 hover:text-white transition-colors">
-              {muted ? <VolumeX size={22} /> : <Volume2 size={22} />}
+              {muted ? <VolumeX className="size-5 sm:size-6" /> : <Volume2 className="size-5 sm:size-6" />}
             </button>
 
             <button 
               type="button"
               onClick={cycleRate}
-              className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[11px] font-black tracking-widest transition-all border border-white/10"
+              className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[11px] font-black tracking-widest transition-all border border-white/10"
             >
               {playbackRate}x
             </button>
 
-            <button type="button" className="text-white/80 hover:text-white transition-colors">
-              <Type size={20} />
-            </button>
+            <div className="hidden sm:flex items-center gap-4">
+              <button type="button" className="text-white/80 hover:text-white transition-colors">
+                <Type className="size-5" />
+              </button>
 
-            <button type="button" className="text-white/80 hover:text-white transition-colors">
-              <Settings size={20} />
-            </button>
+              <button type="button" className="text-white/80 hover:text-white transition-colors">
+                <Settings className="size-5" />
+              </button>
+            </div>
 
             <button type="button" onClick={toggleFullscreen} className="text-white/80 hover:text-white transition-colors">
-              <Maximize size={22} />
+              <Maximize className="size-5 sm:size-6" />
             </button>
           </div>
         </div>
@@ -515,9 +520,9 @@ function LessonContent() {
                 )}
 
                 {lesson.actionPlan && (
-                  <Card className="border-none shadow-2xl rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-8 sm:p-12 border-l-8 border-primary relative overflow-hidden">
+                  <Card className="border-none shadow-2xl rounded-[1.5rem] sm:rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-6 sm:p-12 border-l-8 border-primary relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-8 opacity-10">
-                      <ClipboardList size={80} className="text-primary" />
+                      <ClipboardList className="text-primary size-12 sm:size-20" />
                     </div>
                     <h3 className="font-black text-primary text-xl sm:text-2xl mb-6 flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center shadow-lg shadow-primary/20">
@@ -534,7 +539,7 @@ function LessonContent() {
 
               {(lesson.pdfUrl || lesson.driveUrl) && (
                 <div className="lg:w-80 shrink-0 space-y-6">
-                  <Card className="border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[2.5rem] bg-card text-card-foreground p-8">
+                  <Card className="border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[1.5rem] sm:rounded-[2.5rem] bg-card text-card-foreground p-6 sm:p-8">
                     <h3 className="font-black text-foreground text-xs uppercase tracking-widest mb-6 flex items-center gap-2">
                       <FileText size={18} className="text-primary" />
                       Learning Assets
@@ -571,17 +576,17 @@ function LessonContent() {
             </div>
           </div>
         ) : lesson ? (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-24">
-             <div className="bg-slate-50 dark:bg-slate-900 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
-               <PlayerIcon className="h-12 w-12 text-slate-300" />
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 text-center py-16 sm:py-24">
+             <div className="bg-slate-50 dark:bg-slate-900 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner">
+               <PlayerIcon className="h-10 w-10 sm:h-12 sm:w-12 text-slate-300" />
             </div>
-            <h2 className="text-3xl font-black text-foreground mb-4">Video Pending</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-foreground mb-4">Video Pending</h2>
             <p className="text-slate-400 mb-12 max-w-sm mx-auto text-sm font-medium leading-relaxed">
               This session consists of intensive text modules and action steps. Review your implementation plan below.
             </p>
             {lesson.actionPlan && (
               <div className="max-w-4xl mx-auto text-left">
-                <Card className="border-none shadow-2xl rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-8 sm:p-12 border-l-8 border-primary">
+                <Card className="border-none shadow-2xl rounded-[1.5rem] sm:rounded-[3rem] bg-primary/5 dark:bg-primary/10 p-6 sm:p-12 border-l-8 border-primary">
                   <h3 className="font-black text-primary text-xl sm:text-2xl mb-6 flex items-center gap-4">
                     <ClipboardList size={24} />
                     Action & Implementation
@@ -594,13 +599,13 @@ function LessonContent() {
             )}
           </div>
         ) : (
-          <div className="text-center py-24 sm:py-32 bg-card text-card-foreground rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800 mx-auto max-w-2xl shadow-sm">
-            <div className="bg-slate-50 dark:bg-slate-900 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8">
-               <PlayerIcon className="h-12 w-12 text-slate-200" />
+          <div className="text-center py-20 sm:py-32 bg-card text-card-foreground rounded-[1.5rem] sm:rounded-[3rem] border border-dashed border-slate-200 dark:border-slate-800 mx-auto max-w-2xl shadow-sm">
+            <div className="bg-slate-50 dark:bg-slate-900 w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center mx-auto mb-8">
+               <PlayerIcon className="h-10 w-10 sm:h-12 sm:w-12 text-slate-200" />
             </div>
-            <h2 className="text-3xl font-black text-foreground mb-4">Session Not Found</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-foreground mb-4">Session Not Found</h2>
             <p className="text-slate-400 mb-10 max-w-xs mx-auto text-sm font-medium">This module hasn't been published or your access level doesn't include this track.</p>
-            <Button asChild variant="outline" className="rounded-full px-10 h-14 font-black text-xs uppercase tracking-widest border-2">
+            <Button asChild variant="outline" className="rounded-full px-8 sm:px-10 h-12 sm:h-14 font-black text-xs uppercase tracking-widest border-2">
               <Link href="/dashboard">Return to Dashboard</Link>
             </Button>
           </div>
