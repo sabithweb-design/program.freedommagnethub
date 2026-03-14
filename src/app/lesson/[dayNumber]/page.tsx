@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -17,12 +16,7 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle,
-  Play,
-  Pause,
-  Maximize,
-  Settings,
-  Volume2
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -31,15 +25,9 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
-import ReactPlayer from "react-player/youtube";
-import { Slider } from "@/components/ui/slider";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+
+// Plyr Styles
+import "plyr/dist/plyr.css";
 
 interface LessonData {
   id?: string;
@@ -57,168 +45,68 @@ interface LessonData {
 }
 
 /**
- * A professional, high-end LMS video player.
- * Uses "Precision-Crop" scaling (115%) to hide YouTube's top title bar and channel icons.
+ * A professional, high-end LMS video player using Plyr.js.
+ * Provides a white-labeled experience with modern controls like Udemy.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
-  const playerRef = useRef<ReactPlayer>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [played, setPlayed] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [isReady, setIsReady] = useState(false);
+  const playerRef = useRef<HTMLDivElement>(null);
+  const plyrInstance = useRef<any>(null);
 
-  const togglePlay = (e?: React.MouseEvent) => {
-    e?.stopPropagation();
-    setPlaying(!playing);
-  };
+  useEffect(() => {
+    let player: any;
 
-  const handleProgress = (state: { played: number }) => {
-    setPlayed(state.played);
-  };
+    const initPlyr = async () => {
+      // Dynamic import to avoid 'document is not defined' during SSR evaluation
+      const Plyr = (await import("plyr")).default;
+      
+      if (playerRef.current) {
+        player = new Plyr(playerRef.current, {
+          controls: [
+            'play-large',      // The large play button in the center
+            'play',            // Play/pause on the bottom bar
+            'progress',        // The progress bar
+            'current-time',    // The current time of playback
+            'duration',        // The full duration of the media
+            'mute',            // Toggle mute
+            'volume',          // Volume control
+            'settings',        // Settings menu (speed, quality)
+            'fullscreen',      // Toggle fullscreen
+          ],
+          settings: ['speed'],
+          speed: { selected: 1, options: [0.5, 1, 1.25, 1.5, 2] },
+          youtube: {
+            noCookie: true,
+            rel: 0,
+            showinfo: 0,
+            iv_load_policy: 3,
+            modestbranding: 1
+          },
+          tooltips: { controls: true, seek: true },
+        });
 
-  const handleDuration = (dur: number) => {
-    setDuration(dur);
-  };
+        plyrInstance.current = player;
+      }
+    };
 
-  const handleSeekChange = (value: number[]) => {
-    const newPlayed = value[0] / 100;
-    setPlayed(newPlayed);
-    playerRef.current?.seekTo(newPlayed);
-  };
+    initPlyr();
 
-  const formatTime = (seconds: number) => {
-    const date = new Date(seconds * 1000);
-    const hh = date.getUTCHours();
-    const mm = date.getUTCMinutes();
-    const ss = date.getUTCSeconds().toString().padStart(2, '0');
-    if (hh) {
-      return `${hh}:${mm.toString().padStart(2, '0')}:${ss}`;
-    }
-    return `${mm}:${ss}`;
-  };
-
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      containerRef.current.requestFullscreen();
-    }
-  };
+    // Cleanup on unmount or videoId change
+    return () => {
+      if (plyrInstance.current) {
+        plyrInstance.current.destroy();
+      }
+    };
+  }, [videoId]);
 
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-0">
-      <div 
-        ref={containerRef}
-        className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black group"
-      >
-        {/* The "Precision-Crop" Layer: Over-scales video to push YouTube branding outside the visible frame */}
-        <div className="absolute inset-0 scale-[1.15] origin-center pointer-events-none">
-          <ReactPlayer
-            ref={playerRef}
-            url={`https://www.youtube.com/watch?v=${videoId}`}
-            width="100%"
-            height="100%"
-            playing={playing}
-            playbackRate={playbackRate}
-            onProgress={handleProgress}
-            onDuration={handleDuration}
-            onReady={() => setIsReady(true)}
-            config={{
-              youtube: {
-                playerVars: { 
-                  modestbranding: 1, 
-                  rel: 0, 
-                  iv_load_policy: 3,
-                  showinfo: 0,
-                  controls: 0, // Disable native controls to use our custom UI
-                  disablekb: 1
-                }
-              }
-            }}
-          />
-        </div>
-
-        {/* Central Play Interaction Overlay */}
+      <div className="rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black aspect-video group">
         <div 
-          className="absolute inset-0 z-20 flex items-center justify-center cursor-pointer transition-colors duration-300"
-          onClick={togglePlay}
-        >
-          {!playing && isReady && (
-            <div className="bg-primary text-white p-6 sm:p-8 rounded-full shadow-2xl animate-in zoom-in-50 duration-300 hover:scale-110 transition-transform">
-              <Play size={40} className="fill-current sm:size-12" />
-            </div>
-          )}
-        </div>
-
-        {/* Branding Mask Shields (Blocks clicks on corners where icons might bleed through) */}
-        <div className="absolute top-0 left-0 right-0 h-24 z-10 pointer-events-none bg-gradient-to-b from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-        <div className="absolute bottom-0 left-0 right-0 h-32 z-10 pointer-events-none bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-
-        {/* Custom Control Bar */}
-        <div className="absolute bottom-0 left-0 right-0 z-50 p-4 sm:p-8 translate-y-4 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300">
-          <div className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl sm:rounded-3xl p-3 sm:p-5 space-y-3 sm:space-y-4 shadow-2xl">
-            
-            {/* Scrubber Area */}
-            <div className="px-1">
-              <Slider
-                value={[played * 100]}
-                max={100}
-                step={0.1}
-                onValueChange={handleSeekChange}
-                className="cursor-pointer"
-                trackClassName="bg-white/20 h-1.5"
-                rangeClassName="bg-primary h-1.5"
-                thumbClassName="bg-primary border-white h-4 w-4 shadow-lg"
-              />
-            </div>
-
-            {/* Controls Row */}
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3 sm:gap-6">
-                <button 
-                  onClick={togglePlay}
-                  className="text-white hover:text-primary transition-colors focus:outline-none"
-                >
-                  {playing ? <Pause size={24} className="fill-current sm:size-7" /> : <Play size={24} className="fill-current sm:size-7" />}
-                </button>
-
-                <div className="flex items-center gap-2">
-                  <Volume2 size={18} className="text-white sm:size-5" />
-                  <span className="text-white/90 text-xs sm:text-sm font-black tracking-tight tabular-nums">
-                    {formatTime(played * duration)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 sm:gap-4">
-                {/* Speed Selector */}
-                <Select value={playbackRate.toString()} onValueChange={(val) => setPlaybackRate(parseFloat(val))}>
-                  <SelectTrigger className="w-20 sm:w-24 h-8 sm:h-10 bg-white/10 border-none text-white rounded-xl text-[10px] sm:text-xs font-bold hover:bg-white/20 transition-all">
-                    <Settings className="mr-1 h-3 w-3 sm:h-4 sm:w-4" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-slate-900 border-slate-800 text-white rounded-xl">
-                    <SelectItem value="0.5">0.5x</SelectItem>
-                    <SelectItem value="1">1x Normal</SelectItem>
-                    <SelectItem value="1.25">1.25x</SelectItem>
-                    <SelectItem value="1.5">1.5x</SelectItem>
-                    <SelectItem value="2">2x Speed</SelectItem>
-                  </SelectContent>
-                </Select>
-
-                <button 
-                  onClick={toggleFullscreen}
-                  className="text-white hover:text-primary transition-colors p-1"
-                >
-                  <Maximize size={20} className="sm:size-6" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+          ref={playerRef} 
+          data-plyr-provider="youtube" 
+          data-plyr-embed-id={videoId}
+          className="w-full h-full"
+        />
       </div>
     </div>
   );
@@ -397,7 +285,7 @@ function LessonContent() {
 
       <main className="max-w-6xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          {/* Custom LMS Video Player Section */}
+          {/* Custom Plyr.js Video Player Section */}
           <LmsVideoPlayer videoId={videoId} />
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
