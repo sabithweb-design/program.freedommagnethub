@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useRef } from "react";
+import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -51,7 +51,7 @@ interface LessonData {
 }
 
 const CustomPlayButton = () => (
-  <div className="w-20 h-20 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 transition-all shadow-2xl group/btn">
+  <div className="w-20 h-20 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 transition-all shadow-2xl group/btn cursor-pointer pointer-events-auto">
     <Play className="text-white fill-white w-10 h-10 ml-1.5 transition-transform group-hover/btn:scale-110" />
   </div>
 );
@@ -326,14 +326,9 @@ function LessonContent() {
 
               {/* Custom Controls Layer */}
               {showControls && (
-                <div className="absolute inset-0 z-10 flex flex-col justify-between transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none">
-                  {/* Top Overlay Gradient */}
-                  <div className="h-20 bg-gradient-to-b from-black/60 to-transparent p-6">
-                    <h4 className="text-white font-bold text-sm sm:text-lg line-clamp-1">{lesson?.title || `Day ${day} Session`}</h4>
-                  </div>
-
+                <div className="absolute inset-0 z-10 flex flex-col justify-end transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none">
                   {/* Bottom Control Bar */}
-                  <div className="mt-auto w-full p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto flex flex-col gap-3">
+                  <div className="w-full p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto flex flex-col gap-3">
                     {/* Progress Slider */}
                     <div className="w-full px-1">
                       <Slider
