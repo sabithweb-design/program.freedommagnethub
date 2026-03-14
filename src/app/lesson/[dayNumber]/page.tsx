@@ -173,7 +173,6 @@ function LessonContent() {
     }
   };
 
-  // Player Handlers
   const handlePlayPause = (e?: React.MouseEvent) => {
     e?.stopPropagation();
     setPlaying(!playing);
@@ -288,136 +287,124 @@ function LessonContent() {
       <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* LMS Style Video Player */}
+          {/* Bulletproof Video Player */}
           <div className="max-w-5xl mx-auto w-full px-4 sm:px-6">
             <div 
               id="lms-player-container"
               className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-2xl bg-black group"
             >
-              {/* THE ZOOM HACK WRAPPER: Physically crops out native YouTube Top Bar */}
-              <div className="absolute inset-0 scale-[1.25] pointer-events-none">
-                <ReactPlayer
-                  ref={playerRef}
-                  url={`https://www.youtube.com/watch?v=${videoId}`}
-                  width="100%"
-                  height="100%"
-                  light={lesson?.thumbnailUrl || true}
-                  playIcon={<div />} // Icon is handled by custom UI sibling layer
-                  playing={playing}
-                  controls={false}
-                  volume={volume}
-                  muted={isMuted}
-                  playbackRate={playbackRate}
-                  onProgress={(state) => setPlayed(state.played)}
-                  onDuration={(d) => setDuration(d)}
-                  onStart={() => setShowControls(true)}
-                  config={{
-                    youtube: {
-                      playerVars: { 
-                        modestbranding: 1, 
-                        rel: 0, 
-                        iv_load_policy: 3, 
-                        controls: 0,
-                        disablekb: 1
-                      }
+              <ReactPlayer
+                ref={playerRef}
+                url={`https://www.youtube.com/watch?v=${videoId}`}
+                width="100%"
+                height="100%"
+                light={lesson?.thumbnailUrl || true}
+                playIcon={<CustomPlayButton />}
+                playing={playing}
+                controls={false}
+                volume={volume}
+                muted={isMuted}
+                playbackRate={playbackRate}
+                onProgress={(state) => setPlayed(state.played)}
+                onDuration={(d) => setDuration(d)}
+                onStart={() => {
+                  setPlaying(true);
+                  setShowControls(true);
+                }}
+                onPlay={() => setPlaying(true)}
+                onPause={() => setPlaying(false)}
+                config={{
+                  youtube: {
+                    playerVars: { 
+                      modestbranding: 1, 
+                      rel: 0, 
+                      iv_load_policy: 3, 
+                      controls: 0,
+                      disablekb: 1
                     }
-                  }}
-                />
-              </div>
+                  }
+                }}
+              />
 
-              {/* CUSTOM UI LAYER: Sibling to the zoomed wrapper, so it stays at scale 1.0 */}
-              <div 
-                className="absolute inset-0 z-10 pointer-events-auto cursor-pointer"
-                onClick={handlePlayPause}
-              >
-                {/* Central Play Button */}
-                {!playing && (
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <CustomPlayButton />
-                  </div>
-                )}
+              {/* Custom Controls UI (Bottom bar only) */}
+              {(playing || showControls) && (
+                <div className="absolute inset-0 z-20 flex flex-col justify-end transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none">
+                  <div className="w-full p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto flex flex-col gap-3">
+                    {/* Progress Slider */}
+                    <div className="w-full px-1" onClick={(e) => e.stopPropagation()}>
+                      <Slider
+                        value={[played * 100]}
+                        max={100}
+                        step={0.1}
+                        onValueChange={handleSeekChange}
+                        className="cursor-pointer"
+                        trackClassName="h-1 bg-white/20"
+                        rangeClassName="bg-[#8B5CF6]"
+                        thumbClassName="w-3 h-3 bg-[#8B5CF6] border-none"
+                      />
+                    </div>
 
-                {/* Custom Controls Layer */}
-                {(playing || showControls) && (
-                  <div className="absolute inset-0 z-20 flex flex-col justify-end transition-opacity duration-300 opacity-0 group-hover:opacity-100 pointer-events-none">
-                    {/* Bottom Control Bar */}
-                    <div className="w-full p-4 sm:p-6 bg-gradient-to-t from-black/90 to-transparent pointer-events-auto flex flex-col gap-3">
-                      {/* Progress Slider */}
-                      <div className="w-full px-1" onClick={(e) => e.stopPropagation()}>
-                        <Slider
-                          value={[played * 100]}
-                          max={100}
-                          step={0.1}
-                          onValueChange={handleSeekChange}
-                          className="cursor-pointer"
-                          trackClassName="h-1 bg-white/20"
-                          rangeClassName="bg-[#8B5CF6]"
-                          thumbClassName="w-3 h-3 bg-[#8B5CF6] border-none"
-                        />
+                    <div className="flex items-center justify-between px-1">
+                      {/* Left Controls */}
+                      <div className="flex items-center gap-4 sm:gap-6">
+                        <button onClick={(e) => { e.stopPropagation(); handlePlayPause(); }} className="text-white hover:text-[#8B5CF6] transition-colors focus:outline-none">
+                          {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); playerRef.current?.seekTo(played - 10 / duration); }} className="text-white hover:text-[#8B5CF6] transition-colors hidden sm:block">
+                          <RotateCcw className="w-6 h-6" />
+                        </button>
+                        
+                        <div className="flex items-center gap-3">
+                          <button onClick={(e) => { e.stopPropagation(); handleToggleMute(); }} className="text-white hover:text-[#8B5CF6] transition-colors focus:outline-none">
+                            {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+                          </button>
+                          <div className="hidden sm:block" onClick={(e) => e.stopPropagation()}>
+                            <Slider 
+                              value={[isMuted ? 0 : volume * 100]} 
+                              max={100} 
+                              onValueChange={handleVolumeChange}
+                              className="w-20"
+                              trackClassName="h-1 bg-white/20"
+                              rangeClassName="bg-white"
+                              thumbClassName="w-3 h-3 bg-white border-none"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="text-[10px] sm:text-xs font-bold text-white/90 font-mono tracking-tight">
+                          {formatTime(played * duration)} / {formatTime(duration)}
+                        </div>
                       </div>
 
-                      <div className="flex items-center justify-between px-1">
-                        {/* Left Controls */}
-                        <div className="flex items-center gap-4 sm:gap-6">
-                          <button onClick={(e) => { e.stopPropagation(); handlePlayPause(); }} className="text-white hover:text-[#8B5CF6] transition-colors focus:outline-none">
-                            {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                      {/* Right Controls */}
+                      <div className="flex items-center gap-4 sm:gap-6">
+                        <div className="relative group/speed" onClick={(e) => e.stopPropagation()}>
+                          <button className="flex items-center gap-1.5 text-[10px] sm:text-xs font-black text-white bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition-all uppercase tracking-widest">
+                            {playbackRate}x <Settings className="w-4 h-4" />
                           </button>
-                          <button onClick={(e) => { e.stopPropagation(); playerRef.current?.seekTo(played - 10 / duration); }} className="text-white hover:text-[#8B5CF6] transition-colors hidden sm:block">
-                            <RotateCcw className="w-6 h-6" />
-                          </button>
-                          
-                          <div className="flex items-center gap-3">
-                            <button onClick={(e) => { e.stopPropagation(); handleToggleMute(); }} className="text-white hover:text-[#8B5CF6] transition-colors focus:outline-none">
-                              {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                            </button>
-                            <div className="hidden sm:block" onClick={(e) => e.stopPropagation()}>
-                              <Slider 
-                                value={[isMuted ? 0 : volume * 100]} 
-                                max={100} 
-                                onValueChange={handleVolumeChange}
-                                className="w-20"
-                                trackClassName="h-1 bg-white/20"
-                                rangeClassName="bg-white"
-                                thumbClassName="w-3 h-3 bg-white border-none"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="text-[10px] sm:text-xs font-bold text-white/90 font-mono tracking-tight">
-                            {formatTime(played * duration)} / {formatTime(duration)}
+                          <div className="absolute bottom-full right-0 mb-4 bg-black/90 rounded-2xl p-2 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all shadow-2xl border border-white/10 min-w-[80px]">
+                            {[2, 1.5, 1.25, 1, 0.75].map((rate) => (
+                              <button 
+                                key={rate}
+                                onClick={() => setPlaybackRate(rate)}
+                                className={cn(
+                                  "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg transition-colors",
+                                  playbackRate === rate ? "bg-[#8B5CF6] text-white" : "text-white/60 hover:text-white hover:bg-white/5"
+                                )}
+                              >
+                                {rate}x
+                              </button>
+                            ))}
                           </div>
                         </div>
-
-                        {/* Right Controls */}
-                        <div className="flex items-center gap-4 sm:gap-6">
-                          <div className="relative group/speed" onClick={(e) => e.stopPropagation()}>
-                            <button className="flex items-center gap-1.5 text-[10px] sm:text-xs font-black text-white bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 transition-all uppercase tracking-widest">
-                              {playbackRate}x <Settings className="w-4 h-4" />
-                            </button>
-                            <div className="absolute bottom-full right-0 mb-4 bg-black/90 rounded-2xl p-2 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all shadow-2xl border border-white/10 min-w-[80px]">
-                              {[2, 1.5, 1.25, 1, 0.75].map((rate) => (
-                                <button 
-                                  key={rate}
-                                  onClick={() => setPlaybackRate(rate)}
-                                  className={cn(
-                                    "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg transition-colors",
-                                    playbackRate === rate ? "bg-[#8B5CF6] text-white" : "text-white/60 hover:text-white hover:bg-white/5"
-                                  )}
-                                >
-                                  {rate}x
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <button onClick={(e) => { e.stopPropagation(); handleFullscreen(e); }} className="text-white hover:text-[#8B5CF6] transition-colors focus:outline-none">
-                            <Maximize className="w-6 h-6" />
-                          </button>
-                        </div>
+                        <button onClick={(e) => { e.stopPropagation(); handleFullscreen(e); }} className="text-white hover:text-[#8B5CF6] transition-colors focus:outline-none">
+                          <Maximize className="w-6 h-6" />
+                        </button>
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
 
