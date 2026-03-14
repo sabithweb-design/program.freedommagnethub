@@ -8,6 +8,7 @@ import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -194,7 +195,7 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
             onValueChange={handleSeek}
             className="cursor-pointer"
             trackClassName="bg-white/20 h-1.5"
-            rangeClassName="bg-[#8b5cf6]" // Premium Lavender/Purple
+            rangeClassName="bg-[#8b5cf6]"
             thumbClassName="h-4 w-4 bg-white border-0 shadow-lg scale-0 group-hover/progress:scale-100 transition-transform"
           />
         </div>
@@ -227,7 +228,6 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
               <button onClick={toggleMute} className="text-white/80 hover:text-white transition-colors">
                 {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
               </button>
-              {/* Optional: Tiny Volume Slider here */}
             </div>
 
             <button 
