@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useRef } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { 
   ChevronLeft, 
@@ -18,16 +17,7 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle,
-  Play,
-  Pause,
-  RotateCcw,
-  RotateCw,
-  Volume2,
-  VolumeX,
-  Maximize,
-  Settings,
-  Type
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -36,7 +26,6 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
-import ReactPlayer from 'react-player/youtube';
 
 interface LessonData {
   id?: string;
@@ -53,245 +42,20 @@ interface LessonData {
   isLocked?: boolean;
 }
 
-function formatTime(seconds: number) {
-  if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
-}
-
-function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete: () => void }) {
-  const [mounted, setMounted] = useState(false);
-  const [playing, setPlaying] = useState(false);
-  const [played, setPlayed] = useState(0); // 0 to 1
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [muted, setMuted] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [showControls, setShowControls] = useState(true);
-  const [seeking, setSeeking] = useState(false);
-  
-  const playerRef = useRef<ReactPlayer>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const handlePlayPause = (e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    setPlaying(!playing);
-  };
-
-  const handleProgress = (state: { played: number }) => {
-    if (!seeking) {
-      setPlayed(state.played);
-    }
-  };
-
-  const handleDuration = (dur: number) => {
-    setDuration(dur);
-  };
-
-  const handleSeekChange = (value: number[]) => {
-    setPlayed(value[0]);
-  };
-
-  const handleSeekMouseDown = () => {
-    setSeeking(true);
-  };
-
-  const handleSeekMouseUp = (value: number[]) => {
-    setSeeking(false);
-    playerRef.current?.seekTo(value[0], 'fraction');
-  };
-
-  const handleSkip = (seconds: number) => {
-    const currentTime = playerRef.current?.getCurrentTime() || 0;
-    playerRef.current?.seekTo(currentTime + seconds);
-  };
-
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setMuted(!muted);
-  };
-
-  const cycleRate = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rates = [1, 1.25, 1.5, 2];
-    const currentIndex = rates.indexOf(playbackRate);
-    const nextRate = rates[(currentIndex + 1) % rates.length];
-    setPlaybackRate(nextRate);
-  };
-
-  const handleMouseMove = () => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    controlsTimeoutRef.current = setTimeout(() => {
-      if (playing) setShowControls(false);
-    }, 3000);
-  };
-
-  const toggleFullscreen = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!containerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      containerRef.current.requestFullscreen();
-    }
-  };
-
-  if (!mounted) {
-    return (
-      <div className="video-mask bg-black rounded-[2.5rem] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white/20"></div>
-      </div>
-    );
-  }
-
-  const currentTime = played * duration;
-
+/**
+ * A clean, responsive YouTube player using standard iframe embed.
+ */
+function ResponsiveYoutubePlayer({ videoId }: { videoId: string }) {
   return (
-    <div 
-      ref={containerRef}
-      className="video-mask group relative rounded-[1.5rem] sm:rounded-[2.5rem] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10 mx-auto w-full max-w-[1280px] aspect-video"
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => playing && setShowControls(false)}
-    >
-      {/* Precision Crop Wrapper - Non-interactive background */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <div className="absolute w-[115%] h-[115%] top-[-7.5%] left-[-7.5%]">
-          <ReactPlayer
-            ref={playerRef}
-            url={`https://www.youtube.com/watch?v=${videoId}`}
-            playing={playing}
-            volume={volume}
-            muted={muted}
-            playbackRate={playbackRate}
-            onProgress={handleProgress}
-            onDuration={handleDuration}
-            onEnded={onComplete}
-            width="100%"
-            height="100%"
-            config={{
-              youtube: {
-                playerVars: { 
-                  modestbranding: 1,
-                  rel: 0,
-                  controls: 0,
-                  iv_load_policy: 3,
-                  disablekb: 1,
-                  fs: 0,
-                  autoplay: 0
-                }
-              }
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Invisible Click Deterrents - Only blocks edge links, passes clicks through center */}
-      <div className="absolute top-0 left-0 right-0 h-16 sm:h-20 z-10 pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-32 sm:w-40 h-16 sm:h-20 z-10 pointer-events-none" />
-
-      {/* Main Interaction Area - Background Click to Toggle */}
-      <div 
-        className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
-        onClick={() => handlePlayPause()}
-      />
-
-      {/* Central Play Button Overlay - High Z-Index Priority */}
-      <div className={cn(
-        "absolute inset-0 flex items-center justify-center z-50 pointer-events-none transition-all duration-500",
-        (!playing || showControls) ? "opacity-100 scale-100" : "opacity-0 scale-110"
-      )}>
-        {!playing && (
-          <button 
-            type="button"
-            className="w-16 h-16 sm:w-24 sm:h-24 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl animate-in zoom-in-75 duration-300 pointer-events-auto cursor-pointer hover:bg-white/30 transition-all active:scale-90" 
-            onClick={handlePlayPause}
-          >
-            <Play className="text-white fill-white ml-1 sm:ml-2 size-8 sm:size-10" />
-          </button>
-        )}
-      </div>
-
-      {/* Bottom Controls Bar - High Z-Index Priority & Spaced for Mobile */}
-      <div className={cn(
-        "absolute bottom-0 left-0 right-0 z-50 transition-all duration-500 bg-gradient-to-t from-black/95 via-black/50 to-transparent pt-12 sm:pt-24 pb-6 sm:pb-10 px-4 sm:px-8 pointer-events-auto",
-        (showControls || !playing) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
-      )} onClick={(e) => e.stopPropagation()}>
-        
-        {/* Progress Bar (Lavender Scrubber) */}
-        <div className="mb-4 sm:mb-8 group/progress relative px-1">
-          <Slider
-            value={[played]}
-            max={1}
-            step={0.0001}
-            onPointerDown={handleSeekMouseDown}
-            onValueChange={handleSeekChange}
-            onValueCommit={handleSeekMouseUp}
-            className="cursor-pointer"
-            trackClassName="bg-white/20 h-1.5"
-            rangeClassName="bg-[#C4B5FD]"
-            thumbClassName="h-4 w-4 bg-white border-0 shadow-lg scale-0 group-hover/progress:scale-100 transition-transform hover:scale-125"
-          />
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
-          <div className="flex items-center justify-center sm:justify-start gap-5 sm:gap-8 w-full sm:w-auto">
-            <button 
-              type="button"
-              onClick={handlePlayPause} 
-              className="text-white hover:text-primary transition-colors active:scale-90"
-            >
-              {playing ? <Pause className="fill-white size-6 sm:size-8" /> : <Play className="fill-white size-6 sm:size-8" />}
-            </button>
-            
-            <div className="flex items-center gap-4 sm:gap-6">
-              <button type="button" onClick={(e) => { e.stopPropagation(); handleSkip(-10); }} className="text-white/80 hover:text-white transition-colors active:scale-90">
-                <RotateCcw className="size-5 sm:size-7" />
-              </button>
-              <button type="button" onClick={(e) => { e.stopPropagation(); handleSkip(10); }} className="text-white/80 hover:text-white transition-colors active:scale-90">
-                <RotateCw className="size-5 sm:size-7" />
-              </button>
-            </div>
-
-            <div className="text-white/90 text-[10px] sm:text-xs font-black tracking-widest font-mono whitespace-nowrap">
-              {formatTime(currentTime)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
-            </div>
-          </div>
-
-          <div className="flex items-center justify-center sm:justify-end gap-5 sm:gap-6 w-full sm:w-auto">
-            <button type="button" onClick={toggleMute} className="text-white/80 hover:text-white transition-colors">
-              {muted ? <VolumeX className="size-5 sm:size-7" /> : <Volume2 className="size-5 sm:size-7" />}
-            </button>
-
-            <button 
-              type="button"
-              onClick={cycleRate}
-              className="px-2.5 sm:px-4 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[11px] font-black tracking-widest transition-all border border-white/10"
-            >
-              {playbackRate}x
-            </button>
-
-            <div className="hidden md:flex items-center gap-6">
-              <button type="button" className="text-white/80 hover:text-white transition-colors">
-                <Type className="size-6" />
-              </button>
-
-              <button type="button" className="text-white/80 hover:text-white transition-colors">
-                <Settings className="size-6" />
-              </button>
-            </div>
-
-            <button type="button" onClick={toggleFullscreen} className="text-white/80 hover:text-white transition-colors">
-              <Maximize className="size-5 sm:size-7" />
-            </button>
-          </div>
-        </div>
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="relative w-full aspect-video rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1&controls=1&showinfo=0`}
+          title="Lesson Video"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+          className="absolute inset-0 w-full h-full border-none"
+        />
       </div>
     </div>
   );
@@ -303,7 +67,7 @@ function LessonContent() {
   const day = parseInt(dayNumber as string);
   const courseId = searchParams.get('courseId');
   const router = useRouter();
-  const { user, profile, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const { toast } = useToast();
   
   const [lesson, setLesson] = useState<LessonData | null>(null);
@@ -465,15 +229,9 @@ function LessonContent() {
       </div>
 
       <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
-        {lesson && (lesson.vimeoVideoId || lesson.youtubeVideoId) ? (
+        {lesson && (lesson.youtubeVideoId || lesson.vimeoVideoId) ? (
           <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <div className="max-w-4xl mx-auto">
-               <CustomLmsPlayer 
-                  key={lessonId || day}
-                  videoId={lesson.youtubeVideoId || lesson.vimeoVideoId || ""} 
-                  onComplete={handleToggleComplete}
-               />
-            </div>
+            <ResponsiveYoutubePlayer videoId={lesson.youtubeVideoId || ""} />
 
             <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-12">
               <div className="flex-1 space-y-10">
