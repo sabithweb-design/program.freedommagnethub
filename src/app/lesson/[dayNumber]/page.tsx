@@ -27,7 +27,8 @@ import {
   Settings,
   CalendarClock,
   RotateCcw,
-  MessageSquare
+  MessageSquare,
+  Captions
 } from "lucide-react";
 import Link from "next/link";
 import ReactPlayer from "react-player";
@@ -53,11 +54,11 @@ interface LessonData {
 }
 
 const CustomBigButton = ({ playing }: { playing: boolean }) => (
-  <div className="w-24 h-24 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 transition-all shadow-2xl group/btn">
+  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 transition-all shadow-2xl group/btn cursor-pointer">
     {playing ? (
-      <Pause className="text-white fill-white w-16 h-16 transition-transform group-hover/btn:scale-110" />
+      <Pause className="text-white fill-white w-10 h-10 sm:w-12 sm:h-12 transition-transform group-hover/btn:scale-110" />
     ) : (
-      <Play className="text-white fill-white w-16 h-16 ml-2 transition-transform group-hover/btn:scale-110" />
+      <Play className="text-white fill-white w-10 h-10 sm:w-12 sm:h-12 ml-2 transition-transform group-hover/btn:scale-110" />
     )}
   </div>
 );
@@ -216,8 +217,8 @@ function LessonContent() {
 
   // Video Source Configuration
   const videoUrl = useMemo(() => {
-    if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}`;
-    if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}`;
+    if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}?background=1&autoplay=0&muted=0&byline=0&portrait=0&title=0&badge=0&controls=0`;
+    if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}?modestbranding=1&rel=0&iv_load_policy=3&controls=0`;
     return null;
   }, [lesson]);
 
@@ -297,144 +298,154 @@ function LessonContent() {
             >
               {videoUrl ? (
                 <>
-                  <ReactPlayer
-                    ref={playerRef}
-                    url={videoUrl}
-                    width="100%"
-                    height="100%"
-                    playing={playing}
-                    volume={volume}
-                    muted={isMuted}
-                    playbackRate={playbackRate}
-                    light={lesson.thumbnailUrl || true}
-                    playIcon={<CustomBigButton playing={playing} />}
-                    onStart={() => {
-                      setIsLoaded(true);
-                      setIsVideoActive(true);
-                      setPlaying(true);
-                    }}
-                    onProgress={(state) => setPlayed(state.played)}
-                    onDuration={(d) => setDuration(d)}
-                    onPlay={() => setPlaying(true)}
-                    onPause={() => setPlaying(false)}
-                    config={{
-                      vimeo: {
-                        playerOptions: { 
-                          byline: 0, portrait: 0, title: 0, badge: 0, controls: 0,
-                          autoplay: 1, muted: 0
+                  <div className="absolute inset-0 z-0 pointer-events-auto">
+                    <ReactPlayer
+                      ref={playerRef}
+                      url={videoUrl}
+                      width="100%"
+                      height="100%"
+                      playing={playing}
+                      volume={volume}
+                      muted={isMuted}
+                      playbackRate={playbackRate}
+                      onStart={() => {
+                        setIsLoaded(true);
+                        setIsVideoActive(true);
+                        setPlaying(true);
+                      }}
+                      onProgress={(state) => setPlayed(state.played)}
+                      onDuration={(d) => setDuration(d)}
+                      onPlay={() => setPlaying(true)}
+                      onPause={() => setPlaying(false)}
+                      config={{
+                        vimeo: {
+                          playerOptions: { 
+                            byline: 0, portrait: 0, title: 0, badge: 0, controls: 0,
+                            autoplay: 1, muted: 0, background: 1
+                          }
+                        },
+                        youtube: {
+                          playerVars: { 
+                            modestbranding: 1, rel: 0, iv_load_policy: 3, controls: 0
+                          }
                         }
-                      },
-                      youtube: {
-                        playerVars: { 
-                          modestbranding: 1, rel: 0, iv_load_policy: 3, controls: 0
-                        }
-                      }
-                    }}
-                  />
+                      }}
+                    />
+                  </div>
 
-                  {/* Custom Interaction & UI Layer */}
-                  {isVideoActive && (
-                    <div className={cn(
-                      "absolute inset-0 z-50 transition-opacity duration-300 flex flex-col justify-end",
-                      !showControls && playing ? "opacity-0 pointer-events-none" : "opacity-100 pointer-events-auto"
-                    )}>
-                      {/* Invisible Play/Pause Toggle Area */}
-                      <div className="absolute inset-0 z-10" onClick={() => setPlaying(!playing)} />
+                  {/* Masking Layer (Disable clicks on iframe branding) */}
+                  <div className="absolute inset-0 z-10 pointer-events-none" />
 
-                      {/* Bottom Control Suite */}
-                      <div className="relative z-50 p-4 sm:p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col gap-4">
-                        
-                        {/* Premium Scrubber */}
-                        <div className="px-2">
-                          <Slider
-                            value={[played * 100]}
-                            max={100}
-                            step={0.1}
-                            onValueChange={(val) => {
-                              const newPlayed = val[0] / 100;
-                              setPlayed(newPlayed);
-                              playerRef.current?.seekTo(newPlayed);
-                            }}
-                            className="cursor-pointer"
-                            trackClassName="h-1 bg-white/20"
-                            rangeClassName="bg-primary"
-                            thumbClassName="w-3.5 h-3.5 bg-white border-none shadow-lg"
-                          />
+                  {/* Custom Interaction Layer */}
+                  <div className={cn(
+                    "absolute inset-0 z-[100] transition-opacity duration-300 flex flex-col items-center justify-center pointer-events-auto",
+                    !showControls && playing ? "opacity-0" : "opacity-100"
+                  )}>
+                    {/* Big Center Play Button */}
+                    <button onClick={() => setPlaying(!playing)} className="focus:outline-none transition-transform hover:scale-110 active:scale-95">
+                      <CustomBigButton playing={playing} />
+                    </button>
+
+                    {/* Bottom Control Bar */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col gap-3 pointer-events-auto">
+                      
+                      {/* Premium Scrubber (Indigo/Purple) */}
+                      <div className="px-2">
+                        <Slider
+                          value={[played * 100]}
+                          max={100}
+                          step={0.1}
+                          onValueChange={(val) => {
+                            const newPlayed = val[0] / 100;
+                            setPlayed(newPlayed);
+                            playerRef.current?.seekTo(newPlayed);
+                          }}
+                          className="cursor-pointer"
+                          trackClassName="h-1 bg-white/20"
+                          rangeClassName="bg-[#5022c3]"
+                          thumbClassName="w-3.5 h-3.5 bg-white border-none shadow-lg"
+                        />
+                      </div>
+
+                      {/* Controls Row */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4 sm:gap-7">
+                          {/* Play/Pause */}
+                          <button onClick={() => setPlaying(!playing)} className="text-white hover:text-[#5022c3] transition-colors focus:outline-none">
+                            {playing ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
+                          </button>
+
+                          {/* Time Display */}
+                          <div className="text-[10px] sm:text-xs font-black text-white/90 font-mono tracking-tighter flex items-center gap-1.5 uppercase">
+                            {formatTime(played * duration)} <span className="text-white/30">/</span> {formatTime(duration)}
+                          </div>
+
+                          {/* Skip 10s */}
+                          <button onClick={handleSkipBack} className="text-white hover:text-[#5022c3] transition-colors focus:outline-none">
+                            <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6" />
+                          </button>
+
+                          {/* Volume */}
+                          <div className="flex items-center gap-3 group/volume">
+                            <button onClick={() => setIsMuted(!isMuted)} className="text-white hover:text-[#5022c3] transition-colors">
+                              {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
+                            </button>
+                            <Slider 
+                              value={[isMuted ? 0 : volume * 100]} 
+                              max={100} 
+                              onValueChange={(val) => setVolume(val[0] / 100)}
+                              className="w-16 hidden sm:block"
+                              trackClassName="h-1 bg-white/20"
+                              rangeClassName="bg-white"
+                              thumbClassName="w-2.5 h-2.5 bg-white border-none"
+                            />
+                          </div>
                         </div>
 
-                        {/* Controls Bar */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 sm:gap-8">
-                            <button onClick={() => setPlaying(!playing)} className="text-white hover:text-primary transition-colors focus:outline-none">
-                              {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                        <div className="flex items-center gap-3 sm:gap-6">
+                          {/* Speed Selector */}
+                          <div className="relative group/speed">
+                            <button className="text-[9px] font-black text-white bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 uppercase tracking-widest flex items-center gap-2 transition-all">
+                              {playbackRate}X <Settings className="w-4 h-4" />
                             </button>
-
-                            <button onClick={handleSkipBack} className="text-white hover:text-primary transition-colors focus:outline-none">
-                              <RotateCcw className="w-6 h-6" />
-                            </button>
-
-                            <div className="text-[11px] sm:text-xs font-black text-white/90 font-mono tracking-tighter uppercase">
-                              {formatTime(played * duration)} <span className="text-white/30 mx-1">/</span> {formatTime(duration)}
+                            <div className="absolute bottom-full right-0 mb-4 bg-black/95 rounded-xl p-1 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all border border-white/10 min-w-[70px] shadow-2xl z-[150]">
+                              {[2, 1.5, 1.25, 1, 0.75].map((rate) => (
+                                <button 
+                                  key={rate}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setPlaybackRate(rate);
+                                  }}
+                                  className={cn(
+                                    "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg transition-colors",
+                                    playbackRate === rate ? "bg-[#5022c3] text-white" : "text-white/60 hover:text-white hover:bg-white/5"
+                                  )}
+                                >
+                                  {rate}x
+                                </button>
+                              ))}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-3 sm:gap-6">
-                            <div className="flex items-center gap-2 group/volume">
-                              <button onClick={() => setIsMuted(!isMuted)} className="text-white hover:text-primary transition-colors">
-                                {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                              </button>
-                              <Slider 
-                                value={[isMuted ? 0 : volume * 100]} 
-                                max={100} 
-                                onValueChange={(val) => setVolume(val[0] / 100)}
-                                className="w-16 hidden sm:block opacity-0 group-hover/volume:opacity-100 transition-opacity"
-                                trackClassName="h-1 bg-white/20"
-                                rangeClassName="bg-white"
-                                thumbClassName="w-2.5 h-2.5 bg-white border-none"
-                              />
-                            </div>
+                          {/* CC / Subtitles */}
+                          <button className="text-white/60 hover:text-white transition-colors">
+                            <Captions className="w-5 h-5 sm:w-6 sm:h-6" />
+                          </button>
 
-                            <div className="relative group/speed">
-                              <button className="text-[10px] font-black text-white bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 uppercase tracking-widest flex items-center gap-2 transition-all">
-                                {playbackRate}X <Settings className="w-4 h-4" />
-                              </button>
-                              <div className="absolute bottom-full right-0 mb-4 bg-black/95 rounded-xl p-1 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all border border-white/10 min-w-[70px] shadow-2xl z-[150]">
-                                {[2, 1.5, 1.25, 1, 0.75].map((rate) => (
-                                  <button 
-                                    key={rate}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setPlaybackRate(rate);
-                                    }}
-                                    className={cn(
-                                      "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg transition-colors",
-                                      playbackRate === rate ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-white/5"
-                                    )}
-                                  >
-                                    {rate}x
-                                  </button>
-                                ))}
-                              </div>
-                            </div>
-
-                            <button className="text-white/40 hover:text-white transition-colors cursor-not-allowed">
-                              <MessageSquare className="w-6 h-6" />
-                            </button>
-
-                            <button 
-                              onClick={toggleFullscreen} 
-                              className="text-white hover:text-primary transition-colors focus:outline-none"
-                            >
-                              <Maximize className="w-6 h-6" />
-                            </button>
-                          </div>
+                          {/* Fullscreen */}
+                          <button 
+                            onClick={toggleFullscreen} 
+                            className="text-white hover:text-[#5022c3] transition-colors focus:outline-none"
+                          >
+                            <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
+                          </button>
                         </div>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-900">
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
                     <CalendarClock className="w-10 h-10 text-primary" />
                   </div>
