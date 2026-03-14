@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -55,8 +54,9 @@ interface LessonData {
 
 /**
  * Professional LMS Video Player
- * Fix: Unresponsive Laptop clicks, 1280x720 Desktop footprint, Precision-Crop masking.
- * Added: Mobile auto-hide logic for controls while preserving laptop logic.
+ * Precision-Crop logic for 115% scale to hide YouTube branding.
+ * Laptop/Desktop: 1280x720 footprint.
+ * Mobile: Auto-hide controls with touch reveal and scaled UI.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [playing, setPlaying] = useState(false);
@@ -133,7 +133,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
     >
       <div className={cn(
         "relative overflow-hidden bg-black shadow-2xl transition-all duration-500",
-        "rounded-[1.5rem] sm:rounded-[3rem]",
+        "rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem]",
         "w-full aspect-video",
         "lg:w-[1280px] lg:h-[720px] lg:aspect-auto lg:mx-auto" 
       )}>
@@ -186,23 +186,23 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
               e.stopPropagation();
               if (isReady) togglePlay();
             }}
-            className="w-20 h-20 sm:w-28 sm:h-28 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto"
+            className="w-16 h-16 sm:w-20 sm:h-20 lg:w-28 lg:h-28 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto"
           >
             {playing ? (
-              <Pause size={40} className="text-slate-900 fill-slate-900" />
+              <Pause className="text-slate-900 fill-slate-900 w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />
             ) : (
-              <Play size={40} className="text-slate-900 fill-slate-900 ml-2" />
+              <Play className="text-slate-900 fill-slate-900 ml-1 w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10" />
             )}
           </button>
         </div>
 
         {/* Professional Control Bar (z-index: 100) */}
         <div className={cn(
-          "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-4 sm:px-8 pb-4 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent",
+          "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-6 sm:px-8 pb-6 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent",
           showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
         )}>
           {/* Lavender Progress Bar */}
-          <div className="mb-4 sm:mb-6 group">
+          <div className="mb-4 sm:mb-6 group px-2 sm:px-0">
             <Slider
               value={[played * 100]}
               max={100}
@@ -216,8 +216,8 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
           </div>
 
           {/* Controls Row */}
-          <div className="flex items-center justify-between gap-4 pointer-events-auto">
-            <div className="flex items-center gap-4 sm:gap-6">
+          <div className="flex items-center justify-between gap-4 pointer-events-auto px-1 sm:px-0">
+            <div className="flex items-center gap-3 sm:gap-6">
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
@@ -225,21 +225,21 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
                 }}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
-                {playing ? <Pause size={24} /> : <Play size={24} className="ml-1" />}
+                {playing ? <Pause size={isMobile ? 20 : 24} /> : <Play size={isMobile ? 20 : 24} className="ml-0.5" />}
               </button>
               
-              <div className="text-[10px] sm:text-xs md:text-sm font-bold text-white/90 tabular-nums">
-                {formatTime(played * duration)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
+              <div className="text-[9px] sm:text-xs md:text-sm font-bold text-white/90 tabular-nums tracking-tight">
+                {formatTime(played * duration)} <span className="text-white/40 mx-0.5 sm:mx-1">/</span> {formatTime(duration)}
               </div>
             </div>
 
             <div className="flex items-center gap-3 sm:gap-6">
-              <div className="flex items-center gap-2">
-                <Settings size={16} className="text-white/40 hidden sm:block" />
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <Settings size={14} className="text-white/40 hidden sm:block" />
                 <select 
                   value={playbackRate}
                   onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
-                  className="bg-transparent text-white text-[10px] sm:text-xs font-black uppercase tracking-widest outline-none cursor-pointer hover:text-[#8B5CF6] transition-colors"
+                  className="bg-transparent text-white text-[9px] sm:text-xs font-black uppercase tracking-widest outline-none cursor-pointer hover:text-[#8B5CF6] transition-colors"
                 >
                   <option value="0.5" className="text-slate-900">0.5x</option>
                   <option value="1" className="text-slate-900">1.0x</option>
@@ -260,7 +260,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
                 }}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
-                <Maximize size={20} />
+                <Maximize size={isMobile ? 18 : 20} />
               </button>
             </div>
           </div>
