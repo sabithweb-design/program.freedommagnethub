@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, Suspense, useRef } from "react";
@@ -159,7 +160,7 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
       onMouseMove={handleMouseMove}
       onMouseLeave={() => playing && setShowControls(false)}
     >
-      {/* Precision Crop Wrapper - Non-interactive by default */}
+      {/* Precision Crop Wrapper - Non-interactive background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         <div className="absolute w-[115%] h-[115%] top-[-7.5%] left-[-7.5%]">
           <ReactPlayer
@@ -191,17 +192,17 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
         </div>
       </div>
 
-      {/* Invisible Click Deterrents - Block underlying iframe links but pass through to our UI if needed */}
+      {/* Invisible Click Deterrents - Only blocks edge links, passes clicks through center */}
       <div className="absolute top-0 left-0 right-0 h-16 sm:h-20 z-10 pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-32 sm:w-40 h-16 sm:h-20 z-10 pointer-events-none" />
 
-      {/* Main Interaction Area (Toggles Play/Pause) - HIGHEST priority for background clicks */}
+      {/* Main Interaction Area - Background Click to Toggle */}
       <div 
         className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
         onClick={() => handlePlayPause()}
       />
 
-      {/* Central Play Button Overlay - z-50 for absolute priority */}
+      {/* Central Play Button Overlay - High Z-Index Priority */}
       <div className={cn(
         "absolute inset-0 flex items-center justify-center z-50 pointer-events-none transition-all duration-500",
         (!playing || showControls) ? "opacity-100 scale-100" : "opacity-0 scale-110"
@@ -217,14 +218,14 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
         )}
       </div>
 
-      {/* Bottom Controls Bar - z-50 for absolute priority */}
+      {/* Bottom Controls Bar - High Z-Index Priority & Spaced for Mobile */}
       <div className={cn(
-        "absolute bottom-0 left-0 right-0 z-50 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-12 sm:pt-24 pb-4 sm:pb-8 px-4 sm:px-8 pointer-events-auto",
+        "absolute bottom-0 left-0 right-0 z-50 transition-all duration-500 bg-gradient-to-t from-black/95 via-black/50 to-transparent pt-12 sm:pt-24 pb-6 sm:pb-10 px-4 sm:px-8 pointer-events-auto",
         (showControls || !playing) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )} onClick={(e) => e.stopPropagation()}>
         
         {/* Progress Bar (Lavender Scrubber) */}
-        <div className="mb-4 sm:mb-6 group/progress relative px-1">
+        <div className="mb-4 sm:mb-8 group/progress relative px-1">
           <Slider
             value={[played]}
             max={1}
@@ -233,61 +234,61 @@ function CustomLmsPlayer({ videoId, onComplete }: { videoId: string, onComplete:
             onValueChange={handleSeekChange}
             onValueCommit={handleSeekMouseUp}
             className="cursor-pointer"
-            trackClassName="bg-white/20 h-1 sm:h-1.5"
+            trackClassName="bg-white/20 h-1.5"
             rangeClassName="bg-[#C4B5FD]"
-            thumbClassName="h-3 w-3 sm:h-4 sm:w-4 bg-white border-0 shadow-lg scale-0 group-hover/progress:scale-100 transition-transform hover:scale-125"
+            thumbClassName="h-4 w-4 bg-white border-0 shadow-lg scale-0 group-hover/progress:scale-100 transition-transform hover:scale-125"
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center justify-center sm:justify-start gap-4 sm:gap-6 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6">
+          <div className="flex items-center justify-center sm:justify-start gap-5 sm:gap-8 w-full sm:w-auto">
             <button 
               type="button"
               onClick={handlePlayPause} 
               className="text-white hover:text-primary transition-colors active:scale-90"
             >
-              {playing ? <Pause className="fill-white size-6 sm:size-7" /> : <Play className="fill-white size-6 sm:size-7" />}
+              {playing ? <Pause className="fill-white size-6 sm:size-8" /> : <Play className="fill-white size-6 sm:size-8" />}
             </button>
             
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-4 sm:gap-6">
               <button type="button" onClick={(e) => { e.stopPropagation(); handleSkip(-10); }} className="text-white/80 hover:text-white transition-colors active:scale-90">
-                <RotateCcw className="size-5 sm:size-6" />
+                <RotateCcw className="size-5 sm:size-7" />
               </button>
               <button type="button" onClick={(e) => { e.stopPropagation(); handleSkip(10); }} className="text-white/80 hover:text-white transition-colors active:scale-90">
-                <RotateCw className="size-5 sm:size-6" />
+                <RotateCw className="size-5 sm:size-7" />
               </button>
             </div>
 
             <div className="text-white/90 text-[10px] sm:text-xs font-black tracking-widest font-mono whitespace-nowrap">
-              {formatTime(currentTime)} <span className="text-white/40 mx-0.5 sm:mx-1">/</span> {formatTime(duration)}
+              {formatTime(currentTime)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
             </div>
           </div>
 
-          <div className="flex items-center justify-center sm:justify-end gap-4 sm:gap-5 w-full sm:w-auto">
+          <div className="flex items-center justify-center sm:justify-end gap-5 sm:gap-6 w-full sm:w-auto">
             <button type="button" onClick={toggleMute} className="text-white/80 hover:text-white transition-colors">
-              {muted ? <VolumeX className="size-5 sm:size-6" /> : <Volume2 className="size-5 sm:size-6" />}
+              {muted ? <VolumeX className="size-5 sm:size-7" /> : <Volume2 className="size-5 sm:size-7" />}
             </button>
 
             <button 
               type="button"
               onClick={cycleRate}
-              className="px-2 sm:px-3 py-0.5 sm:py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[11px] font-black tracking-widest transition-all border border-white/10"
+              className="px-2.5 sm:px-4 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[9px] sm:text-[11px] font-black tracking-widest transition-all border border-white/10"
             >
               {playbackRate}x
             </button>
 
-            <div className="hidden sm:flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-6">
               <button type="button" className="text-white/80 hover:text-white transition-colors">
-                <Type className="size-5" />
+                <Type className="size-6" />
               </button>
 
               <button type="button" className="text-white/80 hover:text-white transition-colors">
-                <Settings className="size-5" />
+                <Settings className="size-6" />
               </button>
             </div>
 
             <button type="button" onClick={toggleFullscreen} className="text-white/80 hover:text-white transition-colors">
-              <Maximize className="size-5 sm:size-6" />
+              <Maximize className="size-5 sm:size-7" />
             </button>
           </div>
         </div>
