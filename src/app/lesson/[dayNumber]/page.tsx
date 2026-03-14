@@ -53,11 +53,11 @@ interface LessonData {
 }
 
 const CustomBigButton = ({ playing }: { playing: boolean }) => (
-  <div className="w-20 h-20 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 transition-all shadow-2xl group/btn">
+  <div className="w-24 h-24 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 transition-all shadow-2xl group/btn">
     {playing ? (
-      <Pause className="text-white fill-white w-10 h-10 transition-transform group-hover/btn:scale-110" />
+      <Pause className="text-white fill-white w-16 h-16 transition-transform group-hover/btn:scale-110" />
     ) : (
-      <Play className="text-white fill-white w-10 h-10 ml-1 transition-transform group-hover/btn:scale-110" />
+      <Play className="text-white fill-white w-16 h-16 ml-2 transition-transform group-hover/btn:scale-110" />
     )}
   </div>
 );
@@ -90,6 +90,7 @@ function LessonContent() {
   const [isVideoActive, setIsVideoActive] = useState(false);
   
   const playerRef = useRef<ReactPlayer>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Content Protection
@@ -203,23 +204,19 @@ function LessonContent() {
   };
 
   const toggleFullscreen = () => {
-    const container = document.getElementById('lms-player-container');
+    if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      if (container?.requestFullscreen) {
-        container.requestFullscreen().catch(err => {
-          toast({ variant: "destructive", title: "Fullscreen Error", description: "Unable to enter fullscreen mode." });
-        });
-      }
+      containerRef.current.requestFullscreen().catch(err => {
+        toast({ variant: "destructive", title: "Fullscreen Error", description: "Unable to enter fullscreen mode." });
+      });
     } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen();
-      }
+      document.exitFullscreen();
     }
   };
 
   // Video Source Configuration
   const videoUrl = useMemo(() => {
-    if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}?byline=0&portrait=0&title=0&badge=0&controls=0`;
+    if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}`;
     if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}`;
     return null;
   }, [lesson]);
@@ -265,7 +262,7 @@ function LessonContent() {
               </Link>
             </Button>
             <div className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5">
-              <GraduationCap className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+              <GraduationCap className="h-5 w-5 text-primary" />
               Session {day}
             </div>
           </div>
@@ -294,7 +291,7 @@ function LessonContent() {
           {/* Advanced LMS Player Container */}
           <div className="max-w-5xl mx-auto w-full px-4 sm:px-6">
             <div 
-              id="lms-player-container" 
+              ref={containerRef}
               className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-2xl bg-black group"
               onMouseMove={handleMouseMove}
             >
@@ -323,7 +320,8 @@ function LessonContent() {
                     config={{
                       vimeo: {
                         playerOptions: { 
-                          byline: 0, portrait: 0, title: 0, badge: 0, controls: 0
+                          byline: 0, portrait: 0, title: 0, badge: 0, controls: 0,
+                          autoplay: 1, muted: 0
                         }
                       },
                       youtube: {
