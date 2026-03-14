@@ -33,15 +33,15 @@ service cloud.firestore {
     
     // Lessons: Managed by Admins (Main and Sub)
     match /lessons/{lessonId} {
-      allow read: if request.auth != null;
-      allow write, create: if isAdmin();
+      allow read, get, list: if request.auth != null;
+      allow write, create, update: if isAdmin();
       allow delete: if isSuperAdmin() || isAdmin();
     }
 
     // Courses: 
     match /courses/{courseId} {
       // Marketplace browsing: Anyone logged in can see/list courses
-      allow read: if request.auth != null;
+      allow read, get, list: if request.auth != null;
       
       // Creation: Any admin can create a course
       allow create: if isAdmin();

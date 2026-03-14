@@ -110,6 +110,8 @@ export default function AdminPage() {
     if (lessonFilter !== 'all') {
       return query(collection(firestore, 'lessons'), where('courseId', '==', lessonFilter), orderBy('dayNumber', 'asc'));
     }
+    // For Sub Admins, we don't want to list ALL lessons if they aren't isMainAdmin, 
+    // but the filteredLessons logic handles the separation in UI.
     return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc'));
   }, [firestore, lessonFilter, currentUser, isAdmin, authLoading]);
 
@@ -914,7 +916,7 @@ export default function AdminPage() {
                         </Button>
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
                           const url = `${window.location.origin}/lesson/${l.dayNumber}?courseId=${l.courseId}`;
-                          navigator.clipboard.text(url);
+                          navigator.clipboard.writeText(url);
                           toast({ title: "Session Link Copied", description: "Share this link with your enrolled students." });
                         }}>
                           <Share2 size={16} />
