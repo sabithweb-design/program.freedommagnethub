@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useMemo } from "react";
+import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -9,6 +9,7 @@ import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -18,10 +19,16 @@ import {
   FileText,
   ClipboardList,
   AlertCircle,
-  Play
+  Play,
+  Pause,
+  RotateCcw,
+  Volume2,
+  VolumeX,
+  Maximize,
+  Settings
 } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import ReactPlayer from "react-player/youtube";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
@@ -58,9 +65,19 @@ function LessonContent() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [noAccess, setNoAccess] = useState(false);
+
+  // Player State
+  const [playing, setPlaying] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [played, setPlayed] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [playbackRate, setPlaybackRate] = useState(1);
+  const [showControls, setShowControls] = useState(true);
+  const [isReady, setIsReady] = useState(false);
   
-  // Facade Logic: Start with loaded = false
-  const [isLoaded, setIsLoaded] = useState(false);
+  const playerRef = useRef<ReactPlayer>(null);
+  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Content Protection for non-admins
   useEffect(() => {
@@ -71,10 +88,23 @@ function LessonContent() {
     }
   }, [isAdmin]);
 
-  // Reset Facade when day changes
+  // Auto-hide controls logic
+  const resetControlsTimer = () => {
+    setShowControls(true);
+    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    if (playing) {
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2500);
+    }
+  };
+
   useEffect(() => {
-    setIsLoaded(false);
-  }, [day]);
+    resetControlsTimer();
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [playing]);
 
   useEffect(() => {
     if (loading) return;
@@ -157,8 +187,55 @@ function LessonContent() {
     }
   };
 
+  // Player Handlers
+  const handlePlayPause = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setPlaying(!playing);
+    resetControlsTimer();
+  };
+
+  const handleSeekChange = (value: number[]) => {
+    const newPlayed = value[0] / 100;
+    setPlayed(newPlayed);
+    playerRef.current?.seekTo(newPlayed);
+    resetControlsTimer();
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    const newVolume = value[0] / 100;
+    setVolume(newVolume);
+    setIsMuted(newVolume === 0);
+  };
+
+  const handleToggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsMuted(!isMuted);
+  };
+
+  const handleFullscreen = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const container = document.getElementById('video-container');
+    if (container) {
+      if (document.fullscreenElement) {
+        document.exitFullscreen();
+      } else {
+        container.requestFullscreen();
+      }
+    }
+  };
+
+  const formatTime = (seconds: number) => {
+    const date = new Date(seconds * 1000);
+    const hh = date.getUTCHours();
+    const mm = date.getUTCMinutes();
+    const ss = date.getUTCSeconds().toString().padStart(2, '0');
+    if (hh) {
+      return `${hh}:${mm.toString().padStart(2, '0')}:${ss}`;
+    }
+    return `${mm}:${ss}`;
+  };
+
   const videoId = lesson?.youtubeVideoId || "P5_rBMem0cE";
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=1&modestbranding=1&rel=0&showinfo=0`;
 
   if (loading || (fetching && !lesson)) {
     return (
@@ -227,50 +304,146 @@ function LessonContent() {
       <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* Industry Standard Click-to-Load Facade Pattern */}
+          {/* Custom Isolated Video Player */}
           <div className="max-w-[1280px] mx-auto w-full px-4 sm:px-6">
-            <div className="relative aspect-video w-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl bg-slate-950">
-              {!isLoaded ? (
-                // Facade View
-                <div 
-                  className="absolute inset-0 cursor-pointer group flex items-center justify-center"
-                  onClick={() => setIsLoaded(true)}
-                >
-                  {/* Background Thumbnail if available, else dark placeholder */}
-                  {lesson?.thumbnailUrl ? (
-                    <Image 
-                      src={lesson.thumbnailUrl} 
-                      alt={lesson.title || "Session Thumbnail"} 
-                      fill 
-                      className="object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
-                    />
-                  ) : (
-                    <Image 
-                      src={`https://picsum.photos/seed/${videoId}/1280/720`}
-                      alt="Session Placeholder"
-                      fill
-                      className="object-cover opacity-30 group-hover:scale-105 transition-transform duration-700"
-                    />
-                  )}
+            <div 
+              id="video-container"
+              className="relative aspect-video w-full rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3.5rem] overflow-hidden shadow-2xl bg-black group"
+              onMouseMove={resetControlsTimer}
+              onClick={handlePlayPause}
+            >
+              {/* ReactPlayer with Iframe Isolation (pointer-events-none) */}
+              <div className="absolute inset-0 pointer-events-none scale-[1.15]">
+                <ReactPlayer
+                  ref={playerRef}
+                  url={`https://www.youtube.com/watch?v=${videoId}`}
+                  width="100%"
+                  height="100%"
+                  playing={playing}
+                  volume={volume}
+                  muted={isMuted}
+                  playbackRate={playbackRate}
+                  onReady={() => setIsReady(true)}
+                  onProgress={(state) => setPlayed(state.played)}
+                  onDuration={(d) => setDuration(d)}
+                  config={{
+                    youtube: {
+                      playerVars: { 
+                        modestbranding: 1, 
+                        showinfo: 0, 
+                        rel: 0, 
+                        iv_load_policy: 3, 
+                        controls: 0,
+                        disablekb: 1
+                      }
+                    }
+                  }}
+                />
+              </div>
+
+              {/* Custom UI Layer (pointer-events-auto) */}
+              <div 
+                className={cn(
+                  "absolute inset-0 z-50 flex flex-col justify-between transition-opacity duration-500",
+                  showControls || !playing ? "opacity-100 cursor-auto" : "opacity-0 cursor-none"
+                )}
+              >
+                {/* Top Overlay Gradient */}
+                <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/60 to-transparent pointer-events-none" />
+
+                {/* Central Play/Pause Button */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button 
+                    onClick={handlePlayPause}
+                    className={cn(
+                      "w-16 h-16 sm:w-28 sm:h-28 bg-white/95 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 active:scale-95 pointer-events-auto",
+                      playing && isReady ? "opacity-0 scale-50" : "opacity-100 scale-100"
+                    )}
+                  >
+                    {playing ? (
+                      <Pause className="text-black fill-black w-8 h-8 sm:w-12 sm:h-12" />
+                    ) : (
+                      <Play className="text-black fill-black w-8 h-8 sm:w-12 sm:h-12 ml-2" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Bottom Control Bar */}
+                <div className="mt-auto relative z-50 p-4 sm:p-8 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-auto">
                   
-                  {/* High-Impact Central Play Button */}
-                  <div className="relative z-10 w-16 h-16 sm:w-24 sm:h-24 lg:w-32 lg:h-32 bg-white rounded-full flex items-center justify-center shadow-2xl group-hover:scale-110 active:scale-95 transition-all pointer-events-auto">
-                    <Play className="text-slate-950 fill-slate-950 w-6 h-6 sm:w-10 sm:h-10 lg:w-12 lg:h-12 ml-1" />
+                  {/* Purple Progress Slider */}
+                  <div className="group/slider relative px-2 mb-4">
+                    <Slider
+                      value={[played * 100]}
+                      max={100}
+                      step={0.1}
+                      onValueChange={handleSeekChange}
+                      className="cursor-pointer"
+                      trackClassName="bg-white/20 h-1 sm:h-1.5"
+                      rangeClassName="bg-purple-600 h-full"
+                      thumbClassName="hidden group-hover/slider:block bg-purple-500 border-none w-3 h-3 sm:w-4 sm:h-4 shadow-lg"
+                    />
                   </div>
 
-                  {/* Overlay branding gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="flex items-center justify-between gap-4">
+                    {/* Left Controls */}
+                    <div className="flex items-center gap-2 sm:gap-6">
+                      <button onClick={handlePlayPause} className="text-white hover:text-purple-400 transition-colors">
+                        {playing ? <Pause size={20} className="sm:size-24" /> : <Play size={20} className="sm:size-24" />}
+                      </button>
+                      <button onClick={() => playerRef.current?.seekTo(played - 10 / duration)} className="text-white hover:text-purple-400 transition-colors hidden sm:block">
+                        <RotateCcw size={20} />
+                      </button>
+                      
+                      <div className="flex items-center gap-3 group/volume">
+                        <button onClick={handleToggleMute} className="text-white hover:text-purple-400 transition-colors">
+                          {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                        </button>
+                        <div className="w-0 overflow-hidden group-hover/volume:w-20 transition-all duration-300">
+                          <Slider 
+                            value={[isMuted ? 0 : volume * 100]} 
+                            max={100} 
+                            onValueChange={handleVolumeChange}
+                            className="w-16 ml-2"
+                            trackClassName="bg-white/20 h-1"
+                            rangeClassName="bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-[10px] sm:text-xs font-black text-white/90 tracking-widest font-mono">
+                        {formatTime(played * duration)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
+                      </div>
+                    </div>
+
+                    {/* Right Controls */}
+                    <div className="flex items-center gap-3 sm:gap-6">
+                      <div className="relative group/speed">
+                        <button className="flex items-center gap-1 text-[10px] sm:text-xs font-black text-white bg-white/10 px-3 py-1 rounded-full hover:bg-white/20 transition-all uppercase tracking-tighter">
+                          {playbackRate}x <Settings size={12} />
+                        </button>
+                        <div className="absolute bottom-full right-0 mb-4 bg-black/90 rounded-2xl p-2 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all shadow-2xl border border-white/10 min-w-[80px]">
+                          {[2, 1.5, 1.25, 1, 0.75].map((rate) => (
+                            <button 
+                              key={rate}
+                              onClick={(e) => { e.stopPropagation(); setPlaybackRate(rate); }}
+                              className={cn(
+                                "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg transition-colors",
+                                playbackRate === rate ? "bg-purple-600 text-white" : "text-white/60 hover:text-white hover:bg-white/5"
+                              )}
+                            >
+                              {rate}x
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <button onClick={handleFullscreen} className="text-white hover:text-purple-400 transition-colors">
+                        <Maximize size={20} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                // Native Iframe View (Loads only after interaction)
-                <iframe
-                  src={embedUrl}
-                  className="w-full h-full border-none"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                  title={lesson?.title || `Session ${day}`}
-                />
-              )}
+              </div>
             </div>
           </div>
 
@@ -294,7 +467,7 @@ function LessonContent() {
                   
                   <div className="flex items-center gap-4">
                     <Button 
-                      onClick={handleToggleComplete}
+                      onClick={(e) => { e.stopPropagation(); handleToggleComplete(); }}
                       disabled={completing}
                       className={cn(
                         "rounded-full h-14 px-10 font-black transition-all shadow-xl text-xs uppercase tracking-widest border-2",
