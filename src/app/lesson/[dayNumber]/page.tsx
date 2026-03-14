@@ -68,41 +68,55 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [isDragging, setIsDragging] = useState(false);
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Communication with YouTube Iframe API
-  const sendCommand = useCallback((command: string, args: any[] = []) => {
+  // Helper to send commands to YouTube Iframe API
+  const sendCommand = useCallback((func: string, args: any[] = []) => {
     if (iframeRef.current?.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ event: "command", func: command, args }),
+        JSON.stringify({ event: "command", func, args }),
         "*"
       );
     }
   }, []);
 
+  // Sync state from YouTube messages
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (typeof event.data !== 'string') return;
+      // Security: Check origin if needed, but for public embeds '*' is standard
       try {
         const data = JSON.parse(event.data);
+        
+        // YouTube API events
         if (data.event === 'infoDelivery' && data.info) {
-          if (data.info.currentTime !== undefined) setCurrentTime(data.info.currentTime);
-          if (data.info.duration !== undefined) setDuration(data.info.duration);
+          if (data.info.currentTime !== undefined && !isDragging) {
+            setCurrentTime(data.info.currentTime);
+          }
+          if (data.info.duration !== undefined) {
+            setDuration(data.info.duration);
+          }
           if (data.info.playerState !== undefined) {
-            setIsPlaying(data.info.playerState === 1);
-            if (data.info.playerState === 0) { // Video ended
+            setIsPlaying(data.info.playerState === 1); // 1 = playing
+            if (data.info.playerState === 0) { // 0 = ended
               onComplete();
             }
           }
+          if (data.info.playbackRate !== undefined) {
+            setPlaybackRate(data.info.playbackRate);
+          }
         }
-      } catch (e) {}
+      } catch (e) {
+        // Not a JSON message or not from YouTube
+      }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [onComplete]);
+  }, [onComplete, isDragging]);
 
   const togglePlay = (e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
@@ -129,7 +143,7 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
     sendCommand(nextMute ? "mute" : "unMute");
   };
 
-  const changeRate = () => {
+  const cycleRate = () => {
     const rates = [1, 1.25, 1.5, 2];
     const currentIndex = rates.indexOf(playbackRate);
     const nextRate = rates[(currentIndex + 1) % rates.length];
@@ -146,17 +160,17 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
   };
 
   const toggleFullscreen = () => {
-    const container = iframeRef.current?.parentElement;
-    if (!container) return;
+    if (!containerRef.current) return;
     if (document.fullscreenElement) {
       document.exitFullscreen();
     } else {
-      container.requestFullscreen();
+      containerRef.current.requestFullscreen();
     }
   };
 
   return (
     <div 
+      ref={containerRef}
       className="video-mask group relative rounded-[2.5rem] bg-black shadow-2xl overflow-hidden ring-1 ring-white/10"
       onMouseMove={handleMouseMove}
       onMouseLeave={() => isPlaying && setShowControls(false)}
@@ -169,19 +183,23 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
       />
 
-      {/* Click Shield / Interaction Layer */}
+      {/* Interaction Layers */}
       <div 
         className="absolute inset-0 z-10 cursor-pointer" 
         onClick={togglePlay}
       />
 
+      {/* Click-Shield Overlays (Block hidden links) */}
+      <div className="absolute top-0 left-0 right-0 h-20 z-20 cursor-default" onClick={(e) => e.stopPropagation()} />
+      <div className="absolute bottom-0 right-0 w-32 h-16 z-20 cursor-default" onClick={(e) => e.stopPropagation()} />
+
       {/* Central Play Button */}
       <div className={cn(
-        "absolute inset-0 flex items-center justify-center z-20 pointer-events-none transition-all duration-500",
+        "absolute inset-0 flex items-center justify-center z-30 pointer-events-none transition-all duration-500",
         (!isPlaying || showControls) ? "opacity-100 scale-100" : "opacity-0 scale-110"
       )}>
         {!isPlaying && (
-          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl animate-in zoom-in-75 duration-300">
+          <div className="w-24 h-24 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 shadow-2xl animate-in zoom-in-75 duration-300 pointer-events-auto cursor-pointer" onClick={togglePlay}>
             <Play size={40} className="text-white fill-white ml-2" />
           </div>
         )}
@@ -189,15 +207,17 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
 
       {/* Bottom Controls Overlay */}
       <div className={cn(
-        "absolute bottom-0 left-0 right-0 z-30 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-20 pb-8 px-8",
+        "absolute bottom-0 left-0 right-0 z-40 transition-all duration-500 bg-gradient-to-t from-black/90 via-black/40 to-transparent pt-20 pb-8 px-8",
         (showControls || !isPlaying) ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
       )}>
-        {/* Progress Bar */}
-        <div className="mb-6 group/progress">
+        {/* Custom Progress Bar (LMS Style) */}
+        <div className="mb-6 group/progress relative px-1">
           <Slider
             value={[currentTime]}
             max={duration || 100}
             step={0.1}
+            onPointerDown={() => setIsDragging(true)}
+            onPointerUp={() => setIsDragging(false)}
             onValueChange={handleSeek}
             className="cursor-pointer"
             trackClassName="bg-white/20 h-1.5"
@@ -210,7 +230,10 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
         <div className="flex items-center justify-between">
           {/* Left Side: Play, Time, Skips */}
           <div className="flex items-center gap-6">
-            <button onClick={togglePlay} className="text-white hover:text-[#8b5cf6] transition-colors">
+            <button 
+              onClick={(e) => { e.stopPropagation(); togglePlay(); }} 
+              className="text-white hover:text-[#8b5cf6] transition-colors"
+            >
               {isPlaying ? <Pause size={24} className="fill-white" /> : <Play size={24} className="fill-white" />}
             </button>
             
@@ -230,24 +253,22 @@ function CustomLmsPlayer({ videoId, lessonId, onComplete }: { videoId: string, l
 
           {/* Right Side: Volume, Rate, CC, Gear, Fullscreen */}
           <div className="flex items-center gap-5">
-            <div className="flex items-center gap-3">
-              <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white/80 hover:text-white transition-colors">
-                {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-              </button>
-            </div>
+            <button onClick={(e) => { e.stopPropagation(); toggleMute(); }} className="text-white/80 hover:text-white transition-colors">
+              {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+            </button>
 
             <button 
-              onClick={(e) => { e.stopPropagation(); changeRate(); }}
+              onClick={(e) => { e.stopPropagation(); cycleRate(); }}
               className="px-3 py-1 rounded-md bg-white/10 hover:bg-white/20 text-white text-[11px] font-black tracking-widest transition-all"
             >
               {playbackRate}x
             </button>
 
-            <button className="text-white/80 hover:text-white transition-colors">
+            <button className="text-white/80 hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>
               <Type size={18} />
             </button>
 
-            <button className="text-white/80 hover:text-white transition-colors">
+            <button className="text-white/80 hover:text-white transition-colors" onClick={(e) => e.stopPropagation()}>
               <Settings size={18} />
             </button>
 
