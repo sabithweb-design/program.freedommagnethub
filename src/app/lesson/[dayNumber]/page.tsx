@@ -28,9 +28,14 @@ import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
 
-// Plyr for industry-standard video experience
+// Plyr for industry-standard professional video experience
 import "plyr/dist/plyr.css";
-const Plyr = dynamic(() => import("plyr-react"), { ssr: false });
+
+// Dynamically import Plyr to avoid SSR issues
+const Plyr = dynamic(() => import("plyr-react").then((mod) => mod.default || mod), { 
+  ssr: false,
+  loading: () => <div className="aspect-video w-full bg-slate-900 animate-pulse rounded-[1.5rem] lg:rounded-[3rem]" />
+});
 
 interface LessonData {
   id?: string;
@@ -221,7 +226,7 @@ function LessonContent() {
       <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* Professional Plyr Video Player */}
+          {/* Industry Standard Plyr Implementation */}
           <div className="max-w-[1280px] mx-auto w-full aspect-video rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem] overflow-hidden shadow-2xl bg-black">
             <Plyr
               source={{
