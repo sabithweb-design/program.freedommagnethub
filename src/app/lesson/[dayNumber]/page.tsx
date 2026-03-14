@@ -106,12 +106,8 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
   return (
     <div className="w-full max-w-5xl mx-auto px-4 sm:px-0">
       <div className="relative w-full aspect-video rounded-[2rem] sm:rounded-[3rem] overflow-hidden shadow-2xl ring-1 ring-slate-200 dark:ring-slate-800 bg-black group">
-        {/* 
-            MASKING TECHNIQUE:
-            We wrap the player in a container that slightly crops the top 
-            where YouTube usually shows the Title and Avatar on Desktop.
-        */}
-        <div className="absolute inset-0 scale-[1.01] -top-[1%]">
+        {/* Force Plyr to fill the aspect-video container */}
+        <div className="absolute inset-0 w-full h-full">
            <div 
              ref={videoRef}
              data-plyr-provider="youtube"
