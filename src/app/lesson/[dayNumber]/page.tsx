@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useRef, Suspense } from "react";
@@ -32,11 +33,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
-import dynamic from "next/dynamic";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-// Dynamic import for ReactPlayer to avoid SSR issues
-const ReactPlayer = dynamic(() => import("react-player/lazy"), { ssr: false });
 
 interface LessonData {
   id?: string;
@@ -54,68 +51,105 @@ interface LessonData {
 }
 
 /**
- * Professional LMS Video Player
- * Precision-Crop logic for 115% scale to hide YouTube branding.
- * Laptop/Desktop: 1280x720 footprint centered.
- * Mobile: Auto-hide controls with touch reveal and scaled UI.
+ * Professional LMS Video Player using Native YouTube IFrame API
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [playing, setPlaying] = useState(false);
-  const [isReady, setIsReady] = useState(false);
   const [played, setPlayed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(true); // Start muted to satisfy browser policies
+  const [isMuted, setIsMuted] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [isReady, setIsReady] = useState(false);
+
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = useIsMobile();
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isMobile = useIsMobile();
+
+  // Load YouTube IFrame API
+  useEffect(() => {
+    const loadAPI = () => {
+      if (!(window as any).YT) {
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+      }
+    };
+
+    const initPlayer = () => {
+      playerRef.current = new (window as any).YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        videoId: videoId,
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          modestbranding: 1,
+          rel: 0,
+          showinfo: 0,
+          iv_load_policy: 3,
+          disablekb: 1,
+          origin: window.location.origin
+        },
+        events: {
+          onReady: (event: any) => {
+            setIsReady(true);
+            setDuration(event.target.getDuration());
+          },
+          onStateChange: (event: any) => {
+            const state = event.data;
+            if (state === (window as any).YT.PlayerState.PLAYING) setPlaying(true);
+            if (state === (window as any).YT.PlayerState.PAUSED) setPlaying(false);
+            if (state === (window as any).YT.PlayerState.ENDED) setPlaying(false);
+          }
+        }
+      });
+    };
+
+    if (!(window as any).YT || !(window as any).YT.Player) {
+      loadAPI();
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
+    } else {
+      initPlayer();
+    }
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+    };
+  }, [videoId]);
+
+  // Update progress bar
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function' && playing) {
+        const currentTime = playerRef.current.getCurrentTime();
+        setPlayed(currentTime / duration);
+      }
+    }, 500);
+    return () => clearInterval(interval);
+  }, [playing, duration]);
 
   const togglePlay = () => {
-    if (!isReady || !playerRef.current) return;
+    if (!playerRef.current || !isReady) return;
     
-    const newPlaying = !playing;
-    setPlaying(newPlaying);
-    
-    // Direct trigger for YouTube Internal Player to bypass state delays
-    const internalPlayer = playerRef.current.getInternalPlayer();
-    if (internalPlayer) {
-      if (newPlaying) {
-        internalPlayer.playVideo();
-      } else {
-        internalPlayer.pauseVideo();
-      }
+    if (playing) {
+      playerRef.current.pauseVideo();
+    } else {
+      // Audio Policy: Mute for 100ms then unmute to bypass browser block
+      playerRef.current.mute();
+      playerRef.current.playVideo();
+      setTimeout(() => {
+        playerRef.current.unMute();
+        setIsMuted(false);
+      }, 100);
     }
 
     if (isMobile) setShowControls(true);
   };
-
-  const handleStart = () => {
-    console.log("Video started playing");
-    // Muted Start Policy: Switch to unmuted after 500ms of successful playback
-    setTimeout(() => {
-      setIsMuted(false);
-    }, 500);
-  };
-
-  const toggleMute = () => {
-    setIsMuted(prev => !prev);
-  };
-
-  // Mobile Auto-Hide Logic: Hide controls after 2 seconds of inactivity when playing
-  useEffect(() => {
-    if (isMobile && playing && showControls) {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 2000);
-    }
-    return () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    };
-  }, [isMobile, playing, showControls]);
 
   const handleInteraction = () => {
     if (isMobile) {
@@ -129,20 +163,40 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
     }
   };
 
-  const formatTime = (seconds: number) => {
-    const date = new Date(seconds * 1000);
-    const hh = date.getUTCHours();
-    const mm = date.getUTCMinutes();
-    const ss = date.getUTCSeconds().toString().padStart(2, '0');
-    if (hh) return `${hh}:${mm.toString().padStart(2, '0')}:${ss}`;
-    return `${mm}:${ss}`;
+  useEffect(() => {
+    if (isMobile && playing && showControls) {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+      controlsTimeoutRef.current = setTimeout(() => {
+        setShowControls(false);
+      }, 2000);
+    }
+    return () => {
+      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+    };
+  }, [isMobile, playing, showControls]);
+
+  const toggleMute = () => {
+    if (!playerRef.current) return;
+    if (isMuted) {
+      playerRef.current.unMute();
+    } else {
+      playerRef.current.mute();
+    }
+    setIsMuted(!isMuted);
   };
 
   const handleSeekChange = (value: number[]) => {
-    const newPlayed = value[0] / 100;
-    setPlayed(newPlayed);
-    playerRef.current?.seekTo(newPlayed);
+    if (!playerRef.current) return;
+    const seekSeconds = (value[0] / 100) * duration;
+    playerRef.current.seekTo(seekSeconds, true);
+    setPlayed(value[0] / 100);
     if (isMobile) setShowControls(true);
+  };
+
+  const handleRateChange = (rate: number) => {
+    if (!playerRef.current) return;
+    playerRef.current.setPlaybackRate(rate);
+    setPlaybackRate(rate);
   };
 
   const toggleFullscreen = () => {
@@ -151,6 +205,15 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
     } else {
       document.exitFullscreen();
     }
+  };
+
+  const formatTime = (seconds: number) => {
+    const date = new Date(seconds * 1000);
+    const hh = date.getUTCHours();
+    const mm = date.getUTCMinutes();
+    const ss = date.getUTCSeconds().toString().padStart(2, '0');
+    if (hh) return `${hh}:${mm.toString().padStart(2, '0')}:${ss}`;
+    return `${mm}:${ss}`;
   };
 
   return (
@@ -167,53 +230,23 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
         "lg:w-[1280px] lg:h-[720px] lg:aspect-auto lg:mx-auto" 
       )}>
         
-        {/* Core Video Engine with Precision Crop (115% scale to hide branding) */}
+        {/* Native YouTube Engine with Branding-Hide Scaling */}
         <div className="absolute inset-0 pointer-events-none scale-[1.15]">
-          <ReactPlayer
-            ref={playerRef}
-            url={`https://www.youtube.com/watch?v=${videoId}`}
-            width="100%"
-            height="100%"
-            playing={playing}
-            muted={isMuted}
-            volume={volume}
-            playbackRate={playbackRate}
-            onReady={() => setIsReady(true)}
-            onProgress={(state) => setPlayed(state.played)}
-            onDuration={(d) => setDuration(d)}
-            onStart={handleStart}
-            onPlay={() => console.log("Video playing")}
-            config={{
-              youtube: {
-                playerVars: { 
-                  modestbranding: 1, 
-                  rel: 0, 
-                  showinfo: 0, 
-                  iv_load_policy: 3,
-                  controls: 0,
-                  disablekb: 1
-                }
-              }
-            }}
-          />
+          <div id="youtube-player" className="w-full h-full" />
         </div>
 
-        {/* Branding Shields - pointer-events-none so clicks pass through */}
+        {/* Branding Protectors */}
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
         <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-10" />
 
-        {/* Interaction Layer - Captures Background Clicks */}
+        {/* Click Interaction Layer (Pointer events pass through unless double click) */}
         <div 
           className="absolute inset-0 z-20 cursor-pointer pointer-events-auto" 
           onClick={handleInteraction}
-          onDoubleClick={() => {
-            const internal = playerRef.current?.getInternalPlayer();
-            if (internal) internal.playVideo();
-          }}
+          onDoubleClick={() => playerRef.current?.playVideo()}
         />
 
-        {/* Central Cinematic Play Button (Highest Priority z-index: 999) */}
-        {/* Container is pointer-events-none but button icon is pointer-events-auto */}
+        {/* Central Cinematic Trigger (High Priority) */}
         <div className={cn(
           "absolute inset-0 flex items-center justify-center z-[999] transition-opacity duration-300 pointer-events-none",
           (!playing || showControls) ? "opacity-100" : "opacity-0"
@@ -236,13 +269,13 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
           </button>
         </div>
 
-        {/* Professional Control Bar (z-index: 100) */}
+        {/* Professional LMS Controls (Low-Layer UI) */}
         <div className={cn(
-          "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-6 sm:px-8 pb-6 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-auto",
-          showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0 pointer-events-none"
+          "absolute inset-x-0 bottom-0 z-[100] transition-all duration-300 px-6 sm:px-8 pb-6 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none",
+          showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
         )}>
-          {/* Lavender Progress Bar */}
-          <div className="mb-4 lg:mb-6 group px-2 sm:px-0">
+          {/* Lavender Scrubber */}
+          <div className="mb-4 lg:mb-6 group px-2 sm:px-0 pointer-events-auto">
             <Slider
               value={[played * 100]}
               max={100}
@@ -255,8 +288,8 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
             />
           </div>
 
-          {/* Controls Row */}
-          <div className="flex items-center justify-between gap-4 px-1 sm:px-0">
+          {/* Icon Row */}
+          <div className="flex items-center justify-between gap-4 px-1 sm:px-0 pointer-events-auto">
             <div className="flex items-center gap-3 lg:gap-6">
               <button 
                 onClick={(e) => {
@@ -278,7 +311,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
                 <Settings size={14} className="text-white/40 hidden sm:block" />
                 <select 
                   value={playbackRate}
-                  onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
+                  onChange={(e) => handleRateChange(parseFloat(e.target.value))}
                   className="bg-transparent text-white text-[10px] lg:text-xs font-black uppercase tracking-widest outline-none cursor-pointer hover:text-[#8B5CF6] transition-colors"
                 >
                   <option value="0.5" className="text-slate-900">0.5x</option>
@@ -296,7 +329,7 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
                 }}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
-                {isMuted || volume === 0 ? <VolumeX size={isMobile ? 18 : 20} /> : <Volume2 size={isMobile ? 18 : 20} />}
+                {isMuted ? <VolumeX size={isMobile ? 18 : 20} /> : <Volume2 size={isMobile ? 18 : 20} />}
               </button>
               
               <button 
@@ -489,7 +522,7 @@ function LessonContent() {
       <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* Professional 1280x720 Desktop Player / Responsive Mobile */}
+          {/* Professional 1280x720 Player */}
           <LmsVideoPlayer videoId={videoId} />
 
           <div className="max-w-6xl mx-auto px-4 sm:px-6">
