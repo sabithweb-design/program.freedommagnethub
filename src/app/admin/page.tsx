@@ -149,6 +149,20 @@ export default function AdminPage() {
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [editUserForm, setEditUserForm] = useState({ displayName: '', email: '', role: 'student' as 'student' | 'admin' });
 
+  // Lesson Edit State
+  const [editingLesson, setEditingLesson] = useState<any | null>(null);
+  const [editLessonFields, setEditLessonFields] = useState({
+    title: '',
+    description: '',
+    dayNumber: 1,
+    youtubeUrl: '',
+    vimeoUrl: '',
+    thumbnailUrl: '',
+    pdfUrl: '',
+    driveUrl: '',
+    actionPlan: ''
+  });
+
   // Delete Confirmation State
   const [deleteConfirmType, setDeleteConfirmType] = useState<'member' | 'program' | 'lesson' | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -173,6 +187,20 @@ export default function AdminPage() {
     adminIds: [] as string[],
     studentIds: [] as string[]
   });
+
+  const extractYoutubeId = (url: string) => {
+    if (!url) return '';
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : url;
+  };
+
+  const extractVimeoId = (url: string) => {
+    if (!url) return '';
+    const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
+    const match = url.match(regExp);
+    return match ? match[1] : url;
+  };
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
     if (!firestore) return;
@@ -446,20 +474,6 @@ export default function AdminPage() {
       return;
     }
 
-    const extractYoutubeId = (url: string) => {
-      if (!url) return '';
-      const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-      const match = url.match(regExp);
-      return (match && match[2].length === 11) ? match[2] : url;
-    };
-
-    const extractVimeoId = (url: string) => {
-      if (!url) return '';
-      const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
-      const match = url.match(regExp);
-      return match ? match[1] : url;
-    };
-
     const lessonData = {
       courseId: lessonForm.courseId,
       title: lessonForm.title || '',
@@ -482,6 +496,52 @@ export default function AdminPage() {
     }).catch(async (err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'lessons', operation: 'create', requestResourceData: lessonData }));
     });
+  };
+
+  const handleOpenEditLesson = (lesson: any) => {
+    setEditingLesson(lesson);
+    setEditLessonFields({
+      title: lesson.title || '',
+      description: lesson.description || '',
+      dayNumber: lesson.dayNumber || 1,
+      youtubeUrl: lesson.youtubeVideoId ? `https://youtube.com/watch?v=${lesson.youtubeVideoId}` : '',
+      vimeoUrl: lesson.vimeoVideoId ? `https://vimeo.com/${lesson.vimeoVideoId}` : '',
+      thumbnailUrl: lesson.thumbnailUrl || '',
+      pdfUrl: lesson.pdfUrl || '',
+      driveUrl: lesson.driveUrl || '',
+      actionPlan: lesson.actionPlan || ''
+    });
+  };
+
+  const handleUpdateLesson = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!firestore || !editingLesson) return;
+
+    const lessonRef = doc(firestore, 'lessons', editingLesson.id);
+    const updateData = {
+      title: editLessonFields.title,
+      description: editLessonFields.description,
+      dayNumber: Number(editLessonFields.dayNumber),
+      youtubeVideoId: extractYoutubeId(editLessonFields.youtubeUrl),
+      vimeoVideoId: extractVimeoId(editLessonFields.vimeoUrl),
+      thumbnailUrl: editLessonFields.thumbnailUrl,
+      pdfUrl: editLessonFields.pdfUrl,
+      driveUrl: editLessonFields.driveUrl,
+      actionPlan: editLessonFields.actionPlan
+    };
+
+    updateDoc(lessonRef, updateData)
+      .then(() => {
+        toast({ title: "Lesson Updated", description: "The content session has been successfully modified." });
+        setEditingLesson(null);
+      })
+      .catch(async (err) => {
+        errorEmitter.emit('permission-error', new FirestorePermissionError({ 
+          path: lessonRef.path, 
+          operation: 'update', 
+          requestResourceData: updateData 
+        }));
+      });
   };
 
   const toggleAdminAssignment = (adminUid: string) => {
@@ -849,9 +909,12 @@ export default function AdminPage() {
                         </div>
                       </div>
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+                        <Button variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-primary" onClick={() => handleOpenEditLesson(l)}>
+                          <Edit2 size={16} />
+                        </Button>
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
                           const url = `${window.location.origin}/lesson/${l.dayNumber}?courseId=${l.courseId}`;
-                          navigator.clipboard.writeText(url);
+                          navigator.clipboard.text(url);
                           toast({ title: "Session Link Copied", description: "Share this link with your enrolled students." });
                         }}>
                           <Share2 size={16} />
@@ -928,6 +991,58 @@ export default function AdminPage() {
             <DialogFooter className="pt-4 gap-2">
               <Button type="button" variant="ghost" onClick={() => setEditingUser(null)} className="rounded-xl h-12 font-bold">Cancel</Button>
               <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 dark:text-slate-900">Save Changes</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Lesson Edit Dialog */}
+      <Dialog open={!!editingLesson} onOpenChange={(open) => !open && setEditingLesson(null)}>
+        <DialogContent className="rounded-3xl max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Content Session</DialogTitle>
+            <DialogDescription>Modify the details and resources for this lesson.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleUpdateLesson} className="space-y-6 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-bold">Session Day #</Label>
+                <Input type="number" min="1" max="90" value={editLessonFields.dayNumber} onChange={e => setEditLessonFields({...editLessonFields, dayNumber: Number(e.target.value)})} required className="h-12 rounded-xl text-slate-900" />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">YouTube URL</Label>
+                <Input placeholder="YouTube Link" value={editLessonFields.youtubeUrl} onChange={e => setEditLessonFields({...editLessonFields, youtubeUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Vimeo URL</Label>
+              <Input placeholder="Vimeo Link" value={editLessonFields.vimeoUrl} onChange={e => setEditLessonFields({...editLessonFields, vimeoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="font-bold">PDF Resource</Label>
+                <Input placeholder="https://..." value={editLessonFields.pdfUrl} onChange={e => setEditLessonFields({...editLessonFields, pdfUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-bold">Drive Resource</Label>
+                <Input placeholder="Google Drive Link" value={editLessonFields.driveUrl} onChange={e => setEditLessonFields({...editLessonFields, driveUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Session Title</Label>
+              <Input value={editLessonFields.title} onChange={e => setEditLessonFields({...editLessonFields, title: e.target.value})} required className="h-12 rounded-xl text-slate-900" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Description</Label>
+              <Textarea value={editLessonFields.description} onChange={e => setEditLessonFields({...editLessonFields, description: e.target.value})} className="min-h-[100px] rounded-xl text-slate-900" />
+            </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Action Plan</Label>
+              <Textarea value={editLessonFields.actionPlan} onChange={e => setEditLessonFields({...editLessonFields, actionPlan: e.target.value})} className="min-h-[100px] rounded-xl text-slate-900" />
+            </div>
+            <DialogFooter className="pt-4 gap-2">
+              <Button type="button" variant="ghost" onClick={() => setEditingLesson(null)} className="rounded-xl h-12 font-bold">Cancel</Button>
+              <Button type="submit" className="flex-1 rounded-xl h-12 font-bold bg-primary text-white">Save Changes</Button>
             </DialogFooter>
           </form>
         </DialogContent>
