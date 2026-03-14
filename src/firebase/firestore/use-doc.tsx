@@ -28,14 +28,22 @@ export function useDoc<T = DocumentData>(ref: DocumentReference<T> | null) {
         const docData = snapshot.data();
         setData(docData ? ({ ...docData, id: snapshot.id } as T) : null);
         setLoading(false);
+        setError(null);
       },
-      async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: ref.path,
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        setError(permissionError);
+      async (serverError: any) => {
+        // Only emit and throw FirestorePermissionError if it's actually a permission issue
+        if (serverError?.code === 'permission-denied') {
+          const permissionError = new FirestorePermissionError({
+            path: ref.path,
+            operation: 'get',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setError(permissionError);
+        } else {
+          // Handle other errors (like timeouts) gracefully
+          console.warn('Firestore Document Error:', serverError.message);
+          setError(serverError);
+        }
         setLoading(false);
       }
     );

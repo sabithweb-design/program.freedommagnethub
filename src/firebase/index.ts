@@ -2,7 +2,7 @@
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { firebaseConfig } from './config';
 
@@ -12,7 +12,15 @@ export function initializeFirebase(): {
   auth: Auth;
 } {
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  const firestore = getFirestore(app);
+  
+  // Use initializeFirestore to enable long-polling, which helps with connectivity 
+  // issues in certain development and proxy environments.
+  const firestore = getApps().length > 0 
+    ? getFirestore(app) 
+    : initializeFirestore(app, {
+        experimentalForceLongPolling: true,
+      });
+
   const auth = getAuth(app);
 
   // Set persistence to local so users stay logged in across browser restarts

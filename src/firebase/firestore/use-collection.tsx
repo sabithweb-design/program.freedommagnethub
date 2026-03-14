@@ -32,14 +32,22 @@ export function useCollection<T = DocumentData>(query: Query<T> | null) {
           })) as T[]
         );
         setLoading(false);
+        setError(null);
       },
-      async (serverError) => {
-        const permissionError = new FirestorePermissionError({
-          path: (query as any)._query?.path?.toString() || 'unknown',
-          operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        setError(permissionError);
+      async (serverError: any) => {
+        // Only emit and throw FirestorePermissionError if it's actually a permission issue
+        if (serverError?.code === 'permission-denied') {
+          const permissionError = new FirestorePermissionError({
+            path: (query as any)._query?.path?.toString() || 'unknown',
+            operation: 'list',
+          });
+          errorEmitter.emit('permission-error', permissionError);
+          setError(permissionError);
+        } else {
+          // Handle other errors (like timeouts) gracefully without the permission overlay
+          console.warn('Firestore Collection Error:', serverError.message);
+          setError(serverError);
+        }
         setLoading(false);
       }
     );
