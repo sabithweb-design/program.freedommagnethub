@@ -28,7 +28,8 @@ import {
   CalendarClock,
   RotateCcw,
   MessageSquare,
-  Captions
+  Captions,
+  Loader2
 } from "lucide-react";
 import Link from "next/link";
 import ReactPlayer from "react-player";
@@ -86,15 +87,13 @@ function LessonContent() {
   const [played, setPlayed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [showControls, setShowControls] = useState(true);
   const [isVideoActive, setIsVideoActive] = useState(false);
+  const [showControls, setShowControls] = useState(true);
   
   const playerRef = useRef<ReactPlayer>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Content Protection
   useEffect(() => {
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -207,15 +206,12 @@ function LessonContent() {
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(err => {
-        toast({ variant: "destructive", title: "Fullscreen Error", description: "Unable to enter fullscreen mode." });
-      });
+      containerRef.current.requestFullscreen();
     } else {
       document.exitFullscreen();
     }
   };
 
-  // Video Source Configuration
   const videoUrl = useMemo(() => {
     if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}?background=1&autoplay=0&muted=0&byline=0&portrait=0&title=0&badge=0&controls=0`;
     if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}?modestbranding=1&rel=0&iv_load_policy=3&controls=0`;
@@ -224,8 +220,9 @@ function LessonContent() {
 
   if (loading || fetching) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+        <Loader2 className="animate-spin h-12 w-12 text-primary" />
+        <p className="font-bold text-slate-400 animate-pulse">Syncing Session...</p>
       </div>
     );
   }
@@ -289,7 +286,6 @@ function LessonContent() {
       <main className="max-w-7xl mx-auto py-8">
         <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
           
-          {/* Advanced LMS Player Container */}
           <div className="max-w-5xl mx-auto w-full px-4 sm:px-6">
             <div 
               ref={containerRef}
@@ -298,7 +294,7 @@ function LessonContent() {
             >
               {videoUrl ? (
                 <>
-                  <div className="absolute inset-0 z-0 pointer-events-auto">
+                  <div className="absolute inset-0 z-0">
                     <ReactPlayer
                       ref={playerRef}
                       url={videoUrl}
@@ -308,48 +304,23 @@ function LessonContent() {
                       volume={volume}
                       muted={isMuted}
                       playbackRate={playbackRate}
-                      onStart={() => {
-                        setIsLoaded(true);
-                        setIsVideoActive(true);
-                        setPlaying(true);
-                      }}
+                      onStart={() => setIsVideoActive(true)}
                       onProgress={(state) => setPlayed(state.played)}
                       onDuration={(d) => setDuration(d)}
                       onPlay={() => setPlaying(true)}
                       onPause={() => setPlaying(false)}
-                      config={{
-                        vimeo: {
-                          playerOptions: { 
-                            byline: 0, portrait: 0, title: 0, badge: 0, controls: 0,
-                            autoplay: 1, muted: 0, background: 1
-                          }
-                        },
-                        youtube: {
-                          playerVars: { 
-                            modestbranding: 1, rel: 0, iv_load_policy: 3, controls: 0
-                          }
-                        }
-                      }}
                     />
                   </div>
 
-                  {/* Masking Layer (Disable clicks on iframe branding) */}
-                  <div className="absolute inset-0 z-10 pointer-events-none" />
-
-                  {/* Custom Interaction Layer */}
                   <div className={cn(
-                    "absolute inset-0 z-[100] transition-opacity duration-300 flex flex-col items-center justify-center pointer-events-auto",
+                    "absolute inset-0 z-50 transition-opacity duration-300 flex flex-col items-center justify-center bg-black/10",
                     !showControls && playing ? "opacity-0" : "opacity-100"
                   )}>
-                    {/* Big Center Play Button */}
-                    <button onClick={() => setPlaying(!playing)} className="focus:outline-none transition-transform hover:scale-110 active:scale-95">
+                    <button onClick={() => setPlaying(!playing)} className="focus:outline-none">
                       <CustomBigButton playing={playing} />
                     </button>
 
-                    {/* Bottom Control Bar */}
-                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex flex-col gap-3 pointer-events-auto">
-                      
-                      {/* Premium Scrubber (Indigo/Purple) */}
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col gap-3">
                       <div className="px-2">
                         <Slider
                           value={[played * 100]}
@@ -362,33 +333,25 @@ function LessonContent() {
                           }}
                           className="cursor-pointer"
                           trackClassName="h-1 bg-white/20"
-                          rangeClassName="bg-[#5022c3]"
-                          thumbClassName="w-3.5 h-3.5 bg-white border-none shadow-lg"
+                          rangeClassName="bg-primary"
+                          thumbClassName="w-3 h-3 bg-white border-none"
                         />
                       </div>
 
-                      {/* Controls Row */}
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 sm:gap-7">
-                          {/* Play/Pause */}
-                          <button onClick={() => setPlaying(!playing)} className="text-white hover:text-[#5022c3] transition-colors focus:outline-none">
-                            {playing ? <Pause className="w-5 h-5 sm:w-6 sm:h-6" /> : <Play className="w-5 h-5 sm:w-6 sm:h-6" />}
+                        <div className="flex items-center gap-4 sm:gap-6">
+                          <button onClick={() => setPlaying(!playing)} className="text-white hover:text-primary transition-colors">
+                            {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
                           </button>
-
-                          {/* Time Display */}
-                          <div className="text-[10px] sm:text-xs font-black text-white/90 font-mono tracking-tighter flex items-center gap-1.5 uppercase">
-                            {formatTime(played * duration)} <span className="text-white/30">/</span> {formatTime(duration)}
+                          <div className="text-[10px] sm:text-xs font-bold text-white/90 font-mono tracking-tight">
+                            {formatTime(played * duration)} / {formatTime(duration)}
                           </div>
-
-                          {/* Skip 10s */}
-                          <button onClick={handleSkipBack} className="text-white hover:text-[#5022c3] transition-colors focus:outline-none">
-                            <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6" />
+                          <button onClick={handleSkipBack} className="text-white hover:text-primary transition-colors">
+                            <RotateCcw className="w-6 h-6" />
                           </button>
-
-                          {/* Volume */}
-                          <div className="flex items-center gap-3 group/volume">
-                            <button onClick={() => setIsMuted(!isMuted)} className="text-white hover:text-[#5022c3] transition-colors">
-                              {isMuted || volume === 0 ? <VolumeX className="w-5 h-5 sm:w-6 sm:h-6" /> : <Volume2 className="w-5 h-5 sm:w-6 sm:h-6" />}
+                          <div className="flex items-center gap-2 group/volume">
+                            <button onClick={() => setIsMuted(!isMuted)} className="text-white hover:text-primary">
+                              {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
                             </button>
                             <Slider 
                               value={[isMuted ? 0 : volume * 100]} 
@@ -397,28 +360,24 @@ function LessonContent() {
                               className="w-16 hidden sm:block"
                               trackClassName="h-1 bg-white/20"
                               rangeClassName="bg-white"
-                              thumbClassName="w-2.5 h-2.5 bg-white border-none"
+                              thumbClassName="w-2 h-2 bg-white border-none"
                             />
                           </div>
                         </div>
 
                         <div className="flex items-center gap-3 sm:gap-6">
-                          {/* Speed Selector */}
                           <div className="relative group/speed">
-                            <button className="text-[9px] font-black text-white bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 uppercase tracking-widest flex items-center gap-2 transition-all">
+                            <button className="text-[10px] font-bold text-white bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 uppercase tracking-widest flex items-center gap-2">
                               {playbackRate}X <Settings className="w-4 h-4" />
                             </button>
-                            <div className="absolute bottom-full right-0 mb-4 bg-black/95 rounded-xl p-1 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all border border-white/10 min-w-[70px] shadow-2xl z-[150]">
-                              {[2, 1.5, 1.25, 1, 0.75].map((rate) => (
+                            <div className="absolute bottom-full right-0 mb-4 bg-black/95 rounded-xl p-1 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all border border-white/10 min-w-[60px] shadow-2xl">
+                              {[2, 1.5, 1, 0.75].map((rate) => (
                                 <button 
                                   key={rate}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPlaybackRate(rate);
-                                  }}
+                                  onClick={() => setPlaybackRate(rate)}
                                   className={cn(
-                                    "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg transition-colors",
-                                    playbackRate === rate ? "bg-[#5022c3] text-white" : "text-white/60 hover:text-white hover:bg-white/5"
+                                    "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg",
+                                    playbackRate === rate ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-white/5"
                                   )}
                                 >
                                   {rate}x
@@ -426,36 +385,25 @@ function LessonContent() {
                               ))}
                             </div>
                           </div>
-
-                          {/* CC / Subtitles */}
-                          <button className="text-white/60 hover:text-white transition-colors">
-                            <Captions className="w-5 h-5 sm:w-6 sm:h-6" />
-                          </button>
-
-                          {/* Fullscreen */}
-                          <button 
-                            onClick={toggleFullscreen} 
-                            className="text-white hover:text-[#5022c3] transition-colors focus:outline-none"
-                          >
-                            <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />
-                          </button>
+                          <button className="text-white/60 hover:text-white"><Captions className="w-6 h-6" /></button>
+                          <button onClick={toggleFullscreen} className="text-white hover:text-primary transition-colors"><Maximize className="w-6 h-6" /></button>
                         </div>
                       </div>
                     </div>
                   </div>
                 </>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-900">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-50 dark:bg-slate-900 border-2 border-dashed rounded-2xl">
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
                     <CalendarClock className="w-10 h-10 text-primary" />
                   </div>
                   <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-white">Session Coming Soon</h3>
-                    <p className="text-slate-400 font-medium max-w-xs mx-auto">
-                      Day {day} content hasn't been published for this program yet. Check back soon!
+                    <h3 className="text-2xl font-black text-foreground">Session Coming Soon</h3>
+                    <p className="text-slate-500 font-medium max-w-xs mx-auto">
+                      Content for Day {day} hasn't been published for this program yet. Check back later!
                     </p>
                   </div>
-                  <Button asChild variant="outline" className="border-white/20 text-white hover:bg-white/10 rounded-full px-8">
+                  <Button asChild variant="outline" className="rounded-full px-8">
                     <Link href="/dashboard">Return to Hub</Link>
                   </Button>
                 </div>
@@ -469,14 +417,14 @@ function LessonContent() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 border-b dark:border-slate-800 pb-8">
                   <div className="space-y-2">
                     <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight leading-none">
-                      {lesson?.title || `Session ${day}`}
+                      {lesson?.title || `Day ${day} Session`}
                     </h1>
                     <div className="flex gap-4 pt-4">
                       <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest">
                         Module 01
                       </Badge>
                       <span className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                        <Clock size={12} /> SESSION {day}
+                        <Clock size={12} /> DURATION VARIES
                       </span>
                     </div>
                   </div>
@@ -509,8 +457,8 @@ function LessonContent() {
                       {lesson.description}
                     </p>
                   </div>
-                ) : !fetching && (
-                   <p className="text-slate-400 italic">No session breakdown available for this day.</p>
+                ) : (
+                   <p className="text-slate-400 italic">No detailed session overview provided for this day.</p>
                 )}
 
                 {lesson?.actionPlan && (
@@ -589,8 +537,9 @@ const PlayerIcon = ({ className = "h-4 w-4" }: { className?: string }) => (
 export default function LessonPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+        <Loader2 className="animate-spin h-12 w-12 text-primary" />
+        <p className="font-bold text-slate-400">Loading Track...</p>
       </div>
     }>
       <LessonContent />

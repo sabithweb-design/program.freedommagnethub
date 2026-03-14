@@ -63,7 +63,8 @@ import {
   Info,
   Video,
   Filter,
-  AlertTriangle
+  AlertTriangle,
+  Database
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -115,7 +116,6 @@ export default function AdminPage() {
       );
     }
     
-    // For Sub Admins, we only query what we have permission to list
     return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc'));
   }, [firestore, lessonFilter, currentUser, isAdmin, authLoading]);
 
@@ -150,6 +150,7 @@ export default function AdminPage() {
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [isSeeding, setIsSeeding] = useState(false);
 
   // User Edit State
   const [editingUser, setEditingUser] = useState<any | null>(null);
@@ -206,6 +207,59 @@ export default function AdminPage() {
     const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
     const match = url.match(regExp);
     return match ? match[1] : url;
+  };
+
+  const seedSampleData = async () => {
+    if (!firestore || !currentUser) return;
+    setIsSeeding(true);
+    
+    try {
+      // 1. Create a sample course
+      const courseRef = await addDoc(collection(firestore, 'courses'), {
+        title: "Mastering the Freedom Magnet Hub",
+        description: "A comprehensive guide to using your new 90-day training platform. Learn how to upload content, manage students, and automate your workflow.",
+        category: "Platform Training",
+        imageUrl: "https://picsum.photos/seed/sample-course/800/450",
+        author: "Freedom Magnet Hub Team",
+        price: 0,
+        originalPrice: 999,
+        rating: 5.0,
+        reviewCount: 1,
+        adminIds: [currentUser.uid],
+        studentIds: [],
+        createdAt: serverTimestamp()
+      });
+
+      // 2. Create Lesson 1
+      await addDoc(collection(firestore, 'lessons'), {
+        courseId: courseRef.id,
+        title: "Welcome to Day 1: The Vision",
+        description: "Today we explore the ultimate vision of the Freedom Magnet. Learn how to attract your ideal students and build a life of freedom.",
+        actionPlan: "1. Watch the welcome video.\n2. Download the 'Vision Board' PDF.\n3. Join the private community.",
+        dayNumber: 1,
+        vimeoVideoId: "76979871", // Sample Vimeo ID
+        thumbnailUrl: "https://picsum.photos/seed/day1/800/450",
+        pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
+        isLocked: false,
+        createdAt: serverTimestamp()
+      });
+
+      toast({
+        title: "Sample Hub Seeded",
+        description: "A sample program and Lesson 1 have been created for you.",
+      });
+      
+      setLessonFilter(courseRef.id);
+      setActiveTab('courses');
+    } catch (err: any) {
+      toast({
+        variant: "destructive",
+        title: "Seeding Failed",
+        description: err.message,
+      });
+    } finally {
+      setIsSeeding(false);
+    }
   };
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
@@ -569,13 +623,9 @@ export default function AdminPage() {
     if (!lessons || !courses) return [];
     
     return lessons.filter(l => {
-      // Find the parent course to check if it's in the managed courses list
       const managedCourse = courses.find(c => c.id === l.courseId);
       if (!managedCourse) return false;
-      
-      // If a specific course filter is selected, strictly obey it
       if (lessonFilter !== 'all' && l.courseId !== lessonFilter) return false;
-
       return true;
     });
   }, [lessons, courses, lessonFilter]);
@@ -591,55 +641,65 @@ export default function AdminPage() {
             {isMainAdmin ? "Main Admin: Global control of users, programs, and administrative assignments." : "Sub Admin: Manage your assigned programs, enroll students, and publish content."}
           </p>
         </div>
-        <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className="rounded-full h-12 px-6 flex gap-2 font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all">
-              <UserPlus size={18} /> Register Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="rounded-3xl max-w-md">
-            <DialogHeader>
-              <DialogTitle>Register Account</DialogTitle>
-              <DialogDescription>Create a student account for your hub.</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateUser} className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label className="font-bold">Full Name</Label>
-                <Input value={newUserForm.displayName} onChange={e => setNewUserForm({...newUserForm, displayName: e.target.value})} placeholder="Name" required className="rounded-xl h-12 text-slate-900" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-bold">Email Address</Label>
-                <Input type="email" value={newUserForm.email} onChange={e => setNewUserForm({...newUserForm, email: e.target.value})} placeholder="your@email.com" required className="rounded-xl h-12 text-slate-900" />
-              </div>
-              <div className="space-y-2">
-                <Label className="font-bold">Password</Label>
-                <div className="relative">
-                  <Input type={showRegPassword ? "text" : "password"} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} placeholder="••••••••" required className="rounded-xl h-12 pr-11 text-slate-900" />
-                  <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                    {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
+        <div className="flex gap-3">
+          <Button 
+            variant="outline" 
+            onClick={seedSampleData} 
+            disabled={isSeeding}
+            className="rounded-full h-12 px-6 flex gap-2 font-bold border-primary/20 text-primary hover:bg-primary/5"
+          >
+            <Database size={18} /> {isSeeding ? "Seeding..." : "Seed Sample Hub"}
+          </Button>
+          <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="rounded-full h-12 px-6 flex gap-2 font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all">
+                <UserPlus size={18} /> Register Member
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="rounded-3xl max-w-md">
+              <DialogHeader>
+                <DialogTitle>Register Account</DialogTitle>
+                <DialogDescription>Create a student account for your hub.</DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreateUser} className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label className="font-bold">Full Name</Label>
+                  <Input value={newUserForm.displayName} onChange={e => setNewUserForm({...newUserForm, displayName: e.target.value})} placeholder="Name" required className="rounded-xl h-12 text-slate-900" />
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="font-bold">Role</Label>
-                <Select value={newUserForm.role} onValueChange={(val: any) => setNewUserForm({...newUserForm, role: val})}>
-                  <SelectTrigger className="h-12 rounded-xl text-slate-900">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="student">Student (Hub Access)</SelectItem>
-                    {isMainAdmin && <SelectItem value="admin">Admin (Co-Admin Access)</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-              <DialogFooter className="pt-4">
-                <Button type="submit" className="w-full rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 dark:text-slate-900" disabled={isAddingUser}>
-                  {isAddingUser ? "Registering..." : "Complete Registration"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <div className="space-y-2">
+                  <Label className="font-bold">Email Address</Label>
+                  <Input type="email" value={newUserForm.email} onChange={e => setNewUserForm({...newUserForm, email: e.target.value})} placeholder="your@email.com" required className="rounded-xl h-12 text-slate-900" />
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold">Password</Label>
+                  <div className="relative">
+                    <Input type={showRegPassword ? "text" : "password"} value={newUserForm.password} onChange={e => setNewUserForm({...newUserForm, password: e.target.value})} placeholder="••••••••" required className="rounded-xl h-12 pr-11 text-slate-900" />
+                    <button type="button" onClick={() => setShowRegPassword(!showRegPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                      {showRegPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label className="font-bold">Role</Label>
+                  <Select value={newUserForm.role} onValueChange={(val: any) => setNewUserForm({...newUserForm, role: val})}>
+                    <SelectTrigger className="h-12 rounded-xl text-slate-900">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="student">Student (Hub Access)</SelectItem>
+                      {isMainAdmin && <SelectItem value="admin">Admin (Co-Admin Access)</SelectItem>}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <DialogFooter className="pt-4">
+                  <Button type="submit" className="w-full rounded-xl h-12 font-bold bg-slate-900 dark:bg-slate-100 dark:text-slate-900" disabled={isAddingUser}>
+                    {isAddingUser ? "Registering..." : "Complete Registration"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </header>
 
       <Tabs defaultValue="courses" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
