@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, useRef, Suspense, useMemo } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -23,7 +23,6 @@ import {
   Play,
   Pause,
   Maximize,
-  Settings,
   Volume2,
   VolumeX
 } from "lucide-react";
@@ -34,7 +33,6 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
 
 // Dynamically import ReactPlayer to avoid SSR issues
 const ReactPlayer = dynamic(() => import('react-player/lazy'), { ssr: false });
@@ -55,7 +53,8 @@ interface LessonData {
 }
 
 /**
- * Professional LMS Video Player with Laptop Click Fixes and Mobile Auto-Hide
+ * Professional LMS Video Player with Thumbnail-First (light mode) architecture.
+ * This bypasses laptop autoplay blocks by ensuring the first interaction is native.
  */
 function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [playing, setPlaying] = useState(false);
@@ -63,246 +62,145 @@ function LmsVideoPlayer({ videoId }: { videoId: string }) {
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [showControls, setShowControls] = useState(true);
-  const [isReady, setIsReady] = useState(false);
-
+  
   const playerRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const isMobile = useIsMobile();
 
   const togglePlay = () => {
-    if (!isReady) return;
-
-    const internalPlayer = playerRef.current?.getInternalPlayer();
-    
-    if (!playing) {
-      // Direct Hardware Trigger for Laptop/Desktop
-      if (internalPlayer && typeof internalPlayer.playVideo === 'function') {
-        internalPlayer.playVideo();
-      }
-      // Wake up audio on first interaction
-      setIsMuted(false);
-    } else {
-      if (internalPlayer && typeof internalPlayer.pauseVideo === 'function') {
-        internalPlayer.pauseVideo();
-      }
-    }
-    
     setPlaying(!playing);
-  };
-
-  const handleInteraction = () => {
-    if (isMobile) {
-      if (!showControls) {
-        setShowControls(true);
-      } else {
-        togglePlay();
-      }
-    } else {
-      togglePlay();
-    }
-  };
-
-  // Mobile Auto-Hide Logic (< 768px)
-  useEffect(() => {
-    if (isMobile && playing && showControls) {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-      controlsTimeoutRef.current = setTimeout(() => {
-        setShowControls(false);
-      }, 2000);
-    }
-    return () => {
-      if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    };
-  }, [isMobile, playing, showControls]);
-
-  const toggleMute = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setIsMuted(!isMuted);
   };
 
   const handleSeekChange = (value: number[]) => {
     const seekSeconds = (value[0] / 100) * duration;
     playerRef.current?.seekTo(seekSeconds, 'seconds');
     setPlayed(value[0] / 100);
-    if (isMobile) setShowControls(true);
-  };
-
-  const handleRateChange = (rate: number) => {
-    setPlaybackRate(rate);
-  };
-
-  const toggleFullscreen = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!document.fullscreenElement) {
-      containerRef.current?.requestFullscreen();
-    } else {
-      document.exitFullscreen();
-    }
   };
 
   const formatTime = (seconds: number) => {
     const date = new Date(seconds * 1000);
-    const hh = date.getUTCHours();
     const mm = date.getUTCMinutes();
     const ss = date.getUTCSeconds().toString().padStart(2, '0');
-    if (hh) return `${hh}:${mm.toString().padStart(2, '0')}:${ss}`;
     return `${mm}:${ss}`;
   };
 
   return (
     <div 
-      ref={containerRef}
-      className="w-full flex justify-center items-center px-4 sm:px-0 mb-12"
-      onMouseEnter={() => !isMobile && setShowControls(true)}
-      onMouseLeave={() => !isMobile && playing && setShowControls(false)}
-    >
-      <div className={cn(
-        "relative overflow-hidden bg-black shadow-2xl transition-all duration-500",
+      className={cn(
+        "relative mx-auto overflow-hidden bg-black shadow-2xl group cursor-pointer transition-all duration-500",
         "rounded-[1.5rem] sm:rounded-[2rem] lg:rounded-[3rem]",
         "w-full aspect-video",
-        "lg:w-[1280px] lg:h-[720px] lg:aspect-auto lg:mx-auto" 
-      )}>
-        
-        {/* Interaction Layer (Captures taps/clicks) */}
-        <div 
-          className="absolute inset-0 z-10 cursor-pointer pointer-events-auto" 
-          onClick={handleInteraction}
-        />
-
-        {/* Video Engine with Precision Crop */}
-        <div className="absolute inset-0 pointer-events-none scale-[1.15]">
-          <ReactPlayer
-            ref={playerRef}
-            url={`https://www.youtube.com/watch?v=${videoId}`}
-            width="100%"
-            height="100%"
-            playing={playing}
-            muted={isMuted}
-            volume={1.0}
-            playbackRate={playbackRate}
-            onProgress={(state) => setPlayed(state.played)}
-            onDuration={setDuration}
-            onReady={() => setIsReady(true)}
-            onPlay={() => {
-              console.log('Video Playback Started');
-              setPlaying(true);
-            }}
-            onPause={() => setPlaying(false)}
-            config={{
-              youtube: {
-                playerVars: { 
-                  modestbranding: 1, 
-                  rel: 0, 
-                  controls: 0, 
-                  showinfo: 0, 
-                  iv_load_policy: 3,
-                  disablekb: 1,
-                  origin: typeof window !== 'undefined' ? window.location.origin : ''
-                }
+        "lg:w-[1280px] lg:h-[720px] lg:aspect-auto"
+      )}
+      onClick={togglePlay}
+    >
+      {/* Precision Branding Crop (115% Scale) */}
+      <div className="absolute inset-0 scale-[1.15] pointer-events-none">
+        <ReactPlayer
+          ref={playerRef}
+          url={`https://www.youtube.com/watch?v=${videoId}`}
+          playing={playing}
+          light={true} // CRITICAL: Forces thumbnail mode to bypass autoplay blocks
+          width="100%"
+          height="100%"
+          controls={false}
+          muted={isMuted}
+          playbackRate={playbackRate}
+          onProgress={(state) => setPlayed(state.played)}
+          onDuration={setDuration}
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
+          config={{
+            youtube: {
+              playerVars: { 
+                modestbranding: 1, 
+                rel: 0, 
+                showinfo: 0, 
+                iv_load_policy: 3,
+                disablekb: 1
               }
-            }}
-          />
+            }
+          }}
+        />
+      </div>
+
+      {/* Central Play Indicator (Visible only when not playing) */}
+      {!playing && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-20 h-20 sm:w-28 sm:h-28 bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform">
+            <Play className="text-black fill-black ml-1 w-8 h-8 sm:w-12 sm:h-12" />
+          </div>
         </div>
+      )}
 
-        {/* Branding Protectors (Top & Bottom Gradients - Click-Through Enabled) */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-20" />
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/60 to-transparent pointer-events-none z-20" />
-
-        {/* Central Cinematic Trigger (High Priority Layer) */}
-        <div className={cn(
-          "absolute inset-0 flex items-center justify-center z-[999] transition-opacity duration-300 pointer-events-none",
-          (!playing || showControls) ? "opacity-100" : "opacity-0"
-        )}>
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              togglePlay();
-            }}
-            className={cn(
-              "bg-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 active:scale-95 transition-all pointer-events-auto",
-              "w-16 h-16 lg:w-28 lg:h-28" 
-            )}
-          >
-            {playing ? (
-              <Pause className="text-slate-900 fill-slate-900 w-6 h-6 lg:w-10 lg:h-10" />
-            ) : (
-              <Play className="text-slate-900 fill-slate-900 ml-1 w-6 h-6 lg:w-10 lg:h-10" />
-            )}
-          </button>
-        </div>
-
-        {/* Professional LMS Controls (Top Priority Layer) */}
-        <div className={cn(
-          "absolute inset-x-0 bottom-0 z-[1000] transition-all duration-300 px-6 sm:px-8 pb-6 sm:pb-8 pt-12 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none",
-          showControls ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
-        )}>
+      {/* Bespoke LMS Controls (Appear ONLY after playing starts) */}
+      {playing && (
+        <div 
+          className="absolute inset-x-0 bottom-0 z-20 p-6 sm:p-8 bg-gradient-to-t from-black/90 to-transparent animate-in fade-in slide-in-from-bottom-2 duration-300"
+          onClick={(e) => e.stopPropagation()} // Prevent toggling play when clicking controls
+        >
           {/* Lavender Scrubber */}
-          <div className="mb-4 lg:mb-6 group px-2 sm:px-0 pointer-events-auto">
+          <div className="mb-4">
             <Slider
               value={[played * 100]}
               max={100}
               step={0.1}
               onValueChange={handleSeekChange}
-              className="cursor-pointer"
               trackClassName="h-1 bg-white/20"
-              rangeClassName="bg-[#8B5CF6]" 
-              thumbClassName="w-3 h-3 bg-[#8B5CF6] border-none opacity-0 group-hover:opacity-100 transition-opacity"
+              rangeClassName="bg-[#8B5CF6]"
+              thumbClassName="w-3 h-3 bg-[#8B5CF6] border-none"
             />
           </div>
 
-          {/* Icon Row */}
-          <div className="flex items-center justify-between gap-4 px-1 sm:px-0 pointer-events-auto">
-            <div className="flex items-center gap-3 lg:gap-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4 sm:gap-6">
               <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  togglePlay();
-                }}
+                onClick={() => setPlaying(!playing)}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
-                {playing ? <Pause size={isMobile ? 18 : 24} /> : <Play size={isMobile ? 18 : 24} className="ml-0.5" />}
+                {playing ? <Pause size={24} /> : <Play size={24} className="ml-0.5" />}
               </button>
               
-              <div className="text-[10px] lg:text-sm font-bold text-white/90 tabular-nums tracking-tight">
+              <div className="text-[10px] sm:text-xs font-bold text-white tabular-nums tracking-tight">
                 {formatTime(played * duration)} <span className="text-white/40 mx-1">/</span> {formatTime(duration)}
               </div>
             </div>
 
-            <div className="flex items-center gap-3 lg:gap-6">
-              <div className="flex items-center gap-1.5 lg:gap-2">
-                <Settings size={14} className="text-white/40 hidden sm:block" />
+            <div className="flex items-center gap-4 sm:gap-6">
+              <div className="flex items-center gap-2">
                 <select 
                   value={playbackRate}
-                  onChange={(e) => handleRateChange(parseFloat(e.target.value))}
-                  className="bg-transparent text-white text-[10px] lg:text-xs font-black uppercase tracking-widest outline-none cursor-pointer hover:text-[#8B5CF6] transition-colors"
+                  onChange={(e) => setPlaybackRate(parseFloat(e.target.value))}
+                  className="bg-transparent text-white text-[10px] font-black uppercase tracking-widest outline-none cursor-pointer hover:text-[#8B5CF6] transition-colors"
                 >
                   <option value="0.5" className="text-slate-900">0.5x</option>
                   <option value="1" className="text-slate-900">1.0x</option>
-                  <option value="1.25" className="text-slate-900">1.25x</option>
                   <option value="1.5" className="text-slate-900">1.5x</option>
                   <option value="2" className="text-slate-900">2.0x</option>
                 </select>
               </div>
 
               <button 
-                onClick={toggleMute}
+                onClick={() => setIsMuted(!isMuted)}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
-                {isMuted ? <VolumeX size={isMobile ? 18 : 20} /> : <Volume2 size={isMobile ? 18 : 20} />}
+                {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
               </button>
               
               <button 
-                onClick={toggleFullscreen}
+                onClick={() => {
+                  if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                  } else {
+                    document.exitFullscreen();
+                  }
+                }}
                 className="text-white hover:text-[#8B5CF6] transition-colors"
               >
-                <Maximize size={isMobile ? 18 : 20} />
+                <Maximize size={20} />
               </button>
             </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
