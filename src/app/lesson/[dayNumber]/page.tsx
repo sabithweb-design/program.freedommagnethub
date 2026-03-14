@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useRef } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, setDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -17,8 +17,7 @@ import {
   CheckCircle2,
   FileText,
   ClipboardList,
-  AlertCircle,
-  FolderOpen
+  AlertCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -26,7 +25,6 @@ import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { PlayerIcon } from "@/app/admin/page";
-import "plyr/dist/plyr.css";
 
 interface LessonData {
   id?: string;
@@ -51,7 +49,6 @@ function LessonContent() {
   const router = useRouter();
   const { user, profile, loading, isAdmin } = useAuth();
   const { toast } = useToast();
-  const videoRef = useRef<HTMLDivElement>(null);
   
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [lessonId, setLessonId] = useState<string | null>(null);
@@ -120,61 +117,6 @@ function LessonContent() {
     fetchLesson();
   }, [user, loading, day, courseId, router]);
 
-  useEffect(() => {
-    if (!lesson || (!lesson.youtubeVideoId && !lesson.vimeoVideoId) || !videoRef.current) return;
-
-    let playerInstance: any;
-
-    const initPlyr = async () => {
-      try {
-        const Plyr = (await import("plyr")).default;
-        if (videoRef.current) {
-          playerInstance = new Plyr(videoRef.current, {
-            controls: [
-              'play-large', 
-              'play', 
-              'progress', 
-              'current-time', 
-              'mute', 
-              'volume', 
-              'settings', 
-              'fullscreen'
-            ],
-            settings: ['speed', 'quality'],
-            speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-            youtube: {
-              noCookie: true,
-              rel: 0,
-              showinfo: 0,
-              iv_load_policy: 3,
-              modestbranding: 1,
-              controls: 0,
-              disablekb: 1
-            },
-            vimeo: {
-              title: 0,
-              byline: 0,
-              portrait: 0,
-              badge: 0,
-              autopause: 0,
-              controls: 0
-            }
-          });
-        }
-      } catch (e) {
-        console.error("Failed to load Plyr:", e);
-      }
-    };
-
-    initPlyr();
-
-    return () => {
-      if (playerInstance && typeof playerInstance.destroy === 'function') {
-        playerInstance.destroy();
-      }
-    };
-  }, [lesson, lessonId]);
-
   const handleToggleComplete = () => {
     if (!user || !lessonId) return;
     setCompleting(true);
@@ -230,6 +172,17 @@ function LessonContent() {
     );
   }
 
+  const getEmbedUrl = () => {
+    if (!lesson) return "";
+    if (lesson.youtubeVideoId) {
+      return `https://www.youtube.com/embed/${lesson.youtubeVideoId}?modestbranding=1&rel=0&controls=1&iv_load_policy=3&disablekb=1&fs=1&autoplay=0`;
+    }
+    if (lesson.vimeoVideoId) {
+      return `https://player.vimeo.com/video/${lesson.vimeoVideoId}?title=0&byline=0&portrait=0&badge=0&autopause=0&player_id=0&app_id=58479&controls=1`;
+    }
+    return "";
+  };
+
   return (
     <div className={`min-h-screen bg-background text-foreground pb-20 font-body transition-colors ${!isAdmin ? 'content-protected' : ''}`}>
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40 transition-colors">
@@ -265,19 +218,21 @@ function LessonContent() {
         </div>
       </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
         {lesson && (lesson.vimeoVideoId || lesson.youtubeVideoId) ? (
           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Custom Plyr Video Player Container */}
-            <div 
-              key={lessonId || day} 
-              className="overflow-hidden rounded-[2rem] shadow-2xl bg-black aspect-video relative group"
-            >
-              <div 
-                ref={videoRef}
-                data-plyr-provider={lesson.youtubeVideoId ? "youtube" : "vimeo"}
-                data-plyr-embed-id={lesson.youtubeVideoId || lesson.vimeoVideoId || "P5_rBMem0cE"}
+            {/* Premium LMS Video Mask Container */}
+            <div className="video-mask mx-auto shadow-2xl rounded-[2rem] bg-black overflow-hidden border dark:border-slate-800">
+              <iframe 
+                key={lessonId || day}
+                src={getEmbedUrl()}
+                className="video-iframe"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
               />
+              {/* Invisible Click Shields to Block Title and Logo Links */}
+              <div className="click-shield-top" />
+              <div className="click-shield-bottom-right" />
             </div>
 
             <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
@@ -363,7 +318,7 @@ function LessonContent() {
                           asChild
                         >
                           <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
-                            <FolderOpen className="mr-2 h-4 w-4" /> Drive Resources
+                            <Clock className="mr-2 h-4 w-4" /> Drive Resources
                           </a>
                         </Button>
                       )}

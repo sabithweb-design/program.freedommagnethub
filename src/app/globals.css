@@ -25,11 +25,6 @@
     --input: 250 10% 85%;
     --ring: 0 84% 60%;
     --radius: 1.5rem;
-
-    /* Plyr Customization to match Red Brand */
-    --plyr-color-main: hsl(0 84% 60%);
-    --plyr-video-control-background-hover: hsl(0 84% 60%);
-    --plyr-control-radius: 12px;
   }
 
   .dark {
@@ -65,26 +60,44 @@
   }
 }
 
-.lesson-grid-item {
-  @apply transition-all duration-300 hover:scale-105 active:scale-95;
+/* Premium LMS Video Player Classes */
+.video-mask {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  max-width: 100%;
+  aspect-ratio: 16/9;
+  background: black;
 }
 
-/* Custom Plyr Styles */
-.plyr {
-  --plyr-color-main: hsl(var(--primary));
-  --plyr-video-background: #000;
-  height: 100%;
+.video-iframe {
+  width: 115%;
+  height: 115%;
+  position: absolute;
+  top: -7.5%; /* Push Title Bar out of frame */
+  left: -7.5%; /* Push Left side branding out */
+  border: none;
+}
+
+.click-shield-top {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 15%; /* Block Title clicks */
+  background: transparent;
+  z-index: 20;
 }
 
-.plyr--video {
-  border-radius: inherit;
-}
-
-/* Hide branding by slightly scaling the underlying iframe inside Plyr */
-.plyr iframe {
-  transform: scale(1.1);
-  transform-origin: center;
+.click-shield-bottom-right {
+  position: absolute;
+  bottom: 10%; /* Leave the playbar visible */
+  right: 0;
+  width: 15%; /* Block YouTube logo/link */
+  height: 15%;
+  background: transparent;
+  z-index: 20;
 }
 
 /* Deterrent class to prevent selection (applied to non-admins) */
