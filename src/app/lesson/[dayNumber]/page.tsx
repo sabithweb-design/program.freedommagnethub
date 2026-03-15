@@ -301,8 +301,8 @@ function LessonContent() {
 
   const videoUrl = useMemo(() => {
     if (lesson?.driveVideoUrl) return formatDriveUrl(lesson.driveVideoUrl);
-    if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}?background=1&autoplay=0&muted=0&byline=0&portrait=0&title=0&badge=0&controls=0`;
-    if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}?modestbranding=1&rel=0&iv_load_policy=3&controls=0`;
+    if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}`;
+    if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}`;
     return null;
   }, [lesson]);
 
@@ -397,6 +397,28 @@ function LessonContent() {
                       onDuration={(d) => setDuration(d)}
                       onPlay={() => setPlaying(true)}
                       onPause={() => setPlaying(false)}
+                      config={{
+                        vimeo: {
+                          playerOptions: {
+                            background: 1,
+                            autoplay: 0,
+                            muted: 0,
+                            byline: 0,
+                            portrait: 0,
+                            title: 0,
+                            badge: 0,
+                            controls: 0
+                          }
+                        },
+                        youtube: {
+                          playerVars: {
+                            modestbranding: 1,
+                            rel: 0,
+                            iv_load_policy: 3,
+                            controls: 0
+                          }
+                        }
+                      }}
                     />
                   </div>
 
@@ -565,17 +587,17 @@ function LessonContent() {
                     </div>
                   )}
 
-                  {/* Optimized PDF Card for Laptop */}
-                  <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
-                    <div className="p-6 lg:p-7 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
-                      <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
-                        <FileText className="h-7 w-7 lg:h-8 lg:w-8 text-primary" />
-                      </div>
-                      <div className="flex-1 text-center sm:text-left">
-                        <h4 className="text-lg lg:text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts & Notes</h4>
-                        <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
-                      </div>
-                      {lesson?.pdfUrl ? (
+                  {/* Creative PDF Card - Conditionally hidden if no pdfUrl exists */}
+                  {lesson?.pdfUrl && (
+                    <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
+                      <div className="p-6 lg:p-7 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+                        <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                          <FileText className="h-7 w-7 lg:h-8 lg:w-8 text-primary" />
+                        </div>
+                        <div className="flex-1 text-center sm:text-left">
+                          <h4 className="text-lg lg:text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts & Notes</h4>
+                          <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
+                        </div>
                         <Button 
                           asChild
                           className="w-full sm:w-auto rounded-2xl h-12 lg:h-14 px-6 lg:px-8 font-black text-[10px] lg:text-xs uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all"
@@ -584,18 +606,9 @@ function LessonContent() {
                             <Download className="mr-2 h-4 w-4" /> Download PDF
                           </a>
                         </Button>
-                      ) : (
-                        <div className="w-full sm:w-auto text-center px-4 py-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Available Soon</span>
-                        </div>
-                      )}
-                    </div>
-                    {!lesson?.pdfUrl && (
-                      <div className="px-6 pb-5 text-[9px] lg:text-[10px] text-slate-400 font-medium text-center sm:text-left border-t border-slate-100/50 dark:border-slate-800/50 pt-3 mt-1">
-                        Study materials for this session are currently being finalized.
                       </div>
-                    )}
-                  </Card>
+                    </Card>
+                  )}
                 </div>
 
                 {/* Implementation Area */}
