@@ -38,7 +38,8 @@ import {
   Trash2,
   Bookmark,
   Activity,
-  Download
+  Download,
+  Info
 } from "lucide-react";
 import Link from "next/link";
 import ReactPlayer from "react-player";
@@ -54,11 +55,11 @@ interface LessonData {
   title?: string;
   description?: string;
   actionPlan?: string;
+  driveVideoUrl?: string; // New field from Firestore image
   youtubeVideoId?: string;
   vimeoVideoId?: string;
   thumbnailUrl?: string;
-  pdfUrl?: string;
-  driveUrl?: string;
+  pdfUrl?: string; // Field from Firestore image
   dayNumber: number;
   isLocked?: boolean;
   learningPoints?: string[];
@@ -290,7 +291,18 @@ function LessonContent() {
     }
   };
 
+  // Utility to handle Google Drive URLs for direct playback
+  const formatDriveUrl = (url?: string) => {
+    if (!url) return null;
+    if (url.includes('drive.google.com')) {
+      // Convert /view or /edit sharing links to /preview which react-player handles as an iframe better
+      return url.replace(/\/view.*$/, '/preview').replace(/\/edit.*$/, '/preview');
+    }
+    return url;
+  };
+
   const videoUrl = useMemo(() => {
+    if (lesson?.driveVideoUrl) return formatDriveUrl(lesson.driveVideoUrl);
     if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}?background=1&autoplay=0&muted=0&byline=0&portrait=0&title=0&badge=0&controls=0`;
     if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}?modestbranding=1&rel=0&iv_load_policy=3&controls=0`;
     return null;
@@ -493,7 +505,7 @@ function LessonContent() {
                   </h1>
                   <div className="flex items-center gap-4 pt-2">
                     <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-                      Module 01
+                      Session {day}
                     </Badge>
                     <span className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                       <Clock size={12} /> HD QUALITY
@@ -527,7 +539,7 @@ function LessonContent() {
                       <AlertCircle size={20} className="text-primary" /> Session Overview
                     </h3>
                     <div className="prose dark:prose-invert max-w-none">
-                      {lesson?.description ? (
+                      {lesson?.description && lesson.description.length > 10 ? (
                         <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg font-medium whitespace-pre-wrap">
                           {lesson.description}
                         </p>
@@ -556,16 +568,16 @@ function LessonContent() {
                   )}
 
                   {/* Creative PDF Card with Glassmorphism */}
-                  {lesson?.pdfUrl && (
-                    <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
-                      <div className="p-8 flex flex-col sm:flex-row items-center gap-6">
-                        <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
-                          <FileText className="h-8 w-8 text-primary" />
-                        </div>
-                        <div className="flex-1 text-center sm:text-left">
-                          <h4 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts & Notes</h4>
-                          <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
-                        </div>
+                  <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
+                    <div className="p-8 flex flex-col sm:flex-row items-center gap-6">
+                      <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                        <FileText className="h-8 w-8 text-primary" />
+                      </div>
+                      <div className="flex-1 text-center sm:text-left">
+                        <h4 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts & Notes</h4>
+                        <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
+                      </div>
+                      {lesson?.pdfUrl ? (
                         <Button 
                           asChild
                           className="w-full sm:w-auto rounded-2xl h-14 px-8 font-black text-xs uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all"
@@ -574,9 +586,18 @@ function LessonContent() {
                             <Download className="mr-2 h-4 w-4" /> Download PDF
                           </a>
                         </Button>
+                      ) : (
+                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-xl">
+                          <Info size={14} /> Soon
+                        </div>
+                      )}
+                    </div>
+                    {!lesson?.pdfUrl && (
+                      <div className="px-8 pb-4 text-[10px] text-slate-400 font-medium text-center sm:text-left">
+                        Study materials for this session will be uploaded soon.
                       </div>
-                    </Card>
-                  )}
+                    )}
+                  </Card>
                 </div>
 
                 {/* Implementation Area */}
