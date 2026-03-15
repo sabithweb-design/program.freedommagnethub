@@ -14,6 +14,7 @@ import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import dynamic from 'next/dynamic';
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -42,12 +43,14 @@ import {
   Info
 } from "lucide-react";
 import Link from "next/link";
-import ReactPlayer from "react-player";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { cn } from "@/lib/utils";
+
+// Dynamic import for ReactPlayer to avoid hydration mismatch
+const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
 
 interface LessonData {
   id?: string;
@@ -121,7 +124,7 @@ function LessonContent() {
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showControls, setShowControls] = useState(true);
   
-  const playerRef = useRef<ReactPlayer>(null);
+  const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 

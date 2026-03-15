@@ -17,8 +17,8 @@ import {
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
-import { PlayerIcon } from './page';
 import { BrandLogo } from '@/components/BrandLogo';
+import { PlayerIcon } from '@/components/icons/PlayerIcon';
 
 const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
 
