@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -36,7 +37,8 @@ import {
   Send,
   Trash2,
   Bookmark,
-  Activity
+  Activity,
+  Download
 } from "lucide-react";
 import Link from "next/link";
 import ReactPlayer from "react-player";
@@ -108,7 +110,6 @@ function LessonContent() {
   const [played, setPlayed] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
-  const [isVideoActive, setIsVideoActive] = useState(false);
   const [showControls, setShowControls] = useState(true);
   
   const playerRef = useRef<ReactPlayer>(null);
@@ -173,7 +174,6 @@ function LessonContent() {
     fetchLesson();
   }, [user, loading, day, courseId, router]);
 
-  // Fetch Notes
   const notesQuery = useMemo(() => {
     if (!firestore || !user || !lessonId) return null;
     return query(
@@ -245,7 +245,7 @@ function LessonContent() {
       .then(() => {
         setNoteText("");
         setCapturedTimestamp(null);
-        setPlaying(true); // Resume playback on save
+        setPlaying(true);
         toast({ title: "Note Saved", description: "Timestamped note added to your collection." });
       })
       .catch((err) => {
@@ -284,9 +284,7 @@ function LessonContent() {
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(err => {
-        console.error(`Error attempting to enable fullscreen: ${err.message}`);
-      });
+      containerRef.current.requestFullscreen();
     } else {
       document.exitFullscreen();
     }
@@ -366,11 +364,11 @@ function LessonContent() {
       <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           
-          {/* Main Content Area (Video + Details) */}
-          <div className="lg:col-span-8 space-y-12">
+          {/* Main Video Section */}
+          <div className="lg:col-span-8 space-y-10">
             <div 
               ref={containerRef}
-              className="relative aspect-video w-full rounded-2xl overflow-hidden shadow-2xl bg-black group"
+              className="relative aspect-video w-full rounded-3xl overflow-hidden shadow-2xl bg-black group"
               onMouseMove={handleMouseMove}
             >
               {videoUrl ? (
@@ -385,7 +383,6 @@ function LessonContent() {
                       volume={volume}
                       muted={isMuted}
                       playbackRate={playbackRate}
-                      onStart={() => setIsVideoActive(true)}
                       onProgress={(state) => setPlayed(state.played)}
                       onDuration={(d) => setDuration(d)}
                       onPlay={() => setPlaying(true)}
@@ -397,11 +394,11 @@ function LessonContent() {
                     "absolute inset-0 z-50 transition-opacity duration-300 flex flex-col items-center justify-center bg-black/10",
                     !showControls && playing ? "opacity-0" : "opacity-100"
                   )}>
-                    <button onClick={() => setPlaying(!playing)} className="focus:outline-none">
+                    <button onClick={() => setPlaying(!playing)} className="focus:outline-none hover:scale-105 transition-transform active:scale-95">
                       <CustomBigButton playing={playing} />
                     </button>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col gap-3">
+                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col gap-3">
                       <div className="px-2">
                         <Slider
                           value={[played * 100]}
@@ -415,14 +412,14 @@ function LessonContent() {
                           className="cursor-pointer"
                           trackClassName="h-1 bg-white/20"
                           rangeClassName="bg-primary"
-                          thumbClassName="w-3 h-3 bg-white border-none"
+                          thumbClassName="w-3 h-3 bg-white border-none shadow-sm"
                         />
                       </div>
 
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4 sm:gap-6">
                           <button onClick={() => setPlaying(!playing)} className="text-white hover:text-primary transition-colors">
-                            {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
+                            {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
                           </button>
                           <div className="text-[10px] sm:text-xs font-bold text-white/90 font-mono tracking-tight">
                             {formatTime(played * duration)} / {formatTime(duration)}
@@ -474,139 +471,143 @@ function LessonContent() {
                   </div>
                 </>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-50 dark:bg-slate-900 border-2 border-dashed rounded-2xl">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-50 dark:bg-slate-900 border-2 border-dashed rounded-3xl">
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
                     <CalendarClock className="w-10 h-10 text-primary" />
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-2xl font-black text-foreground">Session Coming Soon</h3>
                     <p className="text-slate-500 font-medium max-w-xs mx-auto">
-                      Content for Day {day} hasn't been published for this program yet. Check back later!
+                      Day {day} content is currently being finalized for this program track.
                     </p>
                   </div>
-                  <Button asChild variant="outline" className="rounded-full px-8">
-                    <Link href="/dashboard">Return to Hub</Link>
-                  </Button>
                 </div>
               )}
             </div>
 
             <div className="space-y-10">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 border-b dark:border-slate-800 pb-8">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="space-y-2">
-                  <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-foreground tracking-tight leading-none">
+                  <h1 className="text-3xl sm:text-5xl font-black text-foreground tracking-tight leading-none">
                     {lesson?.title || `Day ${day} Session`}
                   </h1>
-                  <div className="flex gap-4 pt-4">
+                  <div className="flex items-center gap-4 pt-2">
                     <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest">
                       Module 01
                     </Badge>
                     <span className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                      <Clock size={12} /> DURATION VARIES
+                      <Clock size={12} /> HD QUALITY
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-4">
-                  {lessonId && (
-                    <Button 
-                      onClick={handleToggleComplete}
-                      disabled={completing}
-                      className={cn(
-                        "rounded-full h-14 px-10 font-black transition-all shadow-xl text-xs uppercase tracking-widest border-2",
-                        isCompleted 
-                          ? "bg-emerald-500 border-emerald-400 hover:bg-emerald-600 text-white" 
-                          : "bg-slate-900 dark:bg-slate-100 border-transparent dark:text-slate-900"
-                      )}
-                    >
-                      {isCompleted ? (
-                        <><CheckCircle2 className="mr-3 h-5 w-5" /> Completed</>
-                      ) : (
-                        "Mark Session Complete"
-                      )}
-                    </Button>
-                  )}
-                </div>
+                {lessonId && (
+                  <Button 
+                    onClick={handleToggleComplete}
+                    disabled={completing}
+                    className={cn(
+                      "rounded-full h-14 px-10 font-black transition-all shadow-xl text-xs uppercase tracking-widest border-2 active:scale-95",
+                      isCompleted 
+                        ? "bg-emerald-500 border-emerald-400 hover:bg-emerald-600 text-white" 
+                        : "bg-slate-900 dark:bg-slate-100 border-transparent dark:text-slate-900"
+                    )}
+                  >
+                    {isCompleted ? <><CheckCircle2 className="mr-3 h-5 w-5" /> Done</> : "Mark Complete"}
+                  </Button>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                {/* Session Overview with Dynamic Info Box and Learning Points */}
-                <div className="space-y-8">
-                  <h3 className="text-xl font-black flex items-center gap-2">
-                    <AlertCircle size={20} className="text-primary" /> Session Overview
-                  </h3>
-                  
-                  <div className="bg-slate-50 dark:bg-slate-900/50 p-7 rounded-3xl border border-slate-100 dark:border-slate-800 space-y-8 shadow-sm">
-                    {lesson?.description ? (
-                      <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg font-medium whitespace-pre-wrap">
-                        {lesson.description}
-                      </p>
-                    ) : (
-                      <p className="text-slate-400 font-bold italic text-base">
-                        Overview coming soon! Stay tuned for more details about this session.
-                      </p>
-                    )}
+              <Separator className="bg-slate-100 dark:bg-slate-800" />
 
-                    {/* What you will learn bullet points */}
-                    {lesson?.learningPoints && lesson.learningPoints.length > 0 && (
-                      <div className="space-y-4 pt-6 border-t dark:border-slate-800">
-                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">What you will learn</h4>
-                        <ul className="space-y-3">
-                          {lesson.learningPoints.slice(0, 3).map((point, i) => (
-                            <li key={i} className="flex items-start gap-3 text-sm font-bold text-slate-700 dark:text-slate-300 group">
-                              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
-                                <CheckCircle2 size={14} className="text-primary" />
-                              </div>
-                              <span className="leading-snug">{point}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                {/* Dynamic Overview */}
+                <div className="space-y-8">
+                  <div className="space-y-4">
+                    <h3 className="text-xl font-black flex items-center gap-2">
+                      <AlertCircle size={20} className="text-primary" /> Session Overview
+                    </h3>
+                    <div className="prose dark:prose-invert max-w-none">
+                      {lesson?.description ? (
+                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg font-medium whitespace-pre-wrap">
+                          {lesson.description}
+                        </p>
+                      ) : (
+                        <p className="text-slate-400 font-bold italic text-base">
+                          Overview coming soon! Stay tuned for more details about this session.
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  {/* Move PDF button here as requested */}
+                  {lesson?.learningPoints && lesson.learningPoints.length > 0 && (
+                    <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
+                      <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Key Takeaways</h4>
+                      <ul className="space-y-3">
+                        {lesson.learningPoints.map((point, i) => (
+                          <li key={i} className="flex items-start gap-3 text-sm font-bold text-slate-700 dark:text-slate-300">
+                            <div className="h-6 w-6 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
+                              <CheckCircle2 size={14} className="text-emerald-500" />
+                            </div>
+                            <span className="leading-snug">{point}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Creative PDF Card with Glassmorphism */}
                   {lesson?.pdfUrl && (
-                    <Button 
-                      variant="outline" 
-                      className="h-16 w-full justify-start rounded-2xl font-black text-xs uppercase tracking-widest border-2 hover:bg-slate-50 dark:hover:bg-slate-900 group shadow-md" 
-                      asChild
-                    >
-                      <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                        <FileText className="mr-3 h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
-                        Download Lesson PDF Workbook
-                      </a>
-                    </Button>
+                    <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
+                      <div className="p-8 flex flex-col sm:flex-row items-center gap-6">
+                        <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                          <FileText className="h-8 w-8 text-primary" />
+                        </div>
+                        <div className="flex-1 text-center sm:text-left">
+                          <h4 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts & Notes</h4>
+                          <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
+                        </div>
+                        <Button 
+                          asChild
+                          className="w-full sm:w-auto rounded-2xl h-14 px-8 font-black text-xs uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all"
+                        >
+                          <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                            <Download className="mr-2 h-4 w-4" /> Download PDF
+                          </a>
+                        </Button>
+                      </div>
+                    </Card>
                   )}
                 </div>
 
-                <div className="space-y-8">
+                {/* Implementation Area */}
+                <div className="space-y-10">
                   {lesson?.actionPlan && (
                     <div className="space-y-6">
                       <h3 className="text-xl font-black flex items-center gap-2 text-primary">
-                        <ClipboardList size={20} /> Action & Implementation
+                        <ClipboardList size={20} /> Action Plan
                       </h3>
-                      <Card className="border-none shadow-xl rounded-2xl bg-primary/5 dark:bg-primary/10 p-6 relative overflow-hidden">
+                      <div className="bg-primary/5 dark:bg-primary/10 p-7 rounded-3xl border border-primary/10 relative overflow-hidden group">
                         <div className="text-slate-700 dark:text-slate-200 leading-relaxed font-bold text-base whitespace-pre-wrap relative z-10">
                           {lesson.actionPlan}
                         </div>
-                      </Card>
+                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <ClipboardList size={80} />
+                        </div>
+                      </div>
                     </div>
                   )}
 
                   {lesson?.driveUrl && (
-                    <div className="space-y-6 pt-4">
+                    <div className="space-y-6">
                       <h3 className="text-xl font-black flex items-center gap-2">
-                        <Bookmark size={20} className="text-primary" /> Additional Resources
+                        <Bookmark size={20} className="text-primary" /> Cloud Assets
                       </h3>
-                      <div className="flex flex-col gap-3">
-                        <Button variant="outline" className="h-14 justify-start rounded-2xl font-black text-xs uppercase tracking-widest border-2 group" asChild>
-                          <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
-                            <Bookmark className="mr-3 h-5 w-5 text-primary group-hover:rotate-12 transition-transform" /> 
-                            Access Resource Drive
-                          </a>
-                        </Button>
-                      </div>
+                      <Button variant="outline" className="h-16 w-full justify-start rounded-2xl font-black text-xs uppercase tracking-widest border-2 group shadow-sm hover:shadow-md transition-all" asChild>
+                        <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
+                          <Bookmark className="mr-4 h-6 w-6 text-primary group-hover:rotate-12 transition-transform" /> 
+                          Access Resource Drive
+                        </a>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -614,34 +615,32 @@ function LessonContent() {
             </div>
           </div>
 
-          {/* Interactive Notes Panel */}
+          {/* Interactive Study Notes */}
           <div className="lg:col-span-4 h-full">
-            <Card className="border-none shadow-2xl rounded-3xl bg-white dark:bg-slate-900 h-full flex flex-col sticky top-24 max-h-[calc(100vh-120px)] overflow-hidden">
-              <UICardHeader className="border-b dark:border-slate-800 pb-4">
-                <UICardTitle className="text-xl font-black flex items-center gap-2">
-                  <StickyNote size={20} className="text-primary" /> Study Notes
+            <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white dark:bg-slate-900 h-full flex flex-col sticky top-24 max-h-[calc(100vh-120px)] overflow-hidden">
+              <UICardHeader className="border-b dark:border-slate-800 px-8 py-6">
+                <UICardTitle className="text-2xl font-black flex items-center gap-3">
+                  <StickyNote size={24} className="text-primary" /> Study Notes
                 </UICardTitle>
-                <p className="text-xs text-slate-400 font-bold">Video pauses while you type for focus.</p>
+                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Live Sync Active</p>
               </UICardHeader>
               
-              <div className="p-5 space-y-4">
+              <div className="px-8 py-6 space-y-4">
                 <div className="relative">
                   <Textarea 
-                    placeholder="Type a key takeaway..."
+                    placeholder="Capture a key takeaway..."
                     value={noteText}
                     onFocus={handleNoteFocus}
                     onChange={(e) => {
                       setNoteText(e.target.value);
-                      if (capturedTimestamp === null) {
-                        handleNoteFocus();
-                      }
+                      if (capturedTimestamp === null) handleNoteFocus();
                     }}
-                    className="min-h-[100px] rounded-2xl bg-slate-50 dark:bg-slate-950 border-none focus-visible:ring-primary font-medium"
+                    className="min-h-[120px] rounded-2xl bg-slate-50 dark:bg-slate-950 border-none focus-visible:ring-primary font-medium p-4 text-slate-800 dark:text-slate-200"
                   />
-                  <div className="absolute bottom-3 right-3 flex items-center gap-3">
+                  <div className="absolute bottom-4 right-4 flex items-center gap-3">
                     {capturedTimestamp !== null && (
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 bg-primary/10 text-primary rounded-full animate-pulse">
-                        <Activity size={10} className="stroke-[3]" />
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full animate-pulse border border-primary/20">
+                        <Activity size={12} className="stroke-[3]" />
                         <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">
                           Syncing {formatTime(capturedTimestamp)}
                         </span>
@@ -651,19 +650,19 @@ function LessonContent() {
                       size="icon" 
                       onClick={handleSaveNote} 
                       disabled={savingNote || !noteText.trim()}
-                      className="rounded-full h-8 w-8 bg-primary shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                      className="rounded-full h-10 w-10 bg-primary shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
                     >
-                      {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={14} />}
+                      {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={18} />}
                     </Button>
                   </div>
                 </div>
               </div>
 
-              <ScrollArea className="flex-1 px-5 pb-6">
+              <ScrollArea className="flex-1 px-8 pb-8">
                 <div className="space-y-4 pt-2">
                   {notes && notes.length > 0 ? (
                     notes.map((note) => (
-                      <div key={note.id} className="group bg-slate-50 dark:bg-slate-950 p-4 rounded-2xl border border-transparent hover:border-primary/20 transition-all">
+                      <div key={note.id} className="group bg-slate-50 dark:bg-slate-950 p-5 rounded-3xl border border-transparent hover:border-primary/20 transition-all hover:shadow-md">
                         <div className="flex items-start justify-between gap-4">
                           <button 
                             onClick={() => {
@@ -673,24 +672,24 @@ function LessonContent() {
                             className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
                           >
                             <Bookmark size={14} className="fill-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">{formatTime(note.timestamp)}</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">{formatTime(note.timestamp)}</span>
                           </button>
                           <button 
                             onClick={() => handleDeleteNote(note.id)}
                             className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
                           >
-                            <Trash2 size={14} />
+                            <Trash2 size={16} />
                           </button>
                         </div>
-                        <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                        <p className="mt-3 text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
                           {note.text}
                         </p>
                       </div>
                     ))
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-12 text-center space-y-3 opacity-30">
-                      <StickyNote size={40} />
-                      <p className="text-xs font-bold">No notes for this session yet.</p>
+                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-20">
+                      <StickyNote size={48} />
+                      <p className="text-xs font-black uppercase tracking-widest">No notes yet</p>
                     </div>
                   )}
                 </div>
