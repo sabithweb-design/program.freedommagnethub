@@ -58,7 +58,7 @@ interface LessonData {
   title?: string;
   description?: string;
   actionPlan?: string;
-  driveVideoUrl?: string;
+  driveUrl?: string;
   youtubeVideoId?: string;
   vimeoVideoId?: string;
   thumbnailUrl?: string;
@@ -163,7 +163,6 @@ function LessonContent() {
 
         // Access Logic
         const isPublic = cData.visibility === 'PUBLIC';
-        const isUnlisted = cData.visibility === 'UNLISTED';
         const isPrivate = cData.visibility === 'PRIVATE';
 
         if (!isPublic) {
@@ -340,7 +339,7 @@ function LessonContent() {
   };
 
   const videoUrl = useMemo(() => {
-    if (lesson?.driveVideoUrl) return formatDriveUrl(lesson.driveVideoUrl);
+    if (lesson?.driveUrl) return formatDriveUrl(lesson.driveUrl);
     if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}`;
     if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}`;
     return null;

@@ -28,6 +28,8 @@ interface Course {
   isLocked?: boolean;
   studentIds?: string[];
   adminIds?: string[];
+  visibility?: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+  privacy?: string;
 }
 
 const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";

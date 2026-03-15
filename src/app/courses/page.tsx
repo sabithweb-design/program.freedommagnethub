@@ -28,7 +28,8 @@ interface Course {
   originalPrice?: number;
   imageUrl: string;
   isBestseller?: boolean;
-  visibility?: string;
+  visibility?: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+  privacy?: string; // Compatibility alias
 }
 
 export default function CoursesPage() {
