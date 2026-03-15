@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from 'react';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, Query } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Grid } from 'lucide-react';
@@ -36,7 +36,7 @@ export default function CoursesPage() {
 
   const coursesQuery = useMemo(() => {
     if (!firestore) return null;
-    return query(collection(firestore, "courses"), where("visibility", "in", ["PUBLIC", "PRIVATE"]));
+    return query(collection(firestore, "courses"), where("visibility", "in", ["PUBLIC", "PRIVATE"])) as Query<Course>;
   }, [firestore]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);

@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, Query } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -43,14 +43,14 @@ export default function DashboardPage() {
     if (!firestore || !user) return null;
     
     if (isMainAdmin) {
-      return query(collection(firestore, "courses"));
+      return query(collection(firestore, "courses")) as Query<Course>;
     }
     
     if (profile?.role === 'admin') {
-      return query(collection(firestore, "courses"), where("adminIds", "array-contains", user.uid));
+      return query(collection(firestore, "courses"), where("adminIds", "array-contains", user.uid)) as Query<Course>;
     }
 
-    return query(collection(firestore, "courses"), where("studentIds", "array-contains", user.uid));
+    return query(collection(firestore, "courses"), where("studentIds", "array-contains", user.uid)) as Query<Course>;
   }, [firestore, user, isMainAdmin, profile]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);

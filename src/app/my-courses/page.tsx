@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
 import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, query, where } from 'firebase/firestore';
+import { collection, query, where, Query } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,7 @@ export default function MyCoursesPage() {
 
   const coursesQuery = useMemo(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, "courses"), where("studentIds", "array-contains", user.uid));
+    return query(collection(firestore, "courses"), where("studentIds", "array-contains", user.uid)) as Query<Course>;
   }, [firestore, user]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);

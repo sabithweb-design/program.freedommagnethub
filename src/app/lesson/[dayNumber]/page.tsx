@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc, Query } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useFirestore } from "@/firebase";
@@ -218,7 +218,7 @@ function LessonContent() {
       where("userId", "==", user.uid),
       where("lessonId", "==", lessonId),
       orderBy("createdAt", "desc")
-    );
+    ) as Query<UserNote>;
   }, [firestore, user, lessonId]);
 
   const { data: notes } = useCollection<UserNote>(notesQuery);
