@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
@@ -40,7 +39,8 @@ import {
   Bookmark,
   Activity,
   Download,
-  Info
+  Info,
+  Lock as LockIcon
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -148,7 +148,6 @@ function LessonContent() {
     const fetchLesson = async () => {
       setFetching(true);
       try {
-        // Fetch course visibility first
         const courseRef = doc(db, 'courses', courseId);
         const courseSnap = await getDoc(courseRef);
         
@@ -159,9 +158,8 @@ function LessonContent() {
         }
 
         const cData = courseSnap.data() as CourseData;
-        setCourse(cData);
+        setCourse({ ...cData, id: courseSnap.id });
 
-        // Access Logic
         const isPublic = cData.visibility === 'PUBLIC';
         const isPrivate = cData.visibility === 'PRIVATE';
 
@@ -172,7 +170,6 @@ function LessonContent() {
             return;
           }
 
-          // Enrollment check for PRIVATE courses (Admins always have access)
           if (isPrivate && !isAdmin && !cData.studentIds?.includes(user.uid)) {
             setNoAccess(true);
             setFetching(false);
@@ -191,7 +188,7 @@ function LessonContent() {
           const lId = querySnapshot.docs[0].id;
           const lData = querySnapshot.docs[0].data() as LessonData;
           setLessonId(lId);
-          setLesson(lData);
+          setLesson({ ...lData, id: lId });
 
           if (user) {
             const progressRef = doc(db, 'users', user.uid, 'completedLessons', lId);
@@ -231,7 +228,7 @@ function LessonContent() {
     if (completing) return;
     setCompleting(true);
 
-    const progressRef = doc(doc(db, 'users', user.uid), 'completedLessons', lessonId);
+    const progressRef = doc(db, 'users', user.uid, 'completedLessons', lessonId);
     
     if (isCompleted) {
       deleteDoc(progressRef)
@@ -376,7 +373,6 @@ function LessonContent() {
       "min-h-screen bg-background text-foreground pb-20 font-body transition-colors",
       !isAdmin && "content-protected"
     )}>
-      {/* Navigation Header */}
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -412,8 +408,6 @@ function LessonContent() {
 
       <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
-          {/* Main Video Section */}
           <div className="lg:col-span-8 space-y-10">
             <div 
               ref={containerRef}
@@ -436,28 +430,6 @@ function LessonContent() {
                       onDuration={(d) => setDuration(d)}
                       onPlay={() => setPlaying(true)}
                       onPause={() => setPlaying(false)}
-                      config={{
-                        vimeo: {
-                          playerOptions: {
-                            background: 1,
-                            autoplay: 0,
-                            muted: 0,
-                            byline: 0,
-                            portrait: 0,
-                            title: 0,
-                            badge: 0,
-                            controls: 0
-                          }
-                        },
-                        youtube: {
-                          playerVars: {
-                            modestbranding: 1,
-                            rel: 0,
-                            iv_load_policy: 3,
-                            controls: 0
-                          }
-                        }
-                      }}
                     />
                   </div>
 
@@ -591,7 +563,6 @@ function LessonContent() {
               <Separator className="bg-slate-100 dark:bg-slate-800" />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-                {/* Dynamic Overview */}
                 <div className="space-y-8">
                   <div className="space-y-4">
                     <h3 className="text-xl font-black flex items-center gap-2">
@@ -626,7 +597,6 @@ function LessonContent() {
                     </div>
                   )}
 
-                  {/* Creative PDF Card */}
                   {lesson?.pdfUrl && (
                     <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
                       <div className="p-6 lg:p-7 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
@@ -650,7 +620,6 @@ function LessonContent() {
                   )}
                 </div>
 
-                {/* Implementation Area */}
                 <div className="space-y-10">
                   {lesson?.actionPlan && (
                     <div className="space-y-6">
@@ -686,7 +655,6 @@ function LessonContent() {
             </div>
           </div>
 
-          {/* Interactive Study Notes */}
           <div className="lg:col-span-4 h-full">
             <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white dark:bg-slate-900 h-full flex flex-col sticky top-24 max-h-[calc(100vh-120px)] overflow-hidden">
               <UICardHeader className="border-b dark:border-slate-800 px-8 py-6">
@@ -782,23 +750,6 @@ function LessonContent() {
     </div>
   );
 }
-
-const LockIcon = ({ className, size }: { className?: string, size?: number }) => (
-  <svg 
-    width={size || 24} 
-    height={size || 24} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
 
 export default function LessonPage() {
   return (

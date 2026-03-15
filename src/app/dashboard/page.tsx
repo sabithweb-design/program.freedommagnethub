@@ -1,9 +1,8 @@
-
-'use client';
+"use client";
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { collection, query, where, or } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,6 @@ interface Course {
   studentIds?: string[];
   adminIds?: string[];
   visibility?: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
-  privacy?: string;
 }
 
 const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
@@ -44,13 +42,10 @@ export default function DashboardPage() {
   const coursesQuery = useMemo(() => {
     if (!firestore || !user) return null;
     
-    // Main Admin sees all
     if (isMainAdmin) {
       return query(collection(firestore, "courses"));
     }
     
-    // Admins see courses they manage OR are enrolled in. 
-    // Students see courses they are enrolled in.
     if (profile?.role === 'admin') {
       return query(collection(firestore, "courses"), where("adminIds", "array-contains", user.uid));
     }
@@ -70,16 +65,13 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
-      {/* Header */}
       <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
-        {/* Brand Name (Left) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground">
             freedom<span className="text-primary">magnethub</span>
           </h1>
         </div>
         
-        {/* Right Section: Actions & Logo at the end */}
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
           <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
@@ -107,7 +99,6 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 pt-6 space-y-8">
-        {/* Category Header */}
         <section className="space-y-6">
           <div className="flex items-center justify-between border-b pb-4 dark:border-slate-800">
             <h2 className="text-lg sm:text-xl font-bold text-foreground">
@@ -165,7 +156,6 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           alt={course.title || "Program thumbnail"}
           fill
           className={`object-cover transition-transform duration-500 ${!course.isLocked && 'group-hover:scale-105'}`}
-          data-ai-hint="course thumbnail"
         />
         {course.isLocked && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
@@ -188,11 +178,10 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           </h3>
           {course.isLocked && <Badge variant="secondary" className="bg-slate-100 text-slate-500 border-none shrink-0 font-black text-[8px] sm:text-[9px] uppercase tracking-widest px-1.5 py-0">Locked</Badge>}
         </div>
-        <p className="text-[10px] sm:text-11px] text-[#6a6f73] dark:text-slate-400 line-clamp-1">
+        <p className="text-[10px] sm:text-[11px] text-[#6a6f73] dark:text-slate-400 line-clamp-1">
           {course.author || "Freedom Magnet Hub"}
         </p>
         
-        {/* Rating Stars */}
         <div className="flex items-center gap-1">
           <span className="text-[10px] sm:text-xs font-bold text-[#b4690e] dark:text-amber-500">{ratingValue.toFixed(1)}</span>
           <div className="flex">

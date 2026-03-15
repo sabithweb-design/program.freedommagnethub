@@ -31,7 +31,7 @@ export default function MyCoursesPage() {
 
   const coursesQuery = useMemo(() => {
     if (!firestore || !user) return null;
-    return query(collection(firestore, "courses"), where("userId", "==", user.uid));
+    return query(collection(firestore, "courses"), where("studentIds", "array-contains", user.uid));
   }, [firestore, user]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
@@ -46,10 +46,8 @@ export default function MyCoursesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
-      {/* Top Navbar */}
       <header className="bg-background border-b sticky top-0 z-50 transition-colors px-6 sm:px-12 md:px-20">
         <div className="max-w-[1400px] mx-auto h-20 flex items-center justify-between gap-4">
-          {/* Brand Name (Left) */}
           <Link href="/dashboard" className="flex items-center gap-2 group shrink-0">
             <span className="font-bold text-lg sm:text-2xl tracking-tighter text-foreground">
               freedom<span className="text-primary">magnethub</span>
@@ -62,7 +60,6 @@ export default function MyCoursesPage() {
             <NavItem label="WORKSHOPS" href="#" />
           </nav>
 
-          {/* Right Section: Actions & Logo at the end */}
           <div className="flex items-center gap-2 sm:gap-4 lg:gap-8">
             <div className="flex items-center gap-1 sm:gap-3">
               <ThemeToggle />
@@ -98,7 +95,7 @@ export default function MyCoursesPage() {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
           {courses && courses.length > 0 ? (
             courses.map((course) => (
-              <EnrolledUdemyCard key={course.id} course={course} onClick={() => router.push(`/lesson/1`)} />
+              <EnrolledUdemyCard key={course.id} course={course} onClick={() => router.push(`/lesson/1?courseId=${course.id}`)} />
             ))
           ) : (
              <div className="col-span-full text-center py-20 sm:py-24 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] sm:rounded-[3rem]">
@@ -143,7 +140,6 @@ function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () =>
           alt={course.title || "Enrolled course thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-700"
-          data-ai-hint="course thumbnail"
         />
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <PlayCircle size={40} className="text-white fill-white/20 sm:size-[48px]" />

@@ -1,5 +1,4 @@
-
-'use client';
+"use client";
 
 import React, { useMemo } from 'react';
 import { collection, query, where } from 'firebase/firestore';
@@ -29,7 +28,6 @@ interface Course {
   imageUrl: string;
   isBestseller?: boolean;
   visibility?: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
-  privacy?: string; // Compatibility alias
 }
 
 export default function CoursesPage() {
@@ -38,7 +36,6 @@ export default function CoursesPage() {
 
   const coursesQuery = useMemo(() => {
     if (!firestore) return null;
-    // Market place only shows Public and Private courses. Unlisted are link-only.
     return query(collection(firestore, "courses"), where("visibility", "in", ["PUBLIC", "PRIVATE"]));
   }, [firestore]);
 
@@ -54,9 +51,7 @@ export default function CoursesPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
-      {/* Header */}
       <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
-        {/* Brand Label (Left) */}
         <div className="flex items-center gap-2 sm:gap-5 shrink-0">
           <Link href="/dashboard">
             <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground uppercase">
@@ -65,7 +60,6 @@ export default function CoursesPage() {
           </Link>
         </div>
         
-        {/* Search Bar (Centered) */}
         <div className="hidden md:flex items-center flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8">
           <div className="relative w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -76,7 +70,6 @@ export default function CoursesPage() {
           </div>
         </div>
 
-        {/* Right Section: Actions & Logo at the end */}
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
           <Button variant="ghost" size="icon" asChild className="rounded-full h-9 w-9">
             <Link href="/dashboard">
@@ -114,7 +107,6 @@ export default function CoursesPage() {
           <h2 className="text-2xl sm:text-3xl font-black text-foreground tracking-tight">Expand your horizon</h2>
         </div>
 
-        {/* Course Stack */}
         <div className="flex flex-col gap-8">
           {courses && courses.length > 0 ? (
             courses.map((course) => (
@@ -140,18 +132,16 @@ function MarketplaceCard({ course }: { course: Course }) {
   const displayRating = course.rating || 4.7;
   const displayRatingCount = course.ratingCount || course.reviewCount || 0;
   const displayPrice = course.price || 0;
-  const displayOldPrice = course.originalPrice || 0;
+  const displayOldPrice = course.originalPrice || course.oldPrice || 0;
 
   return (
     <div className="bg-card text-card-foreground rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-500 group">
-      {/* Image Section */}
       <div className="relative aspect-video w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
         <Image
           src={thumbnailSrc}
           alt={course.title || "Course thumbnail"}
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-1000"
-          data-ai-hint="course thumbnail"
         />
         {course.isBestseller !== false && (
           <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[10px] sm:text-[11px] font-black px-2 sm:px-3 py-1 rounded-md border border-[#acd2cc] dark:border-emerald-800 shadow-sm uppercase tracking-wider">
@@ -160,7 +150,6 @@ function MarketplaceCard({ course }: { course: Course }) {
         )}
       </div>
 
-      {/* Content Section */}
       <div className="p-5 sm:p-7 space-y-4">
         <div className="space-y-1.5">
           <h3 className="font-black text-foreground text-lg sm:text-xl leading-[1.2] line-clamp-2 hover:text-primary transition-colors cursor-pointer">
@@ -171,7 +160,6 @@ function MarketplaceCard({ course }: { course: Course }) {
           </p>
         </div>
 
-        {/* Rating Row */}
         <div className="flex items-center flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className="text-sm font-black text-[#b4690e] dark:text-amber-500">{displayRating.toFixed(1)}</span>
@@ -197,7 +185,6 @@ function MarketplaceCard({ course }: { course: Course }) {
           </Badge>
         </div>
 
-        {/* Price Section */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-2 gap-4">
           <div className="flex items-center gap-3">
             <span className="font-black text-xl sm:text-2xl text-foreground">₹{displayPrice.toLocaleString()}</span>
