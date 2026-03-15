@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { collection, query } from 'firebase/firestore';
+import { collection, query, where } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Grid } from 'lucide-react';
@@ -28,6 +28,7 @@ interface Course {
   originalPrice?: number;
   imageUrl: string;
   isBestseller?: boolean;
+  visibility?: string;
 }
 
 export default function CoursesPage() {
@@ -35,9 +36,10 @@ export default function CoursesPage() {
   const firestore = useFirestore();
 
   const coursesQuery = useMemo(() => {
-    if (!firestore || authLoading || !user) return null;
-    return query(collection(firestore, "courses"));
-  }, [firestore, user, authLoading]);
+    if (!firestore) return null;
+    // Market place only shows Public and Private courses. Unlisted are link-only.
+    return query(collection(firestore, "courses"), where("visibility", "in", ["PUBLIC", "PRIVATE"]));
+  }, [firestore]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
@@ -204,8 +206,8 @@ function MarketplaceCard({ course }: { course: Course }) {
               </span>
             )}
           </div>
-          <Button className="w-full sm:w-auto rounded-xl px-8 h-12 font-black text-sm uppercase tracking-widest bg-slate-900 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors">
-            Enroll Now
+          <Button asChild className="w-full sm:w-auto rounded-xl px-8 h-12 font-black text-sm uppercase tracking-widest bg-slate-900 dark:bg-slate-100 dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors">
+            <Link href={`/lesson/1?courseId=${course.id}`}>View Details</Link>
           </Button>
         </div>
       </div>

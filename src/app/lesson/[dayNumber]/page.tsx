@@ -65,6 +65,13 @@ interface LessonData {
   learningPoints?: string[];
 }
 
+interface CourseData {
+  id: string;
+  title: string;
+  visibility: 'PUBLIC' | 'PRIVATE' | 'UNLISTED';
+  studentIds?: string[];
+}
+
 interface UserNote {
   id: string;
   text: string;
@@ -98,6 +105,7 @@ function LessonContent() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [noAccess, setNoAccess] = useState(false);
+  const [course, setCourse] = useState<CourseData | null>(null);
 
   // Notes State
   const [noteText, setNoteText] = useState("");
@@ -128,12 +136,6 @@ function LessonContent() {
   useEffect(() => {
     if (loading) return;
 
-    if (!user) {
-      const currentPath = window.location.pathname + (window.location.search || '');
-      router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
-      return;
-    }
-
     if (!courseId) {
       setNoAccess(true);
       setFetching(false);
@@ -143,6 +145,39 @@ function LessonContent() {
     const fetchLesson = async () => {
       setFetching(true);
       try {
+        // Fetch course visibility first
+        const courseRef = doc(db, 'courses', courseId);
+        const courseSnap = await getDoc(courseRef);
+        
+        if (!courseSnap.exists()) {
+          setNoAccess(true);
+          setFetching(false);
+          return;
+        }
+
+        const cData = courseSnap.data() as CourseData;
+        setCourse(cData);
+
+        // Access Logic
+        const isPublic = cData.visibility === 'PUBLIC';
+        const isUnlisted = cData.visibility === 'UNLISTED';
+        const isPrivate = cData.visibility === 'PRIVATE';
+
+        if (!isPublic) {
+          if (!user) {
+            const currentPath = window.location.pathname + (window.location.search || '');
+            router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+            return;
+          }
+
+          // Enrollment check for PRIVATE courses (Admins always have access)
+          if (isPrivate && !isAdmin && !cData.studentIds?.includes(user.uid)) {
+            setNoAccess(true);
+            setFetching(false);
+            return;
+          }
+        }
+
         const q = query(
           collection(db, "lessons"), 
           where("dayNumber", "==", day),
@@ -156,9 +191,11 @@ function LessonContent() {
           setLessonId(lId);
           setLesson(lData);
 
-          const progressRef = doc(db, 'users', user.uid, 'completedLessons', lId);
-          const docSnap = await getDoc(progressRef);
-          setIsCompleted(docSnap.exists());
+          if (user) {
+            const progressRef = doc(db, 'users', user.uid, 'completedLessons', lId);
+            const docSnap = await getDoc(progressRef);
+            setIsCompleted(docSnap.exists());
+          }
         } else {
           setLessonId(null);
           setLesson(null);
@@ -173,7 +210,7 @@ function LessonContent() {
     };
     
     fetchLesson();
-  }, [user, loading, day, courseId, router]);
+  }, [user, loading, day, courseId, router, isAdmin]);
 
   const notesQuery = useMemo(() => {
     if (!firestore || !user || !lessonId) return null;
@@ -323,7 +360,7 @@ function LessonContent() {
         </div>
         <h1 className="text-3xl font-black text-foreground mb-4">Access Denied</h1>
         <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
-          You are not enrolled in the program containing this session.
+          This program is private and requires enrollment to view content.
         </p>
         <Button asChild className="rounded-full px-8 h-12">
           <Link href="/dashboard">Go to My Dashboard</Link>
@@ -528,12 +565,12 @@ function LessonContent() {
                       Session {day}
                     </Badge>
                     <span className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                      <Clock size={12} /> HD QUALITY
+                      <Clock size={12} /> {course?.visibility === 'PUBLIC' ? 'PUBLIC ACCESS' : 'PREMIUM CONTENT'}
                     </span>
                   </div>
                 </div>
                 
-                {lessonId && (
+                {lessonId && user && (
                   <Button 
                     onClick={handleToggleComplete}
                     disabled={completing}
@@ -587,7 +624,7 @@ function LessonContent() {
                     </div>
                   )}
 
-                  {/* Creative PDF Card - Conditionally hidden if no pdfUrl exists */}
+                  {/* Creative PDF Card */}
                   {lesson?.pdfUrl && (
                     <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
                       <div className="p-6 lg:p-7 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
@@ -658,36 +695,46 @@ function LessonContent() {
               </UICardHeader>
               
               <div className="px-8 py-6 space-y-4">
-                <div className="relative">
-                  <Textarea 
-                    placeholder="Capture a key takeaway..."
-                    value={noteText}
-                    onFocus={handleNoteFocus}
-                    onChange={(e) => {
-                      setNoteText(e.target.value);
-                      if (capturedTimestamp === null) handleNoteFocus();
-                    }}
-                    className="min-h-[120px] rounded-2xl bg-slate-50 dark:bg-slate-950 border-none focus-visible:ring-primary font-medium p-4 text-slate-800 dark:text-slate-200"
-                  />
-                  <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                    {capturedTimestamp !== null && (
-                      <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full animate-pulse border border-primary/20">
-                        <Activity size={12} className="stroke-[3]" />
-                        <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">
-                          Syncing {formatTime(capturedTimestamp)}
-                        </span>
-                      </div>
-                    )}
-                    <Button 
-                      size="icon" 
-                      onClick={handleSaveNote} 
-                      disabled={savingNote || !noteText.trim()}
-                      className="rounded-full h-10 w-10 bg-primary shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
-                    >
-                      {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={18} />}
+                {user ? (
+                  <div className="relative">
+                    <Textarea 
+                      placeholder="Capture a key takeaway..."
+                      value={noteText}
+                      onFocus={handleNoteFocus}
+                      onChange={(e) => {
+                        setNoteText(e.target.value);
+                        if (capturedTimestamp === null) handleNoteFocus();
+                      }}
+                      className="min-h-[120px] rounded-2xl bg-slate-50 dark:bg-slate-950 border-none focus-visible:ring-primary font-medium p-4 text-slate-800 dark:text-slate-200"
+                    />
+                    <div className="absolute bottom-4 right-4 flex items-center gap-3">
+                      {capturedTimestamp !== null && (
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full animate-pulse border border-primary/20">
+                          <Activity size={12} className="stroke-[3]" />
+                          <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">
+                            Syncing {formatTime(capturedTimestamp)}
+                          </span>
+                        </div>
+                      )}
+                      <Button 
+                        size="icon" 
+                        onClick={handleSaveNote} 
+                        disabled={savingNote || !noteText.trim()}
+                        className="rounded-full h-10 w-10 bg-primary shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
+                      >
+                        {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={18} />}
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl text-center space-y-2">
+                    <LockIcon size={24} className="mx-auto text-slate-400" />
+                    <p className="text-xs font-bold text-slate-500">Sign in to save personal study notes.</p>
+                    <Button variant="link" size="sm" asChild className="text-primary">
+                      <Link href="/login">Login Now</Link>
                     </Button>
                   </div>
-                </div>
+                )}
               </div>
 
               <ScrollArea className="flex-1 px-8 pb-8">
@@ -721,7 +768,7 @@ function LessonContent() {
                   ) : (
                     <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-20">
                       <StickyNote size={48} />
-                      <p className="text-xs font-black uppercase tracking-widest">No notes yet</p>
+                      <p className="text-xs font-black uppercase tracking-widest">{user ? "No notes yet" : "Personalize your learning"}</p>
                     </div>
                   )}
                 </div>
@@ -733,6 +780,23 @@ function LessonContent() {
     </div>
   );
 }
+
+const LockIcon = ({ className, size }: { className?: string, size?: number }) => (
+  <svg 
+    width={size || 24} 
+    height={size || 24} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round" 
+    className={className}
+  >
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+  </svg>
+);
 
 export default function LessonPage() {
   return (

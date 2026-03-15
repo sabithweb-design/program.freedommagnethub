@@ -64,7 +64,10 @@ import {
   Video,
   Filter,
   AlertTriangle,
-  Database
+  Database,
+  Globe,
+  Lock as LockIcon,
+  Link as LinkIcon
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -132,7 +135,8 @@ export default function AdminPage() {
     price: 0, 
     originalPrice: 0,
     rating: 4.5,
-    reviewCount: 0
+    reviewCount: 0,
+    visibility: 'PRIVATE'
   });
   const [lessonForm, setLessonForm] = useState({ 
     title: '', 
@@ -191,6 +195,7 @@ export default function AdminPage() {
     originalPrice: 0,
     rating: 4.5,
     reviewCount: 0,
+    visibility: 'PRIVATE',
     adminIds: [] as string[],
     studentIds: [] as string[]
   });
@@ -225,6 +230,7 @@ export default function AdminPage() {
         originalPrice: 999,
         rating: 5.0,
         reviewCount: 1,
+        visibility: 'PUBLIC',
         adminIds: [currentUser.uid],
         studentIds: [],
         createdAt: serverTimestamp()
@@ -434,6 +440,7 @@ export default function AdminPage() {
       originalPrice: Number(courseForm.originalPrice),
       rating: Number(courseForm.rating),
       reviewCount: Number(courseForm.reviewCount),
+      visibility: courseForm.visibility,
       videos: "0",
       progress: 0,
       isLocked: false,
@@ -452,7 +459,8 @@ export default function AdminPage() {
         price: 0, 
         originalPrice: 0,
         rating: 4.5,
-        reviewCount: 0
+        reviewCount: 0,
+        visibility: 'PRIVATE'
       });
       setLessonFilter(docRef.id);
       setActiveTab('courses');
@@ -476,6 +484,7 @@ export default function AdminPage() {
       originalPrice: Number(editFields.originalPrice),
       rating: Number(editFields.rating),
       reviewCount: Number(editFields.reviewCount),
+      visibility: editFields.visibility,
       adminIds: editFields.adminIds,
       studentIds: editFields.studentIds
     };
@@ -806,6 +815,19 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
+                    <Label className="font-bold">Visibility</Label>
+                    <Select value={courseForm.visibility} onValueChange={(val) => setCourseForm({...courseForm, visibility: val})}>
+                      <SelectTrigger className="h-12 rounded-xl text-slate-900">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PUBLIC">Public (Anyone can view)</SelectItem>
+                        <SelectItem value="PRIVATE">Private (Enrollment Required)</SelectItem>
+                        <SelectItem value="UNLISTED">Unlisted (Link Access Only)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
                     <Label className="font-bold">Thumbnail (URL)</Label>
                     <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900" />
                   </div>
@@ -833,6 +855,9 @@ export default function AdminPage() {
                   <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden p-3 flex gap-4 hover:shadow-md transition-all items-center relative group">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800 relative">
                       <img src={c.imageUrl || 'https://picsum.photos/seed/prog/200'} className="w-full h-full object-cover" alt={c.title} />
+                      <div className="absolute top-1 right-1">
+                        {c.visibility === 'PUBLIC' ? <Globe size={12} className="text-emerald-500" /> : c.visibility === 'PRIVATE' ? <LockIcon size={12} className="text-rose-500" /> : <LinkIcon size={12} className="text-amber-500" />}
+                      </div>
                     </div>
                     <div className="flex flex-col justify-center flex-1 min-w-0">
                       <h4 className="font-bold text-slate-800 dark:text-slate-200 leading-tight line-clamp-1">{c.title || "Untitled"}</h4>
@@ -848,7 +873,7 @@ export default function AdminPage() {
                       <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all" onClick={() => { 
                         setEditingProgram(c); 
                         setEditFields({ 
-                          title: c.title || '', description: c.description || '', category: c.category || '', imageUrl: c.imageUrl || '', author: c.author || '', price: c.price || 0, originalPrice: c.originalPrice || 0, rating: c.rating || 4.5, reviewCount: c.reviewCount || 0, adminIds: c.adminIds || [], studentIds: c.studentIds || []
+                          title: c.title || '', description: c.description || '', category: c.category || '', imageUrl: c.imageUrl || '', author: c.author || '', price: c.price || 0, originalPrice: c.originalPrice || 0, rating: c.rating || 4.5, reviewCount: c.reviewCount || 0, visibility: c.visibility || 'PRIVATE', adminIds: c.adminIds || [], studentIds: c.studentIds || []
                         }); 
                       }}>
                         <Edit2 size={16} />
@@ -1134,6 +1159,19 @@ export default function AdminPage() {
                   <div className="space-y-2">
                     <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Description</Label>
                     <Textarea value={editFields.description} onChange={(e) => setEditFields({...editFields, description: e.target.value})} className="rounded-xl min-h-[120px] text-slate-900" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Visibility</Label>
+                    <Select value={editFields.visibility} onValueChange={(val) => setEditFields({...editFields, visibility: val})}>
+                      <SelectTrigger className="h-11 rounded-xl text-slate-900">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PUBLIC">Public</SelectItem>
+                        <SelectItem value="PRIVATE">Private</SelectItem>
+                        <SelectItem value="UNLISTED">Unlisted</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 

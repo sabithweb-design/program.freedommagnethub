@@ -50,6 +50,7 @@
         "price": { "type": "number" },
         "originalPrice": { "type": "number" },
         "isLocked": { "type": "boolean", "default": false },
+        "visibility": { "type": "string", "enum": ["PUBLIC", "PRIVATE", "UNLISTED"], "default": "PRIVATE" },
         "rating": { "type": "number" },
         "reviewCount": { "type": "number" },
         "adminIds": { 
@@ -63,7 +64,7 @@
           "description": "List of Student UIDs enrolled in this program."
         }
       },
-      "required": ["title", "category"]
+      "required": ["title", "category", "visibility"]
     },
     "UserLessonProgress": {
       "title": "User Lesson Progress",
