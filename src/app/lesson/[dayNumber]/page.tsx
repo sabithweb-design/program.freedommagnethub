@@ -3,7 +3,7 @@
 
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useFirestore } from "@/firebase";
@@ -59,6 +59,7 @@ interface LessonData {
   driveUrl?: string;
   dayNumber: number;
   isLocked?: boolean;
+  learningPoints?: string[];
 }
 
 interface UserNote {
@@ -529,16 +530,53 @@ function LessonContent() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                {/* Session Overview with Dynamic Info Box and Learning Points */}
                 <div className="space-y-8">
                   <h3 className="text-xl font-black flex items-center gap-2">
                     <AlertCircle size={20} className="text-primary" /> Session Overview
                   </h3>
-                  {lesson?.description ? (
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg font-medium whitespace-pre-wrap">
-                      {lesson.description}
-                    </p>
-                  ) : (
-                    <p className="text-slate-400 italic">No detailed session overview provided.</p>
+                  
+                  <div className="bg-slate-50 dark:bg-slate-900/50 p-7 rounded-3xl border border-slate-100 dark:border-slate-800 space-y-8 shadow-sm">
+                    {lesson?.description ? (
+                      <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg font-medium whitespace-pre-wrap">
+                        {lesson.description}
+                      </p>
+                    ) : (
+                      <p className="text-slate-400 font-bold italic text-base">
+                        Overview coming soon! Stay tuned for more details about this session.
+                      </p>
+                    )}
+
+                    {/* What you will learn bullet points */}
+                    {lesson?.learningPoints && lesson.learningPoints.length > 0 && (
+                      <div className="space-y-4 pt-6 border-t dark:border-slate-800">
+                        <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">What you will learn</h4>
+                        <ul className="space-y-3">
+                          {lesson.learningPoints.slice(0, 3).map((point, i) => (
+                            <li key={i} className="flex items-start gap-3 text-sm font-bold text-slate-700 dark:text-slate-300 group">
+                              <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform">
+                                <CheckCircle2 size={14} className="text-primary" />
+                              </div>
+                              <span className="leading-snug">{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Move PDF button here as requested */}
+                  {lesson?.pdfUrl && (
+                    <Button 
+                      variant="outline" 
+                      className="h-16 w-full justify-start rounded-2xl font-black text-xs uppercase tracking-widest border-2 hover:bg-slate-50 dark:hover:bg-slate-900 group shadow-md" 
+                      asChild
+                    >
+                      <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
+                        <FileText className="mr-3 h-6 w-6 text-primary group-hover:scale-110 transition-transform" />
+                        Download Lesson PDF Workbook
+                      </a>
+                    </Button>
                   )}
                 </div>
 
@@ -556,26 +594,18 @@ function LessonContent() {
                     </div>
                   )}
 
-                  {(lesson?.pdfUrl || lesson?.driveUrl) && (
+                  {lesson?.driveUrl && (
                     <div className="space-y-6 pt-4">
                       <h3 className="text-xl font-black flex items-center gap-2">
-                        <FileText size={20} className="text-primary" /> Resources
+                        <Bookmark size={20} className="text-primary" /> Additional Resources
                       </h3>
                       <div className="flex flex-col gap-3">
-                        {lesson.pdfUrl && (
-                          <Button variant="outline" className="h-12 justify-start rounded-xl font-bold" asChild>
-                            <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                              <FileText className="mr-3 h-5 w-5" /> Download PDF Workbook
-                            </a>
-                          </Button>
-                        )}
-                        {lesson.driveUrl && (
-                          <Button variant="outline" className="h-12 justify-start rounded-xl font-bold" asChild>
-                            <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
-                              <Bookmark className="mr-3 h-5 w-5" /> Resource Drive
-                            </a>
-                          </Button>
-                        )}
+                        <Button variant="outline" className="h-14 justify-start rounded-2xl font-black text-xs uppercase tracking-widest border-2 group" asChild>
+                          <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
+                            <Bookmark className="mr-3 h-5 w-5 text-primary group-hover:rotate-12 transition-transform" /> 
+                            Access Resource Drive
+                          </a>
+                        </Button>
                       </div>
                     </div>
                   )}
