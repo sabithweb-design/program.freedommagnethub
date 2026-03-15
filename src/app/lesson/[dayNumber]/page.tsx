@@ -55,11 +55,11 @@ interface LessonData {
   title?: string;
   description?: string;
   actionPlan?: string;
-  driveVideoUrl?: string; // New field from Firestore image
+  driveVideoUrl?: string;
   youtubeVideoId?: string;
   vimeoVideoId?: string;
   thumbnailUrl?: string;
-  pdfUrl?: string; // Field from Firestore image
+  pdfUrl?: string;
   dayNumber: number;
   isLocked?: boolean;
   learningPoints?: string[];
@@ -291,11 +291,9 @@ function LessonContent() {
     }
   };
 
-  // Utility to handle Google Drive URLs for direct playback
   const formatDriveUrl = (url?: string) => {
     if (!url) return null;
     if (url.includes('drive.google.com')) {
-      // Convert /view or /edit sharing links to /preview which react-player handles as an iframe better
       return url.replace(/\/view.*$/, '/preview').replace(/\/edit.*$/, '/preview');
     }
     return url;
@@ -531,7 +529,7 @@ function LessonContent() {
 
               <Separator className="bg-slate-100 dark:bg-slate-800" />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
                 {/* Dynamic Overview */}
                 <div className="space-y-8">
                   <div className="space-y-4">
@@ -567,34 +565,34 @@ function LessonContent() {
                     </div>
                   )}
 
-                  {/* Creative PDF Card with Glassmorphism */}
+                  {/* Optimized PDF Card for Laptop */}
                   <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
-                    <div className="p-8 flex flex-col sm:flex-row items-center gap-6">
-                      <div className="w-16 h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
-                        <FileText className="h-8 w-8 text-primary" />
+                    <div className="p-6 lg:p-7 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+                      <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
+                        <FileText className="h-7 w-7 lg:h-8 lg:w-8 text-primary" />
                       </div>
                       <div className="flex-1 text-center sm:text-left">
-                        <h4 className="text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts & Notes</h4>
-                        <p className="text-xs text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
+                        <h4 className="text-lg lg:text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts & Notes</h4>
+                        <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
                       </div>
                       {lesson?.pdfUrl ? (
                         <Button 
                           asChild
-                          className="w-full sm:w-auto rounded-2xl h-14 px-8 font-black text-xs uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all"
+                          className="w-full sm:w-auto rounded-2xl h-12 lg:h-14 px-6 lg:px-8 font-black text-[10px] lg:text-xs uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all"
                         >
                           <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
                             <Download className="mr-2 h-4 w-4" /> Download PDF
                           </a>
                         </Button>
                       ) : (
-                        <div className="flex items-center gap-2 text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-xl">
-                          <Info size={14} /> Soon
+                        <div className="w-full sm:w-auto text-center px-4 py-3 bg-slate-50/50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Available Soon</span>
                         </div>
                       )}
                     </div>
                     {!lesson?.pdfUrl && (
-                      <div className="px-8 pb-4 text-[10px] text-slate-400 font-medium text-center sm:text-left">
-                        Study materials for this session will be uploaded soon.
+                      <div className="px-6 pb-5 text-[9px] lg:text-[10px] text-slate-400 font-medium text-center sm:text-left border-t border-slate-100/50 dark:border-slate-800/50 pt-3 mt-1">
+                        Study materials for this session are currently being finalized.
                       </div>
                     )}
                   </Card>
