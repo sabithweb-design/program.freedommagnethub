@@ -94,6 +94,7 @@ function LessonContent() {
   const [completing, setCompleting] = useState(false);
   const [noAccess, setNoAccess] = useState(false);
   const [course, setCourse] = useState<CourseData | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   // Notes State
   const [noteText, setNoteText] = useState("");
@@ -104,6 +105,7 @@ function LessonContent() {
 
   // Deterrent for non-admins (selection protection)
   useEffect(() => {
+    setIsMounted(true);
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
@@ -385,8 +387,8 @@ function LessonContent() {
               className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black touch-manipulation"
               style={{ touchAction: 'manipulation' }}
             >
-              {plyrSource ? (
-                <div key={lesson?.vimeoVideoId || lesson?.youtubeVideoId || day} className="w-full h-full min-h-[300px] lg:min-h-[450px]">
+              {isMounted && plyrSource ? (
+                <div key={`${lesson?.vimeoVideoId || lesson?.youtubeVideoId}-${day}`} className="w-full h-full min-h-[300px] lg:min-h-[450px]">
                   <Plyr 
                     ref={playerRef}
                     source={plyrSource as any} 
