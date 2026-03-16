@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -1101,7 +1100,7 @@ export default function AdminPage() {
             <div className="space-y-2">
               <Label className="font-bold">Thumbnail (URL or Upload JPEG)</Label>
               <div className="flex gap-2">
-                <Input value={editLessonFields.thumbnailUrl} onChange={e => setEditLessonFields({...editLessonFields, thumbnailUrl: e.target.value})} required className="h-12 rounded-xl text-slate-900 flex-1" />
+                <Input value={editLessonFields.thumbnailUrl} onChange={e => setEditLessonFields({...editLessonFields, thumbnailUrl: e.target.value})} className="h-12 rounded-xl text-slate-900 flex-1" />
                 <div className="relative">
                   <input type="file" accept=".jpg,.jpeg" className="hidden" id="edit-lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'edit-lesson')} />
                   <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
