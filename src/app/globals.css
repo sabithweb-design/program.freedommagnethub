@@ -161,6 +161,7 @@
 .plyr__video-wrapper {
   background: #000;
   aspect-ratio: 16/9;
+  touch-action: manipulation;
 }
 
 .plyr__poster {

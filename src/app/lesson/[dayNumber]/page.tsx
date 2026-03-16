@@ -325,6 +325,11 @@ function LessonContent() {
     vimeo: { byline: false, portrait: false, title: false, transparent: false }
   }), []);
 
+  // Use a stable key for Plyr to prevent "getAttribute" null errors on route change
+  const playerKey = useMemo(() => {
+    return `plyr-${lesson?.vimeoVideoId || lesson?.youtubeVideoId || 'no-video'}-${day}`;
+  }, [lesson?.vimeoVideoId, lesson?.youtubeVideoId, day]);
+
   if (loading || fetching) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
@@ -402,7 +407,7 @@ function LessonContent() {
             >
               {isMounted && plyrSource ? (
                 <div 
-                  key={`plyr-${lesson?.id || 'empty'}-${day}`} 
+                  key={playerKey} 
                   className="w-full h-full min-h-[300px] lg:min-h-[450px]"
                 >
                   <Plyr 
