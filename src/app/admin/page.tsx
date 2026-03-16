@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs, writeBatch, Query } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeApp, getApps } from 'firebase/app';
@@ -599,8 +600,8 @@ export default function AdminPage() {
   const filteredLessons = useMemo(() => {
     if (!lessons || !courses) return [];
     
-    return lessons.filter(l => {
-      const managedCourse = courses.find(c => c.id === l.courseId);
+    return lessons.filter((l: any) => {
+      const managedCourse = courses.find((c: any) => c.id === l.courseId);
       if (!managedCourse) return false;
       if (lessonFilter !== 'all' && l.courseId !== lessonFilter) return false;
       return true;
@@ -825,7 +826,7 @@ export default function AdminPage() {
                 ) : courses && courses.length > 0 ? courses.map((c: any) => (
                   <Card key={c.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 overflow-hidden p-3 flex gap-4 hover:shadow-md transition-all items-center relative group">
                     <div className="w-16 h-16 rounded-xl bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden border dark:border-slate-800 relative">
-                      <img src={c.imageUrl || 'https://picsum.photos/seed/prog/200'} className="w-full h-full object-cover" alt={c.title} />
+                      <Image src={c.imageUrl || 'https://picsum.photos/seed/prog/200'} className="w-full h-full object-cover" alt={c.title} fill />
                       <div className="absolute top-1 right-1">
                         {c.visibility === 'PUBLIC' ? <Globe size={12} className="text-emerald-500" /> : c.visibility === 'PRIVATE' ? <LockIcon size={12} className="text-rose-500" /> : <LinkIcon size={12} className="text-amber-500" />}
                       </div>
@@ -972,7 +973,7 @@ export default function AdminPage() {
                     <p className="font-bold">Syncing content portfolio...</p>
                   </div>
                 ) : filteredLessons.length > 0 ? filteredLessons.map((l: any) => {
-                  const course = courses?.find(c => c.id === l.courseId);
+                  const course = courses?.find((c: any) => c.id === l.courseId);
                   return (
                     <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-4 flex items-center justify-between group">
                       <div className="flex items-center gap-4">
@@ -1207,7 +1208,7 @@ export default function AdminPage() {
                       {editFields.studentIds.length === 0 ? (
                         <div className="text-[10px] text-slate-400 text-center py-4 border border-dashed rounded-lg font-bold">No students enrolled yet.</div>
                       ) : editFields.studentIds.map(sid => {
-                        const student = users?.find(u => u.uid === sid);
+                        const student = users?.find((u: any) => u.uid === sid);
                         return (
                           <div key={sid} className="flex items-center justify-between bg-slate-50 dark:bg-slate-800 p-2.5 rounded-xl border group">
                             <div className="flex flex-col">
@@ -1254,9 +1255,9 @@ export default function AdminPage() {
                     </CardHeader>
                     <CardContent className="p-4 pt-0">
                       <div className="space-y-3 mt-2">
-                        {adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
+                        {adminUsers.filter((u: any) => u.email !== MAIN_ADMIN_EMAIL).length === 0 ? (
                           <div className="text-[10px] text-slate-400 text-center py-4 bg-white dark:bg-slate-900 rounded-lg border border-dashed font-bold">No other sub admins registered.</div>
-                        ) : adminUsers.filter(u => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
+                        ) : adminUsers.filter((u: any) => u.email !== MAIN_ADMIN_EMAIL).map((u: any) => (
                           <div key={u.uid} className="flex items-center space-x-3 bg-white dark:bg-slate-900 p-2.5 rounded-xl border">
                             <Checkbox id={`admin-${u.uid}`} checked={editFields.adminIds.includes(u.uid)} onCheckedChange={() => toggleAdminAssignment(u.uid)} className="rounded-md" />
                             <Label htmlFor={`admin-${u.uid}`} className="flex flex-col cursor-pointer">
