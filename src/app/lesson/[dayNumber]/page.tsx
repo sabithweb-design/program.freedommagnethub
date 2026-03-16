@@ -15,8 +15,7 @@ import {
   addDoc, 
   orderBy, 
   setDoc, 
-  Query,
-  DocumentData
+  Query
 } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useFirestore } from "@/firebase";
@@ -403,7 +402,7 @@ function LessonContent() {
             >
               {isMounted && plyrSource ? (
                 <div 
-                  key={`${lesson?.id || 'empty'}-${day}`} 
+                  key={`plyr-${lesson?.id || 'empty'}-${day}`} 
                   className="w-full h-full min-h-[300px] lg:min-h-[450px]"
                 >
                   <Plyr 
