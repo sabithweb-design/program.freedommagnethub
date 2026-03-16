@@ -226,10 +226,14 @@ function LessonContent() {
   const handleNoteFocus = () => {
     if (playerRef.current?.plyr) {
       const plyr = playerRef.current.plyr;
-      if (plyr.playing) {
-        plyr.pause();
+      try {
+        if (plyr.playing) {
+          plyr.pause();
+        }
+        setCapturedTimestamp(plyr.currentTime);
+      } catch (e) {
+        console.warn("Player not fully ready for timestamp capture");
       }
-      setCapturedTimestamp(plyr.currentTime);
     }
   };
 
@@ -250,7 +254,9 @@ function LessonContent() {
       .then(() => {
         setNoteText("");
         setCapturedTimestamp(null);
-        playerRef.current?.plyr?.play();
+        try {
+          playerRef.current?.plyr?.play();
+        } catch (e) {}
         toast({ title: "Note Saved", description: "Timestamped note added to your collection." });
       })
       .catch((err) => {
@@ -366,9 +372,13 @@ function LessonContent() {
       <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           <div className="lg:col-span-8 space-y-10">
-            <div className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black group">
+            <div 
+              key={lesson?.id || day}
+              className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black group"
+            >
               {plyrSource ? (
                 <Plyr 
+                  key={lesson?.vimeoVideoId || lesson?.youtubeVideoId}
                   ref={playerRef}
                   source={plyrSource as any} 
                   options={plyrOptions as any} 
@@ -546,8 +556,10 @@ function LessonContent() {
                           <button 
                             onClick={() => {
                               if (playerRef.current?.plyr) {
-                                playerRef.current.plyr.currentTime = note.timestamp;
-                                playerRef.current.plyr.play();
+                                try {
+                                  playerRef.current.plyr.currentTime = note.timestamp;
+                                  playerRef.current.plyr.play();
+                                } catch (e) {}
                               }
                             }}
                             className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
