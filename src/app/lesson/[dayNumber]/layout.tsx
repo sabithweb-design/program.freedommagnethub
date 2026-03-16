@@ -1,14 +1,10 @@
 
 export function generateStaticParams() {
-  const lessonCounts = [90, 60, 30]; 
+  // Generate params for the 90-day training program
   const params: { dayNumber: string }[] = [];
-
-  lessonCounts.forEach((count) => {
-    for (let i = 1; i <= count; i++) {
-      params.push({ dayNumber: i.toString() });
-    }
-  });
-
+  for (let i = 1; i <= 90; i++) {
+    params.push({ dayNumber: i.toString() });
+  }
   return params;
 }
 

@@ -48,8 +48,15 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { cn } from "@/lib/utils";
 
-// Dynamic import for ReactPlayer to avoid hydration mismatch
-const ReactPlayer = dynamic(() => import('react-player'), { ssr: false });
+// Optimized dynamic import for ReactPlayer to handle chunk loading more gracefully
+const ReactPlayer = dynamic(() => import('react-player/lazy'), { 
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+      <Loader2 className="h-10 w-10 animate-spin text-primary" />
+    </div>
+  )
+});
 
 interface LessonData {
   id?: string;
@@ -64,7 +71,6 @@ interface LessonData {
   pdfUrl?: string;
   dayNumber: number;
   isLocked?: boolean;
-  learningPoints?: string[];
 }
 
 interface CourseData {
@@ -159,21 +165,16 @@ function LessonContent() {
         const cData = courseSnap.data() as CourseData;
         setCourse({ ...cData, id: courseSnap.id });
 
-        const isPublic = cData.visibility === 'PUBLIC';
-        const isPrivate = cData.visibility === 'PRIVATE';
+        if (cData.visibility !== 'PUBLIC' && !user) {
+          const currentPath = window.location.pathname + (window.location.search || '');
+          router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+          return;
+        }
 
-        if (!isPublic) {
-          if (!user) {
-            const currentPath = window.location.pathname + (window.location.search || '');
-            router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
-            return;
-          }
-
-          if (isPrivate && !isAdmin && !cData.studentIds?.includes(user.uid)) {
-            setNoAccess(true);
-            setFetching(false);
-            return;
-          }
+        if (cData.visibility === 'PRIVATE' && !isAdmin && !cData.studentIds?.includes(user?.uid || '')) {
+          setNoAccess(true);
+          setFetching(false);
+          return;
         }
 
         const q = query(
@@ -430,6 +431,13 @@ function LessonContent() {
                       onDuration={(d) => setDuration(d)}
                       onPlay={() => setPlaying(true)}
                       onPause={() => setPlaying(false)}
+                      config={{
+                        file: {
+                          attributes: {
+                            controlsList: 'nodownload'
+                          }
+                        }
+                      }}
                     />
                   </div>
 
