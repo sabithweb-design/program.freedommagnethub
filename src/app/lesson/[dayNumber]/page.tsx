@@ -305,6 +305,7 @@ function LessonContent() {
     controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
     settings: ['quality', 'speed'],
     speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+    ratio: '16:9',
     youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
     vimeo: { byline: false, portrait: false, title: false, transparent: false }
   };
@@ -381,15 +382,17 @@ function LessonContent() {
           <div className="lg:col-span-8 space-y-10">
             {/* Professional Video Player Container */}
             <div 
-              className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black group"
+              className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black touch-manipulation"
+              style={{ touchAction: 'manipulation' }}
             >
               {plyrSource ? (
-                <Plyr 
-                  key={lesson?.vimeoVideoId || lesson?.youtubeVideoId || day}
-                  ref={playerRef}
-                  source={plyrSource as any} 
-                  options={plyrOptions as any} 
-                />
+                <div key={lesson?.vimeoVideoId || lesson?.youtubeVideoId || day} className="w-full h-full">
+                  <Plyr 
+                    ref={playerRef}
+                    source={plyrSource as any} 
+                    options={plyrOptions as any} 
+                  />
+                </div>
               ) : (
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-50 dark:bg-slate-900 border-2 border-dashed rounded-[2rem]">
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">

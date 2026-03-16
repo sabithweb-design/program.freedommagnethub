@@ -138,6 +138,8 @@
   border-radius: 2rem;
   overflow: hidden;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  height: 100% !important;
+  width: 100% !important;
 }
 
 .plyr--full-ui input[type=range] {
@@ -152,4 +154,14 @@
 .plyr__controls {
   padding: 20px !important;
   background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.8)) !important;
+}
+
+/* Fix for zoom in/out issues on touch/click */
+.plyr__video-wrapper {
+  background: #000;
+  aspect-ratio: 16/9;
+}
+
+.plyr__poster {
+  background-size: cover !important;
 }
