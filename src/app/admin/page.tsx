@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -899,7 +900,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Thumbnail (URL or Upload JPEG)</Label>
+                    <Label className="font-bold">Thumbnail (URL or Upload JPEG) - Optional</Label>
                     <div className="flex gap-2">
                       <Input placeholder="https://..." value={lessonForm.thumbnailUrl} onChange={e => setLessonForm({...lessonForm, thumbnailUrl: e.target.value})} className="h-12 rounded-xl text-slate-900 flex-1" />
                       <div className="relative">
@@ -1098,7 +1099,7 @@ export default function AdminPage() {
               <Input placeholder="Vimeo Link" value={editLessonFields.vimeoUrl} onChange={e => setEditLessonFields({...editLessonFields, vimeoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
             </div>
             <div className="space-y-2">
-              <Label className="font-bold">Thumbnail (URL or Upload JPEG)</Label>
+              <Label className="font-bold">Thumbnail (URL or Upload JPEG) - Optional</Label>
               <div className="flex gap-2">
                 <Input value={editLessonFields.thumbnailUrl} onChange={e => setEditLessonFields({...editLessonFields, thumbnailUrl: e.target.value})} className="h-12 rounded-xl text-slate-900 flex-1" />
                 <div className="relative">
@@ -1227,7 +1228,7 @@ export default function AdminPage() {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail (URL or Upload JPEG)</Label>
+                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail (URL or Upload JPEG) - Optional</Label>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
                       <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />

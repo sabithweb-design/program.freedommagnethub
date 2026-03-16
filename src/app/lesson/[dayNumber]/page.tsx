@@ -48,8 +48,8 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { cn } from "@/lib/utils";
 
-// Optimized dynamic import for ReactPlayer to handle chunk loading more gracefully
-const ReactPlayer = dynamic(() => import('react-player/lazy'), { 
+// Robust dynamic import for ReactPlayer
+const ReactPlayer = dynamic(() => import('react-player'), { 
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
@@ -432,6 +432,14 @@ function LessonContent() {
                       onPlay={() => setPlaying(true)}
                       onPause={() => setPlaying(false)}
                       config={{
+                        youtube: {
+                          playerVars: { 
+                            showinfo: 0, 
+                            modestbranding: 1, 
+                            rel: 0,
+                            origin: typeof window !== 'undefined' ? window.location.origin : '' 
+                          }
+                        },
                         file: {
                           attributes: {
                             controlsList: 'nodownload'
