@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs, writeBatch, Query } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useStorage } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,7 +65,9 @@ import {
   AlertTriangle,
   Globe,
   Lock as LockIcon,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Upload,
+  Loader2
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -72,13 +75,16 @@ import Image from 'next/image';
 import { PlayerIcon } from '@/components/icons/PlayerIcon';
 
 const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 
 export default function AdminPage() {
   const firestore = useFirestore();
+  const storage = useStorage();
   const { user: currentUser, isAdmin, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('courses');
   const [lessonFilter, setLessonFilter] = useState('all');
+  const [isUploading, setIsUploading] = useState(false);
 
   const isMainAdmin = currentUser?.email === MAIN_ADMIN_EMAIL;
 
@@ -142,11 +148,9 @@ export default function AdminPage() {
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
 
-  // User Edit State
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [editUserForm, setEditUserForm] = useState({ displayName: '', email: '', role: 'student' as 'student' | 'admin' });
 
-  // Lesson Edit State
   const [editingLesson, setEditingLesson] = useState<any | null>(null);
   const [editLessonFields, setEditLessonFields] = useState({
     title: '',
@@ -160,7 +164,6 @@ export default function AdminPage() {
     actionPlan: ''
   });
 
-  // Delete Confirmation State
   const [deleteConfirmType, setDeleteConfirmType] = useState<'member' | 'program' | 'lesson' | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -185,6 +188,39 @@ export default function AdminPage() {
     adminIds: [] as string[],
     studentIds: [] as string[]
   });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'course' | 'lesson' | 'edit-course' | 'edit-lesson') => {
+    const file = e.target.files?.[0];
+    if (!file || !storage) return;
+
+    if (file.type !== 'image/jpeg') {
+      toast({ variant: "destructive", title: "Invalid Format", description: "Please upload a JPEG image." });
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast({ variant: "destructive", title: "File Too Large", description: "Image must be under 1MB." });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const storageRef = ref(storage, `thumbnails/${Date.now()}_${file.name}`);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+
+      if (type === 'course') setCourseForm(prev => ({ ...prev, imageUrl: downloadURL }));
+      if (type === 'lesson') setLessonForm(prev => ({ ...prev, thumbnailUrl: downloadURL }));
+      if (type === 'edit-course') setEditFields(prev => ({ ...prev, imageUrl: downloadURL }));
+      if (type === 'edit-lesson') setEditLessonFields(prev => ({ ...prev, thumbnailUrl: downloadURL }));
+
+      toast({ title: "Upload Success", description: "Thumbnail has been processed successfully." });
+    } catch (err: any) {
+      toast({ variant: "destructive", title: "Upload Failed", description: "Could not save the image." });
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   const extractYoutubeId = (url: string) => {
     if (!url) return '';
@@ -752,8 +788,19 @@ export default function AdminPage() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Thumbnail (URL)</Label>
-                    <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900" />
+                    <Label className="font-bold">Thumbnail (URL or Upload JPEG)</Label>
+                    <div className="flex gap-2">
+                      <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900 flex-1" />
+                      <div className="relative">
+                        <input type="file" accept=".jpg,.jpeg" className="hidden" id="course-thumb-upload" onChange={(e) => handleFileUpload(e, 'course')} />
+                        <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
+                          <label htmlFor="course-thumb-upload" className="cursor-pointer">
+                            {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
+                          </label>
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG only, max 1MB</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Category</Label>
@@ -850,6 +897,21 @@ export default function AdminPage() {
                       <Label className="font-bold text-xs uppercase tracking-tight text-slate-500">YouTube URL</Label>
                       <Input placeholder="YouTube Link" value={lessonForm.youtubeUrl} onChange={e => setLessonForm({...lessonForm, youtubeUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                     </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="font-bold">Thumbnail (URL or Upload JPEG)</Label>
+                    <div className="flex gap-2">
+                      <Input placeholder="https://..." value={lessonForm.thumbnailUrl} onChange={e => setLessonForm({...lessonForm, thumbnailUrl: e.target.value})} className="h-12 rounded-xl text-slate-900 flex-1" />
+                      <div className="relative">
+                        <input type="file" accept=".jpg,.jpeg" className="hidden" id="lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'lesson')} />
+                        <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
+                          <label htmlFor="lesson-thumb-upload" className="cursor-pointer">
+                            {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
+                          </label>
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG only, max 1MB</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold flex items-center gap-2 text-xs uppercase tracking-tight text-slate-500">
@@ -1035,6 +1097,21 @@ export default function AdminPage() {
               <Label className="font-bold">Vimeo URL</Label>
               <Input placeholder="Vimeo Link" value={editLessonFields.vimeoUrl} onChange={e => setEditLessonFields({...editLessonFields, vimeoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
             </div>
+            <div className="space-y-2">
+              <Label className="font-bold">Thumbnail (URL or Upload JPEG)</Label>
+              <div className="flex gap-2">
+                <Input value={editLessonFields.thumbnailUrl} onChange={e => setEditLessonFields({...editLessonFields, thumbnailUrl: e.target.value})} required className="h-12 rounded-xl text-slate-900 flex-1" />
+                <div className="relative">
+                  <input type="file" accept=".jpg,.jpeg" className="hidden" id="edit-lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'edit-lesson')} />
+                  <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
+                    <label htmlFor="edit-lesson-thumb-upload" className="cursor-pointer">
+                      {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
+                    </label>
+                  </Button>
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG only, max 1MB</p>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="font-bold">PDF Resource</Label>
@@ -1150,11 +1227,22 @@ export default function AdminPage() {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail Link</Label>
-                  <div className="relative">
-                    <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                    <Input value={editFields.imageUrl} onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})} className="rounded-xl h-12 pl-10 text-slate-900" />
+                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail (URL or Upload JPEG)</Label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input value={editFields.imageUrl} onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})} className="rounded-xl h-12 pl-10 text-slate-900" />
+                    </div>
+                    <div className="relative">
+                      <input type="file" accept=".jpg,.jpeg" className="hidden" id="edit-course-thumb-upload" onChange={(e) => handleFileUpload(e, 'edit-course')} />
+                      <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
+                        <label htmlFor="edit-course-thumb-upload" className="cursor-pointer">
+                          {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
+                        </label>
+                      </Button>
+                    </div>
                   </div>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG only, max 1MB</p>
                 </div>
                 {isMainAdmin && (
                   <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">

@@ -1,20 +1,19 @@
-
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { initializeFirestore, getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { firebaseConfig } from './config';
 
 export function initializeFirebase(): {
   app: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
+  storage: FirebaseStorage;
 } {
   const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   
-  // Use initializeFirestore to enable long-polling, which helps with connectivity 
-  // issues in certain development and proxy environments.
   const firestore = getApps().length > 0 
     ? getFirestore(app) 
     : initializeFirestore(app, {
@@ -22,13 +21,13 @@ export function initializeFirebase(): {
       });
 
   const auth = getAuth(app);
+  const storage = getStorage(app);
 
-  // Set persistence to local so users stay logged in across browser restarts
   setPersistence(auth, browserLocalPersistence).catch((err) => {
     console.error("Failed to set auth persistence:", err);
   });
 
-  return { app, firestore, auth };
+  return { app, firestore, auth, storage };
 }
 
 export * from './provider';
