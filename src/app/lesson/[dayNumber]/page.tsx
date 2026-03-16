@@ -301,14 +301,14 @@ function LessonContent() {
     return null;
   }, [lesson]);
 
-  const plyrOptions = {
+  const plyrOptions = useMemo(() => ({
     controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
     settings: ['quality', 'speed'],
     speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
     ratio: '16:9',
     youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
     vimeo: { byline: false, portrait: false, title: false, transparent: false }
-  };
+  }), []);
 
   if (loading || fetching) {
     return (
@@ -386,7 +386,7 @@ function LessonContent() {
               style={{ touchAction: 'manipulation' }}
             >
               {plyrSource ? (
-                <div key={lesson?.vimeoVideoId || lesson?.youtubeVideoId || day} className="w-full h-full">
+                <div key={lesson?.vimeoVideoId || lesson?.youtubeVideoId || day} className="w-full h-full min-h-[300px] lg:min-h-[450px]">
                   <Plyr 
                     ref={playerRef}
                     source={plyrSource as any} 

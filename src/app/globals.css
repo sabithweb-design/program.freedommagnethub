@@ -165,3 +165,14 @@
 .plyr__poster {
   background-size: cover !important;
 }
+
+/* Ensure plyr is visible and stable on desktop */
+.plyr--video {
+  min-height: 450px;
+}
+
+@media (max-width: 768px) {
+  .plyr--video {
+    min-height: 200px;
+  }
+}
