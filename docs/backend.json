@@ -29,7 +29,7 @@
         "vimeoVideoId": { "type": "string" },
         "thumbnailUrl": { "type": "string", "description": "URL for the lesson preview image" },
         "pdfUrl": { "type": "string", "description": "URL for downloadable PDF resources" },
-        "driveUrl": { "type": "string", "description": "Link to shared Google Drive folder or file" },
+        "driveVideoUrl": { "type": "string", "description": "Link to shared Google Drive video" },
         "isLocked": { "type": "boolean", "default": false },
         "createdAt": { "type": "object", "description": "Firestore Timestamp" }
       },

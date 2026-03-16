@@ -135,7 +135,7 @@ export default function AdminPage() {
     vimeoUrl: '',
     thumbnailUrl: '', 
     pdfUrl: '', 
-    driveUrl: '',
+    driveVideoUrl: '',
     courseId: '',
     actionPlan: '' 
   });
@@ -159,7 +159,7 @@ export default function AdminPage() {
     vimeoUrl: '',
     thumbnailUrl: '',
     pdfUrl: '',
-    driveUrl: '',
+    driveVideoUrl: '',
     actionPlan: ''
   });
 
@@ -540,13 +540,13 @@ export default function AdminPage() {
       vimeoVideoId: extractVimeoId(lessonForm.vimeoUrl),
       thumbnailUrl: lessonForm.thumbnailUrl || '',
       pdfUrl: lessonForm.pdfUrl || '',
-      driveUrl: lessonForm.driveUrl || '',
+      driveVideoUrl: lessonForm.driveVideoUrl || '',
       isLocked: false,
       createdAt: serverTimestamp()
     };
 
     addDoc(collection(firestore, 'lessons'), lessonData).then(() => {
-      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', vimeoUrl: '', thumbnailUrl: '', pdfUrl: '', driveUrl: '', actionPlan: '' });
+      setLessonForm({ ...lessonForm, title: '', description: '', dayNumber: lessonForm.dayNumber + 1, youtubeUrl: '', vimeoUrl: '', thumbnailUrl: '', pdfUrl: '', driveVideoUrl: '', actionPlan: '' });
       setLessonFilter(lessonForm.courseId);
       toast({ title: "Lesson Published", description: `Session Day ${lessonData.dayNumber} is now live.` });
     }).catch(async (err) => {
@@ -564,7 +564,7 @@ export default function AdminPage() {
       vimeoUrl: lesson.vimeoVideoId ? `https://vimeo.com/${lesson.vimeoVideoId}` : '',
       thumbnailUrl: lesson.thumbnailUrl || '',
       pdfUrl: lesson.pdfUrl || '',
-      driveUrl: lesson.driveUrl || '',
+      driveVideoUrl: lesson.driveVideoUrl || '',
       actionPlan: lesson.actionPlan || ''
     });
   };
@@ -582,7 +582,7 @@ export default function AdminPage() {
       vimeoVideoId: extractVimeoId(editLessonFields.vimeoUrl),
       thumbnailUrl: editLessonFields.thumbnailUrl,
       pdfUrl: editLessonFields.pdfUrl,
-      driveUrl: editLessonFields.driveUrl,
+      driveVideoUrl: editLessonFields.driveVideoUrl,
       actionPlan: editLessonFields.actionPlan
     };
 
@@ -927,7 +927,7 @@ export default function AdminPage() {
                     </div>
                     <div className="space-y-2">
                       <Label className="font-bold">Drive Link</Label>
-                      <Input placeholder="Google Drive URL" value={lessonForm.driveUrl} onChange={e => setLessonForm({...lessonForm, driveUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+                      <Input placeholder="Google Drive URL" value={lessonForm.driveVideoUrl} onChange={e => setLessonForm({...lessonForm, driveVideoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -1105,7 +1105,7 @@ export default function AdminPage() {
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Drive Resource</Label>
-                <Input placeholder="Google Drive Link" value={editLessonFields.driveUrl} onChange={e => setEditLessonFields({...editLessonFields, driveUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
+                <Input placeholder="Google Drive Link" value={editLessonFields.driveVideoUrl} onChange={e => setEditLessonFields({...editLessonFields, driveVideoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
               </div>
             </div>
             <div className="space-y-2">

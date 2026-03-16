@@ -5,7 +5,7 @@ import { useState, Suspense } from "react";
 import { 
   signInWithEmailAndPassword
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { useAuth as useFirebaseAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ function LoginContent() {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
+  const auth = useFirebaseAuth();
   const searchParams = useSearchParams();
   
   const redirectPath = searchParams.get('redirect');
@@ -36,7 +37,6 @@ function LoginContent() {
       } else if (email === "admin@freedommagnethub.com") {
         router.push("/admin");
       } else {
-        // Auth context will handle profile fetching and routing
         router.push("/dashboard");
       }
     } catch (error: any) {

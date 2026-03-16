@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth as useFirebaseAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
@@ -12,16 +12,15 @@ import { Button } from '@/components/ui/button';
 export default function FinishSignInPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useFirebaseAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [errorMessage, setErrorMessage] = useState('');
 
   useEffect(() => {
     const completeSignIn = async () => {
-      // Check if the URL is a sign-in email link
       if (isSignInWithEmailLink(auth, window.location.href)) {
         let email = window.localStorage.getItem('emailForSignIn');
         
-        // If email is missing (e.g., user opened link on a different device/browser)
         if (!email) {
           email = window.prompt('Please provide your email for confirmation');
         }
@@ -56,7 +55,7 @@ export default function FinishSignInPage() {
     };
 
     completeSignIn();
-  }, [router, toast]);
+  }, [router, toast, auth]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-[#FFFBF5] p-4 font-body">

@@ -1,9 +1,9 @@
+
 "use client";
 
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc, Query } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc, Query, Firestore } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,7 @@ interface LessonData {
   title?: string;
   description?: string;
   actionPlan?: string;
-  driveUrl?: string;
+  driveVideoUrl?: string;
   youtubeVideoId?: string;
   vimeoVideoId?: string;
   thumbnailUrl?: string;
@@ -137,7 +137,7 @@ function LessonContent() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (loading) return;
+    if (loading || !firestore) return;
 
     if (!courseId) {
       setNoAccess(true);
@@ -148,7 +148,7 @@ function LessonContent() {
     const fetchLesson = async () => {
       setFetching(true);
       try {
-        const courseRef = doc(db, 'courses', courseId);
+        const courseRef = doc(firestore, 'courses', courseId);
         const courseSnap = await getDoc(courseRef);
         
         if (!courseSnap.exists()) {
@@ -178,10 +178,10 @@ function LessonContent() {
         }
 
         const q = query(
-          collection(db, "lessons"), 
+          collection(firestore, "lessons"), 
           where("dayNumber", "==", day),
           where("courseId", "==", courseId)
-        );
+        ) as Query<LessonData>;
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
@@ -191,7 +191,7 @@ function LessonContent() {
           setLesson({ ...lData, id: lId });
 
           if (user) {
-            const progressRef = doc(db, 'users', user.uid, 'completedLessons', lId);
+            const progressRef = doc(firestore, 'users', user.uid, 'completedLessons', lId);
             const docSnap = await getDoc(progressRef);
             setIsCompleted(docSnap.exists());
           }
@@ -209,7 +209,7 @@ function LessonContent() {
     };
     
     fetchLesson();
-  }, [user, loading, day, courseId, router, isAdmin]);
+  }, [user, loading, day, courseId, router, isAdmin, firestore]);
 
   const notesQuery = useMemo(() => {
     if (!firestore || !user || !lessonId) return null;
@@ -224,11 +224,11 @@ function LessonContent() {
   const { data: notes } = useCollection<UserNote>(notesQuery);
 
   const handleToggleComplete = () => {
-    if (!user || !lessonId) return;
+    if (!user || !lessonId || !firestore) return;
     if (completing) return;
     setCompleting(true);
 
-    const progressRef = doc(db, 'users', user.uid, 'completedLessons', lessonId);
+    const progressRef = doc(firestore, 'users', user.uid, 'completedLessons', lessonId);
     
     if (isCompleted) {
       deleteDoc(progressRef)
@@ -266,7 +266,7 @@ function LessonContent() {
   };
 
   const handleSaveNote = async () => {
-    if (!user || !lessonId || !noteText.trim() || capturedTimestamp === null) return;
+    if (!user || !lessonId || !noteText.trim() || capturedTimestamp === null || !firestore) return;
     setSavingNote(true);
 
     const noteData = {
@@ -278,7 +278,7 @@ function LessonContent() {
       createdAt: serverTimestamp()
     };
 
-    addDoc(collection(db, "user_notes"), noteData)
+    addDoc(collection(firestore, "user_notes"), noteData)
       .then(() => {
         setNoteText("");
         setCapturedTimestamp(null);
@@ -292,7 +292,8 @@ function LessonContent() {
   };
 
   const handleDeleteNote = (id: string) => {
-    const noteRef = doc(db, 'user_notes', id);
+    if (!firestore) return;
+    const noteRef = doc(firestore, 'user_notes', id);
     deleteDoc(noteRef).catch((err) => {
       errorEmitter.emit('permission-error', new FirestorePermissionError({ path: noteRef.path, operation: 'delete' }));
     });
@@ -336,7 +337,7 @@ function LessonContent() {
   };
 
   const videoUrl = useMemo(() => {
-    if (lesson?.driveUrl) return formatDriveUrl(lesson.driveUrl);
+    if (lesson?.driveVideoUrl) return formatDriveUrl(lesson.driveVideoUrl);
     if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}`;
     if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}`;
     return null;
@@ -637,13 +638,13 @@ function LessonContent() {
                     </div>
                   )}
 
-                  {lesson?.driveUrl && (
+                  {lesson?.driveVideoUrl && (
                     <div className="space-y-6">
                       <h3 className="text-xl font-black flex items-center gap-2">
                         <Bookmark size={20} className="text-primary" /> Cloud Assets
                       </h3>
                       <Button variant="outline" className="h-16 w-full justify-start rounded-2xl font-black text-xs uppercase tracking-widest border-2 group shadow-sm hover:shadow-md transition-all" asChild>
-                        <a href={lesson.driveUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={lesson.driveVideoUrl} target="_blank" rel="noopener noreferrer">
                           <Bookmark className="mr-4 h-6 w-6 text-primary group-hover:rotate-12 transition-transform" /> 
                           Access Resource Drive
                         </a>
