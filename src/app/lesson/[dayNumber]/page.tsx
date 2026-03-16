@@ -373,12 +373,11 @@ function LessonContent() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           <div className="lg:col-span-8 space-y-10">
             <div 
-              key={lesson?.id || day}
               className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black group"
             >
               {plyrSource ? (
                 <Plyr 
-                  key={lesson?.vimeoVideoId || lesson?.youtubeVideoId}
+                  key={lesson?.vimeoVideoId || lesson?.youtubeVideoId || day}
                   ref={playerRef}
                   source={plyrSource as any} 
                   options={plyrOptions as any} 
