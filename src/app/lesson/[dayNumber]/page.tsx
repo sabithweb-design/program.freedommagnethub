@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc, Query } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
-import { useFirestore } from "@/firebase";
+import { useCollection, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent as UICardContent, CardHeader as UICardHeader, CardTitle as UICardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,7 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { cn } from "@/lib/utils";
 
-// Import Plyr
+// Import Plyr with dynamic loading for Vimeo-style clean player
 const Plyr = dynamic(() => import('plyr-react'), { 
   ssr: false,
   loading: () => (
