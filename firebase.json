@@ -1,17 +1,11 @@
-
 {
   "hosting": {
-    "source": ".",
+    "site": "studio-5549119316-fde4e",
+    "public": "out",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
-    ],
-    "frameworksBackend": {
-      "region": "us-central1"
-    }
-  },
-  "firestore": {
-    "rules": "firestore.rules"
+    ]
   }
 }

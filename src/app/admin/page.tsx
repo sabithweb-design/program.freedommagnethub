@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs, writeBatch, Query } from 'firebase/firestore';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
@@ -56,7 +56,6 @@ import {
   Image as ImageIcon,
   Share2,
   ShieldCheck,
-  Search,
   Eye,
   EyeOff,
   FolderOpen,
@@ -67,11 +66,7 @@ import {
   Database,
   Globe,
   Lock as LockIcon,
-  Link as LinkIcon,
-  CloudUpload,
-  Terminal,
-  ExternalLink,
-  Shield
+  Link as LinkIcon
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -91,15 +86,15 @@ export default function AdminPage() {
 
   const usersQuery = useMemo(() => {
     if (!firestore || authLoading || !currentUser || !isAdmin) return null;
-    return query(collection(firestore, 'users'));
+    return query(collection(firestore, 'users')) as Query<any>;
   }, [firestore, isAdmin, authLoading, currentUser]);
   
   const coursesQuery = useMemo(() => {
     if (!firestore || authLoading || !currentUser || !isAdmin) return null;
     if (isMainAdmin) {
-      return query(collection(firestore, 'courses'));
+      return query(collection(firestore, 'courses')) as Query<any>;
     }
-    return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', currentUser.uid));
+    return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', currentUser.uid)) as Query<any>;
   }, [firestore, currentUser, isMainAdmin, isAdmin, authLoading]);
 
   const lessonsQuery = useMemo(() => {
@@ -110,10 +105,10 @@ export default function AdminPage() {
         collection(firestore, 'lessons'), 
         where('courseId', '==', lessonFilter), 
         orderBy('dayNumber', 'asc')
-      );
+      ) as Query<any>;
     }
     
-    return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc'));
+    return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc')) as Query<any>;
   }, [firestore, lessonFilter, currentUser, isAdmin, authLoading]);
 
   const { data: users, loading: usersLoading } = useCollection<any>(usersQuery);
@@ -213,7 +208,6 @@ export default function AdminPage() {
     setIsSeeding(true);
     
     try {
-      // 1. Create a sample course
       const courseRef = await addDoc(collection(firestore, 'courses'), {
         title: "Mastering the Freedom Magnet Hub",
         description: "A comprehensive guide to using your new 90-day training platform. Learn how to upload content, manage students, and automate your workflow.",
@@ -230,14 +224,13 @@ export default function AdminPage() {
         createdAt: serverTimestamp()
       });
 
-      // 2. Create Lesson 1
       await addDoc(collection(firestore, 'lessons'), {
         courseId: courseRef.id,
         title: "Welcome to Day 1: The Vision",
         description: "Today we explore the ultimate vision of the Freedom Magnet. Learn how to attract your ideal students and build a life of freedom.",
         actionPlan: "1. Watch the welcome video.\n2. Download the 'Vision Board' PDF.\n3. Join the private community.",
         dayNumber: 1,
-        vimeoVideoId: "76979871", // Sample Vimeo ID
+        vimeoVideoId: "76979871",
         thumbnailUrl: "https://picsum.photos/seed/day1/800/450",
         pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
         isLocked: false,
@@ -360,7 +353,7 @@ export default function AdminPage() {
     setEnrolling(true);
 
     try {
-      const q = query(collection(firestore, 'users'), where('email', '==', enrollmentEmail));
+      const q = query(collection(firestore, 'users'), where('email', '==', enrollmentEmail)) as Query<any>;
       const snap = await getDocs(q);
       
       let studentUid = '';
@@ -503,7 +496,7 @@ export default function AdminPage() {
 
     try {
       if (deleteConfirmType === 'program') {
-        const q = query(collection(firestore, 'lessons'), where('courseId', '==', deleteTargetId));
+        const q = query(collection(firestore, 'lessons'), where('courseId', '==', deleteTargetId)) as Query<any>;
         const lessonSnaps = await getDocs(q);
         const batch = writeBatch(firestore);
         lessonSnaps.docs.forEach((d) => batch.delete(d.ref));
@@ -716,11 +709,6 @@ export default function AdminPage() {
           <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all min-w-max">
             <PlayerIcon className="h-4 w-4" /> Content
           </TabsTrigger>
-          {isMainAdmin && (
-            <TabsTrigger value="deployment" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all min-w-max">
-              <CloudUpload size={16} /> Deployment
-            </TabsTrigger>
-          )}
         </TabsList>
 
         <TabsContent value="users">
@@ -1027,79 +1015,6 @@ export default function AdminPage() {
             </div>
           </div>
         </TabsContent>
-
-        {isMainAdmin && (
-          <TabsContent value="deployment" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <Card className="border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CloudUpload className="text-primary" /> Go Live
-                  </CardTitle>
-                  <CardDescription>Follow these instructions to publish your latest changes to your custom domain.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-2xl border-2 border-dashed">
-                    <h4 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
-                      <Terminal size={18} className="text-primary" /> Step 1: Execute Deployment
-                    </h4>
-                    <p className="text-sm text-slate-500 mb-4">
-                      Open your project terminal and run the following command to build and deploy your application.
-                    </p>
-                    <div className="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs flex justify-between items-center group relative">
-                      <code>npm run deploy</code>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-400 hover:text-white" onClick={() => {
-                        navigator.clipboard.writeText('npm run deploy');
-                        toast({ title: "Command Copied", description: "Paste this in your terminal." });
-                      }}>
-                        <Share2 size={14} />
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="bg-slate-50 dark:bg-slate-950 p-6 rounded-2xl">
-                    <h4 className="font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-4">
-                      <Globe size={18} className="text-primary" /> Step 2: Domain Propagation
-                    </h4>
-                    <p className="text-sm text-slate-500 leading-relaxed">
-                      After deployment, Firebase will automatically generate your SSL certificate. If you just added your Hostinger domain, it may take up to 24 hours for the "Lock" (🔒) icon to appear globally.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="text-primary" /> Project Status
-                  </CardTitle>
-                  <CardDescription>Summary of your current hub configuration.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex justify-between items-center py-3 border-b dark:border-slate-800">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Environment</span>
-                    <Badge className="bg-emerald-500 text-white border-none uppercase text-[10px] font-black">Production</Badge>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b dark:border-slate-800">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Project ID</span>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 font-mono">{firebaseConfig.projectId}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-3 border-b dark:border-slate-800">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Auth Providers</span>
-                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Email/Password</span>
-                  </div>
-                  <div className="pt-4">
-                    <Button variant="outline" className="w-full rounded-xl h-12 font-bold flex gap-2" asChild>
-                      <a href={`https://console.firebase.google.com/project/${firebaseConfig.projectId}/hosting/main`} target="_blank" rel="noopener noreferrer">
-                        <ExternalLink size={16} /> Open Firebase Console
-                      </a>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        )}
       </Tabs>
 
       {/* Confirmation Dialog */}
@@ -1341,4 +1256,3 @@ export default function AdminPage() {
     </div>
   );
 }
-

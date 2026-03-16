@@ -1,0 +1,13 @@
+{
+  "/_not-found/page": "/_not-found",
+  "/favicon.ico/route": "/favicon.ico",
+  "/courses/page": "/courses",
+  "/dashboard/page": "/dashboard",
+  "/lesson/[dayNumber]/page": "/lesson/[dayNumber]",
+  "/login/finish/page": "/login/finish",
+  "/login/page": "/login",
+  "/my-courses/page": "/my-courses",
+  "/page": "/",
+  "/admin/courses/page": "/admin/courses",
+  "/admin/page": "/admin"
+}
