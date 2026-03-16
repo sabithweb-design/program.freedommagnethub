@@ -3,6 +3,9 @@
 
 @plugin "tailwindcss-animate";
 
+/* Plyr Core Styles */
+@import "plyr/dist/plyr.css";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -85,10 +88,10 @@
     --ring: 0 84% 60%;
     --radius: 1.5rem;
 
-    /* Plyr Theme Overrides */
+    /* Plyr Custom Theme */
     --plyr-color-main: hsl(var(--primary));
-    --plyr-video-control-background-hover: rgba(0, 0, 0, 0.2);
-    --plyr-control-radius: 8px;
+    --plyr-video-control-background-hover: rgba(0, 0, 0, 0.1);
+    --plyr-control-radius: 12px;
   }
 
   .dark {
@@ -130,20 +133,23 @@
   user-select: none;
 }
 
-/* Plyr Polish */
+/* Plyr Custom Polishing */
 .plyr {
-  border-radius: inherit;
-  font-family: inherit;
+  border-radius: 2rem;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
 }
 
-.plyr--video .plyr__controls {
-  padding-bottom: 15px;
-  padding-left: 15px;
-  padding-right: 15px;
-  background: linear-gradient(rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.75));
+.plyr--full-ui input[type=range] {
+  color: hsl(var(--primary));
 }
 
-.plyr__play-large {
-  padding: 25px;
+.plyr__control--overlaid {
   background: hsl(var(--primary));
+  padding: 24px;
+}
+
+.plyr__controls {
+  padding: 20px !important;
+  background: linear-gradient(rgba(0,0,0,0), rgba(0,0,0,0.8)) !important;
 }

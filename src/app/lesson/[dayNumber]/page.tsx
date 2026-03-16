@@ -5,11 +5,10 @@ import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc, Query } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
-import { useCollection, useFirestore } from "@/firebase";
+import { useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent as UICardContent, CardHeader as UICardHeader, CardTitle as UICardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -23,15 +22,6 @@ import {
   FileText,
   ClipboardList,
   AlertCircle,
-  Play,
-  Pause,
-  Volume2,
-  VolumeX,
-  Maximize,
-  Settings,
-  CalendarClock,
-  RotateCcw,
-  Captions,
   Loader2,
   StickyNote,
   Send,
@@ -48,11 +38,11 @@ import { errorEmitter } from "@/firebase/error-emitter";
 import { FirestorePermissionError } from "@/firebase/errors";
 import { cn } from "@/lib/utils";
 
-// Robust dynamic import for ReactPlayer
-const ReactPlayer = dynamic(() => import('react-player'), { 
+// Import Plyr
+const Plyr = dynamic(() => import('plyr-react'), { 
   ssr: false,
   loading: () => (
-    <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+    <div className="absolute inset-0 flex items-center justify-center bg-slate-900 rounded-[2rem]">
       <Loader2 className="h-10 w-10 animate-spin text-primary" />
     </div>
   )
@@ -87,16 +77,6 @@ interface UserNote {
   createdAt: any;
 }
 
-const CustomBigButton = ({ playing }: { playing: boolean }) => (
-  <div className="w-20 h-20 sm:w-24 sm:h-24 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center backdrop-blur-md border border-white/30 transition-all shadow-2xl group/btn cursor-pointer">
-    {playing ? (
-      <Pause className="text-white fill-white w-10 h-10 sm:w-12 sm:h-12 transition-transform group-hover/btn:scale-110" />
-    ) : (
-      <Play className="text-white fill-white w-10 h-10 sm:w-12 sm:h-12 ml-2 transition-transform group-hover/btn:scale-110" />
-    )}
-  </div>
-);
-
 function LessonContent() {
   const { dayNumber } = useParams();
   const searchParams = useSearchParams();
@@ -120,18 +100,7 @@ function LessonContent() {
   const [savingNote, setSavingNote] = useState(false);
   const [capturedTimestamp, setCapturedTimestamp] = useState<number | null>(null);
 
-  // Player State
-  const [playing, setPlaying] = useState(false);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [played, setPlayed] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [showControls, setShowControls] = useState(true);
-  
   const playerRef = useRef<any>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -255,13 +224,12 @@ function LessonContent() {
   };
 
   const handleNoteFocus = () => {
-    if (playing) {
-      setPlaying(false);
-      const currentTime = playerRef.current?.getCurrentTime() || 0;
-      setCapturedTimestamp(currentTime);
-    } else if (capturedTimestamp === null) {
-      const currentTime = playerRef.current?.getCurrentTime() || 0;
-      setCapturedTimestamp(currentTime);
+    if (playerRef.current?.plyr) {
+      const plyr = playerRef.current.plyr;
+      if (plyr.playing) {
+        plyr.pause();
+      }
+      setCapturedTimestamp(plyr.currentTime);
     }
   };
 
@@ -282,7 +250,7 @@ function LessonContent() {
       .then(() => {
         setNoteText("");
         setCapturedTimestamp(null);
-        setPlaying(true);
+        playerRef.current?.plyr?.play();
         toast({ title: "Note Saved", description: "Timestamped note added to your collection." });
       })
       .catch((err) => {
@@ -306,42 +274,30 @@ function LessonContent() {
     return `${mm}:${ss}`;
   };
 
-  const handleSkipBack = () => {
-    if (playerRef.current) {
-      const currentTime = playerRef.current.getCurrentTime();
-      playerRef.current.seekTo(Math.max(0, currentTime - 10));
+  const plyrSource = useMemo(() => {
+    if (!lesson) return null;
+    if (lesson.vimeoVideoId) {
+      return {
+        type: 'video',
+        sources: [{ src: lesson.vimeoVideoId, provider: 'vimeo' }]
+      };
     }
-  };
-
-  const handleMouseMove = () => {
-    setShowControls(true);
-    if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
-    controlsTimeoutRef.current = setTimeout(() => setShowControls(false), 3000);
-  };
-
-  const toggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen();
-    } else {
-      document.exitFullscreen();
+    if (lesson.youtubeVideoId) {
+      return {
+        type: 'video',
+        sources: [{ src: lesson.youtubeVideoId, provider: 'youtube' }]
+      };
     }
-  };
-
-  const formatDriveUrl = (url?: string) => {
-    if (!url) return null;
-    if (url.includes('drive.google.com')) {
-      return url.replace(/\/view.*$/, '/preview').replace(/\/edit.*$/, '/preview');
-    }
-    return url;
-  };
-
-  const videoUrl = useMemo(() => {
-    if (lesson?.driveVideoUrl) return formatDriveUrl(lesson.driveVideoUrl);
-    if (lesson?.vimeoVideoId) return `https://vimeo.com/${lesson.vimeoVideoId}`;
-    if (lesson?.youtubeVideoId) return `https://www.youtube.com/watch?v=${lesson.youtubeVideoId}`;
     return null;
   }, [lesson]);
+
+  const plyrOptions = {
+    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
+    settings: ['quality', 'speed'],
+    speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+    youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
+    vimeo: { byline: false, portrait: false, title: false, transparent: false }
+  };
 
   if (loading || fetching) {
     return (
@@ -410,129 +366,17 @@ function LessonContent() {
       <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
           <div className="lg:col-span-8 space-y-10">
-            <div 
-              ref={containerRef}
-              className="relative aspect-video w-full rounded-3xl overflow-hidden shadow-2xl bg-black group"
-              onMouseMove={handleMouseMove}
-            >
-              {videoUrl ? (
-                <>
-                  <div className="absolute inset-0 z-0">
-                    <ReactPlayer
-                      ref={playerRef}
-                      url={videoUrl}
-                      width="100%"
-                      height="100%"
-                      playing={playing}
-                      volume={volume}
-                      muted={isMuted}
-                      playbackRate={playbackRate}
-                      onProgress={(state) => setPlayed(state.played)}
-                      onDuration={(d) => setDuration(d)}
-                      onPlay={() => setPlaying(true)}
-                      onPause={() => setPlaying(false)}
-                      config={{
-                        youtube: {
-                          playerVars: { 
-                            showinfo: 0, 
-                            modestbranding: 1, 
-                            rel: 0,
-                            origin: typeof window !== 'undefined' ? window.location.origin : '' 
-                          }
-                        },
-                        file: {
-                          attributes: {
-                            controlsList: 'nodownload'
-                          }
-                        }
-                      }}
-                    />
-                  </div>
-
-                  <div className={cn(
-                    "absolute inset-0 z-50 transition-opacity duration-300 flex flex-col items-center justify-center bg-black/10",
-                    !showControls && playing ? "opacity-0" : "opacity-100"
-                  )}>
-                    <button onClick={() => setPlaying(!playing)} className="focus:outline-none hover:scale-105 transition-transform active:scale-95">
-                      <CustomBigButton playing={playing} />
-                    </button>
-
-                    <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col gap-3">
-                      <div className="px-2">
-                        <Slider
-                          value={[played * 100]}
-                          max={100}
-                          step={0.1}
-                          onValueChange={(val) => {
-                            const newPlayed = val[0] / 100;
-                            setPlayed(newPlayed);
-                            playerRef.current?.seekTo(newPlayed);
-                          }}
-                          className="cursor-pointer"
-                          trackClassName="h-1 bg-white/20"
-                          rangeClassName="bg-primary"
-                          thumbClassName="w-3 h-3 bg-white border-none shadow-sm"
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 sm:gap-6">
-                          <button onClick={() => setPlaying(!playing)} className="text-white hover:text-primary transition-colors">
-                            {playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
-                          </button>
-                          <div className="text-[10px] sm:text-xs font-bold text-white/90 font-mono tracking-tight">
-                            {formatTime(played * duration)} / {formatTime(duration)}
-                          </div>
-                          <button onClick={handleSkipBack} className="text-white hover:text-primary transition-colors">
-                            <RotateCcw className="w-6 h-6" />
-                          </button>
-                          <div className="flex items-center gap-2 group/volume">
-                            <button onClick={() => setIsMuted(!isMuted)} className="text-white hover:text-primary">
-                              {isMuted || volume === 0 ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                            </button>
-                            <Slider 
-                              value={[isMuted ? 0 : volume * 100]} 
-                              max={100} 
-                              onValueChange={(val) => setVolume(val[0] / 100)}
-                              className="w-16 hidden sm:block"
-                              trackClassName="h-1 bg-white/20"
-                              rangeClassName="bg-white"
-                              thumbClassName="w-2 h-2 bg-white border-none"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3 sm:gap-6">
-                          <div className="relative group/speed">
-                            <button className="text-[10px] font-bold text-white bg-white/10 px-3 py-1.5 rounded-full hover:bg-white/20 uppercase tracking-widest flex items-center gap-2">
-                              {playbackRate}X <Settings className="w-4 h-4" />
-                            </button>
-                            <div className="absolute bottom-full right-0 mb-4 bg-black/95 rounded-xl p-1 opacity-0 group-hover/speed:opacity-100 pointer-events-none group-hover/speed:pointer-events-auto transition-all border border-white/10 min-w-[60px] shadow-2xl">
-                              {[2, 1.5, 1, 0.75].map((rate) => (
-                                <button 
-                                  key={rate}
-                                  onClick={() => setPlaybackRate(rate)}
-                                  className={cn(
-                                    "w-full text-left px-3 py-2 text-[10px] font-bold rounded-lg",
-                                    playbackRate === rate ? "bg-primary text-white" : "text-white/60 hover:text-white hover:bg-white/5"
-                                  )}
-                                >
-                                  {rate}x
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                          <button className="text-white/60 hover:text-white"><Captions className="w-6 h-6" /></button>
-                          <button onClick={toggleFullscreen} className="text-white hover:text-primary transition-colors"><Maximize className="w-6 h-6" /></button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </>
+            <div className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black group">
+              {plyrSource ? (
+                <Plyr 
+                  ref={playerRef}
+                  source={plyrSource as any} 
+                  options={plyrOptions as any} 
+                />
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-50 dark:bg-slate-900 border-2 border-dashed rounded-3xl">
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-50 dark:bg-slate-900 border-2 border-dashed rounded-[2rem]">
                   <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                    <CalendarClock className="w-10 h-10 text-primary" />
+                    <Activity className="w-10 h-10 text-primary" />
                   </div>
                   <div className="space-y-1">
                     <h3 className="text-2xl font-black text-foreground">Session Coming Soon</h3>
@@ -604,7 +448,7 @@ function LessonContent() {
                           <FileText className="h-7 w-7 lg:h-8 lg:w-8 text-primary" />
                         </div>
                         <div className="flex-1 text-center sm:text-left">
-                          <h4 className="text-lg lg:text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts & Notes</h4>
+                          <h4 className="text-lg lg:text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts</h4>
                           <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
                         </div>
                         <Button 
@@ -634,20 +478,6 @@ function LessonContent() {
                           <ClipboardList size={80} />
                         </div>
                       </div>
-                    </div>
-                  )}
-
-                  {lesson?.driveVideoUrl && (
-                    <div className="space-y-6">
-                      <h3 className="text-xl font-black flex items-center gap-2">
-                        <Bookmark size={20} className="text-primary" /> Cloud Assets
-                      </h3>
-                      <Button variant="outline" className="h-16 w-full justify-start rounded-2xl font-black text-xs uppercase tracking-widest border-2 group shadow-sm hover:shadow-md transition-all" asChild>
-                        <a href={lesson.driveVideoUrl} target="_blank" rel="noopener noreferrer">
-                          <Bookmark className="mr-4 h-6 w-6 text-primary group-hover:rotate-12 transition-transform" /> 
-                          Access Resource Drive
-                        </a>
-                      </Button>
                     </div>
                   )}
                 </div>
@@ -715,8 +545,10 @@ function LessonContent() {
                         <div className="flex items-start justify-between gap-4">
                           <button 
                             onClick={() => {
-                              playerRef.current?.seekTo(note.timestamp);
-                              setPlaying(true);
+                              if (playerRef.current?.plyr) {
+                                playerRef.current.plyr.currentTime = note.timestamp;
+                                playerRef.current.plyr.play();
+                              }
                             }}
                             className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
                           >
