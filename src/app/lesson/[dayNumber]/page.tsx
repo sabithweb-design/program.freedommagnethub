@@ -102,6 +102,7 @@ function LessonContent() {
 
   const playerRef = useRef<any>(null);
 
+  // Deterrent for non-admins (selection protection)
   useEffect(() => {
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -134,6 +135,7 @@ function LessonContent() {
         const cData = courseSnap.data() as CourseData;
         setCourse({ ...cData, id: courseSnap.id });
 
+        // Access check logic
         if (cData.visibility !== 'PUBLIC' && !user) {
           const currentPath = window.location.pathname + (window.location.search || '');
           router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
@@ -159,6 +161,7 @@ function LessonContent() {
           setLessonId(lId);
           setLesson({ ...lData, id: lId });
 
+          // Progress check
           if (user) {
             const progressRef = doc(firestore, 'users', user.uid, 'completedLessons', lId);
             const docSnap = await getDoc(progressRef);
@@ -280,6 +283,7 @@ function LessonContent() {
     return `${mm}:${ss}`;
   };
 
+  // Video Source Calculation
   const plyrSource = useMemo(() => {
     if (!lesson) return null;
     if (lesson.vimeoVideoId) {
@@ -336,6 +340,7 @@ function LessonContent() {
       "min-h-screen bg-background text-foreground pb-20 font-body transition-colors",
       !isAdmin && "content-protected"
     )}>
+      {/* Dynamic Hub Navbar */}
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-4">
@@ -371,7 +376,10 @@ function LessonContent() {
 
       <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          
+          {/* Main Video & Details Column */}
           <div className="lg:col-span-8 space-y-10">
+            {/* Professional Video Player Container */}
             <div 
               className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black group"
             >
@@ -397,6 +405,7 @@ function LessonContent() {
               )}
             </div>
 
+            {/* Title & Metadata */}
             <div className="space-y-10">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
                 <div className="space-y-2">
@@ -431,6 +440,7 @@ function LessonContent() {
 
               <Separator className="bg-slate-100 dark:bg-slate-800" />
 
+              {/* Description & Action Plan Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
                 <div className="space-y-8">
                   <div className="space-y-4">
@@ -450,6 +460,7 @@ function LessonContent() {
                     </div>
                   </div>
 
+                  {/* Resource Download if available */}
                   {lesson?.pdfUrl && (
                     <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
                       <div className="p-6 lg:p-7 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
@@ -473,6 +484,7 @@ function LessonContent() {
                   )}
                 </div>
 
+                {/* Right Mini Column for Action Items */}
                 <div className="space-y-10">
                   {lesson?.actionPlan && (
                     <div className="space-y-6">
@@ -494,6 +506,7 @@ function LessonContent() {
             </div>
           </div>
 
+          {/* Sidebar for Notes */}
           <div className="lg:col-span-4 h-full">
             <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white dark:bg-slate-900 h-full flex flex-col sticky top-24 max-h-[calc(100vh-120px)] overflow-hidden">
               <UICardHeader className="border-b dark:border-slate-800 px-8 py-6">
