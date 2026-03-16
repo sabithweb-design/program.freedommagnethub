@@ -3,7 +3,21 @@
 
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc, Query } from "firebase/firestore";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  doc, 
+  getDoc, 
+  deleteDoc, 
+  serverTimestamp, 
+  addDoc, 
+  orderBy, 
+  setDoc, 
+  Query,
+  DocumentData
+} from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
@@ -388,7 +402,10 @@ function LessonContent() {
               style={{ touchAction: 'manipulation' }}
             >
               {isMounted && plyrSource ? (
-                <div key={`${lesson?.vimeoVideoId || lesson?.youtubeVideoId}-${day}`} className="w-full h-full min-h-[300px] lg:min-h-[450px]">
+                <div 
+                  key={`${lesson?.id || 'empty'}-${day}`} 
+                  className="w-full h-full min-h-[300px] lg:min-h-[450px]"
+                >
                   <Plyr 
                     ref={playerRef}
                     source={plyrSource as any} 
