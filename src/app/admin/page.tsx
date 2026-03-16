@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -63,7 +62,6 @@ import {
   Video,
   Filter,
   AlertTriangle,
-  Database,
   Globe,
   Lock as LockIcon,
   Link as LinkIcon
@@ -143,7 +141,6 @@ export default function AdminPage() {
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
-  const [isSeeding, setIsSeeding] = useState(false);
 
   // User Edit State
   const [editingUser, setEditingUser] = useState<any | null>(null);
@@ -201,58 +198,6 @@ export default function AdminPage() {
     const regExp = /(?:vimeo\.com\/|player\.vimeo\.com\/video\/)([0-9]+)/;
     const match = url.match(regExp);
     return match ? match[1] : url;
-  };
-
-  const seedSampleData = async () => {
-    if (!firestore || !currentUser) return;
-    setIsSeeding(true);
-    
-    try {
-      const courseRef = await addDoc(collection(firestore, 'courses'), {
-        title: "Mastering the Freedom Magnet Hub",
-        description: "A comprehensive guide to using your new 90-day training platform. Learn how to upload content, manage students, and automate your workflow.",
-        category: "Platform Training",
-        imageUrl: "https://picsum.photos/seed/sample-course/800/450",
-        author: "Freedom Magnet Hub Team",
-        price: 0,
-        originalPrice: 999,
-        rating: 5.0,
-        reviewCount: 1,
-        visibility: 'PUBLIC',
-        adminIds: [currentUser.uid],
-        studentIds: [],
-        createdAt: serverTimestamp()
-      });
-
-      await addDoc(collection(firestore, 'lessons'), {
-        courseId: courseRef.id,
-        title: "Welcome to Day 1: The Vision",
-        description: "Today we explore the ultimate vision of the Freedom Magnet. Learn how to attract your ideal students and build a life of freedom.",
-        actionPlan: "1. Watch the welcome video.\n2. Download the 'Vision Board' PDF.\n3. Join the private community.",
-        dayNumber: 1,
-        vimeoVideoId: "76979871",
-        thumbnailUrl: "https://picsum.photos/seed/day1/800/450",
-        pdfUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-        isLocked: false,
-        createdAt: serverTimestamp()
-      });
-
-      toast({
-        title: "Sample Hub Seeded",
-        description: "A sample program and Lesson 1 have been created for you.",
-      });
-      
-      setLessonFilter(courseRef.id);
-      setActiveTab('courses');
-    } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Seeding Failed",
-        description: err.message,
-      });
-    } finally {
-      setIsSeeding(false);
-    }
   };
 
   const handleToggleUserStatus = (userId: string, currentStatus: boolean) => {
@@ -638,14 +583,6 @@ export default function AdminPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Button 
-            variant="outline" 
-            onClick={seedSampleData} 
-            disabled={isSeeding}
-            className="rounded-full h-12 px-6 flex gap-2 font-bold border-primary/20 text-primary hover:bg-primary/5"
-          >
-            <Database size={18} /> {isSeeding ? "Seeding..." : "Seed Sample Hub"}
-          </Button>
           <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
             <DialogTrigger asChild>
               <Button className="rounded-full h-12 px-6 flex gap-2 font-bold shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 transition-all">
