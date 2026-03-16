@@ -3,7 +3,7 @@
 
 import { useEffect, useState, Suspense, useRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc, Query, Firestore } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, getDoc, deleteDoc, serverTimestamp, addDoc, orderBy, setDoc, Query } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
 import { useCollection, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
@@ -39,7 +39,6 @@ import {
   Bookmark,
   Activity,
   Download,
-  Info,
   Lock as LockIcon
 } from "lucide-react";
 import Link from "next/link";
@@ -582,22 +581,6 @@ function LessonContent() {
                     </div>
                   </div>
 
-                  {lesson?.learningPoints && lesson.learningPoints.length > 0 && (
-                    <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-100 dark:border-slate-800">
-                      <h4 className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400">Key Takeaways</h4>
-                      <ul className="space-y-3">
-                        {lesson.learningPoints.map((point, i) => (
-                          <li key={i} className="flex items-start gap-3 text-sm font-bold text-slate-700 dark:text-slate-300">
-                            <div className="h-6 w-6 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                              <CheckCircle2 size={14} className="text-emerald-500" />
-                            </div>
-                            <span className="leading-snug">{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
                   {lesson?.pdfUrl && (
                     <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
                       <div className="p-6 lg:p-7 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
@@ -750,6 +733,19 @@ function LessonContent() {
       </main>
     </div>
   );
+}
+
+export function generateStaticParams() {
+  const lessonCounts = [90, 60, 30]; 
+  const params: { dayNumber: string }[] = [];
+
+  lessonCounts.forEach((count) => {
+    for (let i = 1; i <= count; i++) {
+      params.push({ dayNumber: i.toString() });
+    }
+  });
+
+  return params;
 }
 
 export default function LessonPage() {
