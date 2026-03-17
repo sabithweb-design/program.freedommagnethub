@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -70,12 +69,14 @@ import {
   Upload,
   Loader2,
   ExternalLink,
-  Zap
+  Zap,
+  MessageSquare
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
 import { PlayerIcon } from '@/components/icons/PlayerIcon';
+import Link from 'next/link';
 
 const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
