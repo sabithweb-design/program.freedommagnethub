@@ -103,13 +103,12 @@ export default function ProgramManagementPage() {
       });
   };
 
-  // ഇതാണ് നമ്മൾ മാറ്റിയ ഭാഗം: ഷെയർ ചെയ്യുമ്പോൾ കോഴ്സ് പേജിന്റെ ലിങ്ക് കിട്ടാൻ 
   const handleShare = (programId: string) => {
-    const url = `${window.location.origin}/course/${programId}`; 
+    const url = `${window.location.origin}/lesson/1?courseId=${programId}`; 
     navigator.clipboard.writeText(url);
     toast({
       title: "Link Copied",
-      description: "Course overview link copied to clipboard. Share this with your clients.",
+      description: "Hub link copied to clipboard. Share this with your clients.",
     });
   };
 
@@ -181,7 +180,7 @@ export default function ProgramManagementPage() {
       </div>
 
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
-        <DialogContent className="rounded-3xl max-w-sm">
+        <DialogContent className="rounded-3xl max-sm">
           <DialogHeader>
             <DialogTitle>Rename Program</DialogTitle>
             <DialogDescription>Enter a new title for this training program.</DialogDescription>

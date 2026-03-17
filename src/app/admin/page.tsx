@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -54,8 +53,6 @@ import {
   UserPlus, 
   Trash2, 
   Star, 
-  Image as ImageIcon,
-  Share2,
   ShieldCheck,
   Eye,
   EyeOff,
@@ -69,15 +66,12 @@ import {
   Link as LinkIcon,
   Upload,
   Loader2,
-  ExternalLink,
-  Zap,
-  MessageSquare
+  Zap
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import Image from 'next/image';
 import { PlayerIcon } from '@/components/icons/PlayerIcon';
-import Link from 'next/link';
 
 const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
 const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
@@ -191,15 +185,7 @@ export default function AdminPage() {
     reviewCount: 0,
     visibility: 'PRIVATE',
     adminIds: [] as string[],
-    studentIds: [] as string[],
-    landingHeading: '',
-    landingSubtitle: '',
-    demoVideoId: '',
-    joinLink: '',
-    offerEndTime: '',
-    galleryImages: [] as string[],
-    feedbackVideoIds: [] as string[],
-    testimonialImageUrls: [] as string[]
+    studentIds: [] as string[]
   });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'course' | 'lesson' | 'edit-course' | 'edit-lesson') => {
@@ -467,15 +453,7 @@ export default function AdminPage() {
       reviewCount: Number(editFields.reviewCount),
       visibility: editFields.visibility,
       adminIds: editFields.adminIds,
-      studentIds: editFields.studentIds,
-      landingHeading: editFields.landingHeading,
-      landingSubtitle: editFields.landingSubtitle,
-      demoVideoId: extractYoutubeId(editFields.demoVideoId),
-      joinLink: editFields.joinLink,
-      offerEndTime: editFields.offerEndTime ? Timestamp.fromDate(new Date(editFields.offerEndTime)) : null,
-      galleryImages: editFields.galleryImages,
-      feedbackVideoIds: editFields.feedbackVideoIds.map(extractYoutubeId).filter(Boolean),
-      testimonialImageUrls: editFields.testimonialImageUrls
+      studentIds: editFields.studentIds
     };
 
     updateDoc(programRef, updateData)
@@ -612,29 +590,6 @@ export default function AdminPage() {
         currentAdmins.push(adminUid);
       }
       return { ...prev, adminIds: currentAdmins };
-    });
-  };
-
-  const handleArrayUpdate = (field: 'galleryImages' | 'feedbackVideoIds' | 'testimonialImageUrls', index: number, value: string) => {
-    setEditFields(prev => {
-      const arr = [...(prev[field] as string[])];
-      arr[index] = value;
-      return { ...prev, [field]: arr };
-    });
-  };
-
-  const addToArray = (field: 'galleryImages' | 'feedbackVideoIds' | 'testimonialImageUrls') => {
-    setEditFields(prev => {
-      const arr = [...(prev[field] as string[]), ''];
-      return { ...prev, [field]: arr };
-    });
-  };
-
-  const removeFromArray = (field: 'galleryImages' | 'feedbackVideoIds' | 'testimonialImageUrls', index: number) => {
-    setEditFields(prev => {
-      const arr = [...(prev[field] as string[])];
-      arr.splice(index, 1);
-      return { ...prev, [field]: arr };
     });
   };
 
@@ -887,15 +842,7 @@ export default function AdminPage() {
                       <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all" onClick={() => { 
                         setEditingProgram(c); 
                         setEditFields({ 
-                          title: c.title || '', description: c.description || '', category: c.category || '', imageUrl: c.imageUrl || '', author: c.author || '', price: c.price || 0, originalPrice: c.originalPrice || 0, rating: c.rating || 4.5, reviewCount: c.reviewCount || 0, visibility: c.visibility || 'PRIVATE', adminIds: c.adminIds || [], studentIds: c.studentIds || [],
-                          landingHeading: c.landingHeading || '',
-                          landingSubtitle: c.landingSubtitle || '',
-                          demoVideoId: c.demoVideoId || '',
-                          joinLink: c.joinLink || '',
-                          offerEndTime: c.offerEndTime ? new Date(c.offerEndTime.seconds * 1000).toISOString().slice(0, 16) : '',
-                          galleryImages: c.galleryImages || [],
-                          feedbackVideoIds: c.feedbackVideoIds || [],
-                          testimonialImageUrls: c.testimonialImageUrls || []
+                          title: c.title || '', description: c.description || '', category: c.category || '', imageUrl: c.imageUrl || '', author: c.author || '', price: c.price || 0, originalPrice: c.originalPrice || 0, rating: c.rating || 4.5, reviewCount: c.reviewCount || 0, visibility: c.visibility || 'PRIVATE', adminIds: c.adminIds || [], studentIds: c.studentIds || []
                         }); 
                       }}>
                         <Edit2 size={16} />
@@ -1163,13 +1110,12 @@ export default function AdminPage() {
             <DialogTitle className="flex items-center gap-2">
               <Zap className="text-primary" /> Program Configuration
             </DialogTitle>
-            <DialogDescription>Manage hub access, enrollments, and your public landing page settings.</DialogDescription>
+            <DialogDescription>Manage hub access, enrollments, and general settings.</DialogDescription>
           </DialogHeader>
           
           <Tabs defaultValue="general" className="w-full">
             <TabsList className="bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-6">
               <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">General Hub</TabsTrigger>
-              <TabsTrigger value="landing" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Landing Page</TabsTrigger>
               <TabsTrigger value="students" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Enrollments</TabsTrigger>
               {isMainAdmin && <TabsTrigger value="admins" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Admins</TabsTrigger>}
             </TabsList>
@@ -1213,105 +1159,6 @@ export default function AdminPage() {
                       <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Rating</Label>
                       <Input type="number" step="0.1" value={editFields.rating} onChange={(e) => setEditFields({...editFields, rating: Number(e.target.value)})} className="rounded-xl h-11 text-slate-900" />
                     </div>
-                  </div>
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="landing" className="space-y-8 animate-in slide-in-from-right-2">
-              <div className="grid md:grid-cols-2 gap-10">
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <h4 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                      <Edit2 size={16} /> Content & Urgency
-                    </h4>
-                    <div className="space-y-2">
-                      <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Sales Heading</Label>
-                      <Input placeholder="Bold catchy title..." value={editFields.landingHeading} onChange={(e) => setEditFields({...editFields, landingHeading: e.target.value})} className="rounded-xl h-12 text-slate-900" />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Sales Subtitle</Label>
-                      <Textarea placeholder="Explain what they get..." value={editFields.landingSubtitle} onChange={(e) => setEditFields({...editFields, landingSubtitle: e.target.value})} className="rounded-xl min-h-[80px] text-slate-900" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Demo Video (YouTube ID)</Label>
-                        <Input placeholder="dQw4w9WgXcQ" value={editFields.demoVideoId} onChange={(e) => setEditFields({...editFields, demoVideoId: e.target.value})} className="rounded-xl h-11 text-slate-900" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Join Link (CTA)</Label>
-                        <Input placeholder="https://payment-link.com" value={editFields.joinLink} onChange={(e) => setEditFields({...editFields, joinLink: e.target.value})} className="rounded-xl h-11 text-slate-900" />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Offer End Time (For Countdown)</Label>
-                      <Input type="datetime-local" value={editFields.offerEndTime} onChange={(e) => setEditFields({...editFields, offerEndTime: e.target.value})} className="rounded-xl h-11 text-slate-900" />
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                     <h4 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                      <Video size={16} /> Student Video Feedback (Max 4)
-                    </h4>
-                    <div className="space-y-2">
-                      {[0, 1, 2, 3].map(idx => (
-                        <div key={idx} className="flex gap-2">
-                           <Input placeholder={`YouTube Video ID ${idx+1}`} value={editFields.feedbackVideoIds[idx] || ''} onChange={(e) => handleArrayUpdate('feedbackVideoIds', idx, e.target.value)} className="rounded-xl h-10 text-slate-900" />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                        <ImageIcon size={16} /> Course Gallery Images
-                      </h4>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => addToArray('galleryImages')} className="h-8 rounded-lg text-xs font-black">
-                        <Plus size={14} className="mr-1" /> Add Slot
-                      </Button>
-                    </div>
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                      {editFields.galleryImages.map((img, idx) => (
-                        <div key={idx} className="flex gap-2 group">
-                          <Input placeholder="Image URL" value={img} onChange={(e) => handleArrayUpdate('galleryImages', idx, e.target.value)} className="rounded-xl h-10 text-slate-900" />
-                          <Button type="button" variant="ghost" size="icon" onClick={() => removeFromArray('galleryImages', idx)} className="h-10 w-10 text-slate-400 hover:text-red-500">
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                        <MessageSquare size={16} /> Testimonial Images (Max 5)
-                      </h4>
-                      <Button type="button" variant="ghost" size="sm" onClick={() => addToArray('testimonialImageUrls')} className="h-8 rounded-lg text-xs font-black">
-                        <Plus size={14} className="mr-1" /> Add Slot
-                      </Button>
-                    </div>
-                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
-                      {editFields.testimonialImageUrls.map((img, idx) => (
-                        <div key={idx} className="flex gap-2">
-                          <Input placeholder="Testimonial Image URL" value={img} onChange={(e) => handleArrayUpdate('testimonialImageUrls', idx, e.target.value)} className="rounded-xl h-10 text-slate-900" />
-                          <Button type="button" variant="ghost" size="icon" onClick={() => removeFromArray('testimonialImageUrls', idx)} className="h-10 w-10 text-slate-400 hover:text-red-500">
-                            <Trash2 size={16} />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t dark:border-slate-800">
-                     <Button asChild variant="outline" className="w-full rounded-2xl h-14 font-black border-primary/20 text-primary hover:bg-primary/5 gap-2">
-                        <Link href={`/program/${editingProgram?.id}`} target="_blank">
-                          <ExternalLink size={18} /> View Public Landing Page
-                        </Link>
-                     </Button>
                   </div>
                 </div>
               </div>
