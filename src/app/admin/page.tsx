@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -191,7 +192,6 @@ export default function AdminPage() {
     visibility: 'PRIVATE',
     adminIds: [] as string[],
     studentIds: [] as string[],
-    // Landing Page Fields
     landingHeading: '',
     landingSubtitle: '',
     demoVideoId: '',
@@ -468,7 +468,6 @@ export default function AdminPage() {
       visibility: editFields.visibility,
       adminIds: editFields.adminIds,
       studentIds: editFields.studentIds,
-      // Landing Page Data
       landingHeading: editFields.landingHeading,
       landingSubtitle: editFields.landingSubtitle,
       demoVideoId: extractYoutubeId(editFields.demoVideoId),
@@ -845,7 +844,6 @@ export default function AdminPage() {
                         </Button>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG/PNG only, max 1MB</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Category</Label>
@@ -952,22 +950,7 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="font-bold">Thumbnail (URL or Upload JPEG) - Optional</Label>
-                    <div className="flex gap-2">
-                      <Input placeholder="https://..." value={lessonForm.thumbnailUrl} onChange={e => setLessonForm({...lessonForm, thumbnailUrl: e.target.value})} className="h-12 rounded-xl text-slate-900 flex-1" />
-                      <div className="relative">
-                        <input type="file" accept=".jpg,.jpeg,.png" className="hidden" id="lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'lesson')} />
-                        <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
-                          <label htmlFor="lesson-thumb-upload" className="cursor-pointer">
-                            {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
-                          </label>
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG/PNG only, max 1MB</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="font-bold flex items-center gap-2 text-xs uppercase tracking-tight text-slate-500">
+                    <Label className="font-bold text-xs uppercase tracking-tight text-slate-500">
                       <Video size={14} className="text-primary" /> Vimeo URL
                     </Label>
                     <Input placeholder="Vimeo Link" value={lessonForm.vimeoUrl} onChange={e => setLessonForm({...lessonForm, vimeoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
@@ -1043,13 +1026,6 @@ export default function AdminPage() {
                       <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-primary" onClick={() => handleOpenEditLesson(l)}>
                           <Edit2 size={16} />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
-                          const url = `${window.location.origin}/lesson/${l.dayNumber}?courseId=${l.courseId}`;
-                          navigator.clipboard.writeText(url);
-                          toast({ title: "Session Link copied", description: "Share this link with your enrolled students." });
-                        }}>
-                          <Share2 size={16} />
                         </Button>
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-red-500" onClick={() => { setDeleteTargetId(l.id); setDeleteConfirmType('lesson'); }}>
                           <Trash2 size={16} />
@@ -1150,21 +1126,6 @@ export default function AdminPage() {
               <Label className="font-bold">Vimeo URL</Label>
               <Input placeholder="Vimeo Link" value={editLessonFields.vimeoUrl} onChange={e => setEditLessonFields({...editLessonFields, vimeoUrl: e.target.value})} className="h-12 rounded-xl text-slate-900" />
             </div>
-            <div className="space-y-2">
-              <Label className="font-bold">Thumbnail (URL or Upload JPEG) - Optional</Label>
-              <div className="flex gap-2">
-                <Input value={editLessonFields.thumbnailUrl} onChange={e => setEditLessonFields({...editLessonFields, thumbnailUrl: e.target.value})} className="h-12 rounded-xl text-slate-900 flex-1" />
-                <div className="relative">
-                  <input type="file" accept=".jpg,.jpeg,.png" className="hidden" id="edit-lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'edit-lesson')} />
-                  <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
-                    <label htmlFor="edit-lesson-thumb-upload" className="cursor-pointer">
-                      {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
-                    </label>
-                  </Button>
-                </div>
-              </div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG/PNG only, max 1MB</p>
-            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label className="font-bold">PDF Resource</Label>
@@ -1240,18 +1201,8 @@ export default function AdminPage() {
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail (JPEG/PNG)</Label>
-                    <div className="flex gap-2">
-                      <Input value={editFields.imageUrl} onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})} className="rounded-xl h-12 flex-1 text-slate-900" />
-                      <div className="relative">
-                        <input type="file" accept=".jpg,.jpeg,.png" className="hidden" id="edit-course-thumb-upload-inner" onChange={(e) => handleFileUpload(e, 'edit-course')} />
-                        <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
-                          <label htmlFor="edit-course-thumb-upload-inner" className="cursor-pointer">
-                            {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
-                          </label>
-                        </Button>
-                      </div>
-                    </div>
+                    <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail URL</Label>
+                    <Input value={editFields.imageUrl} onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">

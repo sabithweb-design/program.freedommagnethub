@@ -62,7 +62,15 @@
           "type": "array",
           "items": { "type": "string" },
           "description": "List of Student UIDs enrolled in this program."
-        }
+        },
+        "landingHeading": { "type": "string" },
+        "landingSubtitle": { "type": "string" },
+        "demoVideoId": { "type": "string" },
+        "joinLink": { "type": "string" },
+        "offerEndTime": { "type": "object", "description": "Firestore Timestamp" },
+        "galleryImages": { "type": "array", "items": { "type": "string" } },
+        "feedbackVideoIds": { "type": "array", "items": { "type": "string" } },
+        "testimonialImageUrls": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["title", "category", "visibility"]
     },

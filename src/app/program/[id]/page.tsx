@@ -1,11 +1,10 @@
 
 'use client';
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useFirestore, useDoc } from '@/firebase';
+import { useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,12 +18,12 @@ import {
   ShieldCheck,
   Video,
   Image as ImageIcon,
-  MessageSquare
+  MessageSquare,
+  Loader2
 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CountdownTimer } from '@/components/CountdownTimer';
-import { Loader2 } from 'lucide-react';
 
 // Isolated Video Player for Landing Page
 function PublicVideoPlayer({ videoId }: { videoId: string }) {
@@ -143,7 +142,7 @@ export default function PublicLandingPage() {
             <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-[1.1]">
               {landing.heading}
             </h1>
-            <p className="text-xl text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-w-xl">
+            <p className="text-xl text-slate-500 dark:text-slate-400 font-medium leading-relaxed max-xl">
               {landing.subtitle}
             </p>
             
