@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useEffect, useState, Suspense, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useState, useMemo, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { 
   collection, 
@@ -10,26 +9,27 @@ import {
   getDocs, 
   doc, 
   getDoc, 
-  deleteDoc, 
-  serverTimestamp, 
-  addDoc, 
-  orderBy, 
-  setDoc, 
+  setDoc,
+  deleteDoc,
+  addDoc,
+  serverTimestamp,
+  orderBy,
   Query
 } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useAuth } from "@/context/auth-context";
-import { useCollection, useFirestore } from "@/firebase";
+import { useCollection } from "@/firebase";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Card } from "@/components/ui/card";
 import { 
   ChevronLeft, 
   GraduationCap, 
-  CheckCircle2,
-  AlertCircle,
+  CheckCircle2, 
+  AlertCircle, 
   Loader2,
   StickyNote,
   Trash2,
@@ -41,18 +41,14 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-// Dynamic import for Plyr is handled inside the component to avoid SSR issues
-import "plyr/dist/plyr.css";
-
 interface LessonData {
-  id?: string;
-  courseId?: string;
-  title?: string;
+  id?: string; 
+  title: string;
   description?: string;
+  videoUrl?: string;
   actionPlan?: string;
   youtubeVideoId?: string;
   vimeoVideoId?: string;
-  pdfUrl?: string;
   dayNumber: number;
 }
 
@@ -111,7 +107,6 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
     return () => {
       active = false;
       if (playerRef.current) {
-        // Essential to destroy before unmount to prevent YouTube API errors
         playerRef.current.destroy();
         playerRef.current = null;
       }
@@ -120,7 +115,6 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
 
   return (
     <div className="w-full h-full aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl relative">
-      {/* The key is crucial: it forces a clean DOM remount when the video changes */}
       <div 
         key={`${provider}-${videoId}`}
         ref={containerRef} 
@@ -144,7 +138,7 @@ function LessonContent() {
   const courseId = searchParams.get('courseId');
   const router = useRouter();
   const { user, loading, isAdmin } = useAuth();
-  const firestore = useFirestore();
+  const firestore = db;
   const { toast } = useToast();
   
   const [lesson, setLesson] = useState<LessonData | null>(null);
@@ -194,15 +188,16 @@ function LessonContent() {
           return;
         }
 
-        const q = query(collection(firestore, "lessons"), where("dayNumber", "==", day), where("courseId", "==", courseId)) as Query<LessonData>;
+        const q = query(collection(db, "lessons"), where("dayNumber", "==", day), where("courseId", "==", courseId)) as Query<LessonData>;
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
-          const lId = querySnapshot.docs[0].id;
-          setLessonId(lId);
-          setLesson({ ...querySnapshot.docs[0].data(), id: lId });
+          const lDoc = querySnapshot.docs[0];
+          setLessonId(lDoc.id);
+          setLesson({ ...lDoc.data(), id: lDoc.id });
+          
           if (user) {
-            const docSnap = await getDoc(doc(firestore, 'users', user.uid, 'completedLessons', lId));
+            const docSnap = await getDoc(doc(firestore, 'users', user.uid, 'completedLessons', lDoc.id));
             setIsCompleted(docSnap.exists());
           }
         } else { 
@@ -220,7 +215,12 @@ function LessonContent() {
 
   const notesQuery = useMemo(() => {
     if (!firestore || !user || !lessonId) return null;
-    return query(collection(firestore, "user_notes"), where("userId", "==", user.uid), where("lessonId", "==", lessonId), orderBy("createdAt", "desc")) as Query<UserNote>;
+    return query(
+      collection(firestore, "user_notes"), 
+      where("userId", "==", user.uid), 
+      where("lessonId", "==", lessonId), 
+      orderBy("createdAt", "desc")
+    ) as Query<UserNote>;
   }, [firestore, user, lessonId]);
 
   const { data: notes } = useCollection<UserNote>(notesQuery);
@@ -251,8 +251,12 @@ function LessonContent() {
     setSavingNote(true);
     try {
       await addDoc(collection(firestore, "user_notes"), {
-        userId: user.uid, lessonId, courseId: courseId || '',
-        text: noteText, timestamp: 0, createdAt: serverTimestamp()
+        userId: user.uid, 
+        lessonId, 
+        courseId: courseId || '',
+        text: noteText, 
+        timestamp: 0, 
+        createdAt: serverTimestamp()
       });
       setNoteText("");
       toast({ title: "Note Saved", description: "Your study note has been added to this lesson." });

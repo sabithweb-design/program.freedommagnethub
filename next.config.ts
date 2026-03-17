@@ -9,6 +9,8 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+  // Minor change to trigger chunk re-evaluation
+  reactStrictMode: true,
 };
 
 export default nextConfig;
