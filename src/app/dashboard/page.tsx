@@ -8,11 +8,12 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, Star, ShieldCheck, Lock, Grid } from 'lucide-react';
+import { Search, ChevronDown, Star, ShieldCheck, Lock, Grid, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { BrandLogo } from '@/components/BrandLogo';
+import { useToast } from '@/hooks/use-toast';
 
 interface Course {
   id: string;
@@ -139,12 +140,23 @@ export default function DashboardPage() {
 }
 
 function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
+  const { toast } = useToast();
   const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
     : "https://picsum.photos/seed/course/800/450";
 
   const ratingValue = course.rating || 4.5;
   const reviewCountValue = course.reviewCount || 0;
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/lesson/1?courseId=${course.id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copied",
+      description: "Hub link copied to clipboard.",
+    });
+  };
 
   return (
     <div 
@@ -169,6 +181,16 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
           <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-1 rounded-sm border border-[#acd2cc] dark:border-emerald-800 shadow-sm">
             Bestseller
           </div>
+        )}
+        {!course.isLocked && (
+          <Button 
+            variant="secondary" 
+            size="icon" 
+            onClick={handleShare}
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 h-8 w-8 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+          >
+            <Share2 size={14} />
+          </Button>
         )}
       </div>
 

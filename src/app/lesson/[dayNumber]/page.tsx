@@ -18,48 +18,34 @@ import {
   Query
 } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
-import { useCollection, useFirestore } from "@/firebase";
+import { useCollection } from "@/firebase";
+import { useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent as UICardContent, CardHeader as UICardHeader, CardTitle as UICardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import dynamic from 'next/dynamic';
+import { Card } from "@/components/ui/card";
 import { 
   ChevronLeft, 
   ChevronRight, 
-  Clock, 
   GraduationCap, 
   CheckCircle2,
-  FileText,
-  ClipboardList,
   AlertCircle,
   Loader2,
   StickyNote,
-  Send,
   Trash2,
-  Bookmark,
   Activity,
-  Download,
-  Lock as LockIcon
+  Share2
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
-import { errorEmitter } from "@/firebase/error-emitter";
-import { FirestorePermissionError } from "@/firebase/errors";
 import { cn } from "@/lib/utils";
 
-// Import Plyr with dynamic loading for Vimeo-style clean player
-const Plyr = dynamic(() => import('plyr-react'), { 
-  ssr: false,
-  loading: () => (
-    <div className="absolute inset-0 flex items-center justify-center bg-slate-900 rounded-[2rem]">
-      <Loader2 className="h-10 w-10 animate-spin text-primary" />
-    </div>
-  )
-});
+// Import Standard Plyr for better control
+import Plyr from "plyr";
+import "plyr/dist/plyr.css";
 
 interface LessonData {
   id?: string;
@@ -67,13 +53,10 @@ interface LessonData {
   title?: string;
   description?: string;
   actionPlan?: string;
-  driveVideoUrl?: string;
   youtubeVideoId?: string;
   vimeoVideoId?: string;
-  thumbnailUrl?: string;
   pdfUrl?: string;
   dayNumber: number;
-  isLocked?: boolean;
 }
 
 interface CourseData {
@@ -105,20 +88,43 @@ function LessonContent() {
   const [fetching, setFetching] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
-  const [noAccess, setNoAccess] = useState(false);
   const [course, setCourse] = useState<CourseData | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
 
-  // Notes State
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
-  const [capturedTimestamp, setCapturedTimestamp] = useState<number | null>(null);
 
+  // STABLE PLAYER REFERENCE
   const playerRef = useRef<any>(null);
 
-  // Deterrent for non-admins (selection protection)
+  // Determine Video Source ID for Plyr Key stability
+  const currentVideoId = useMemo(() => {
+    return lesson?.vimeoVideoId || lesson?.youtubeVideoId || `lesson-${day}`;
+  }, [lesson, day]);
+
+  // Player initialization effect
   useEffect(() => {
-    setIsMounted(true);
+    if (typeof window === "undefined" || !lesson) return;
+
+    const videoElement = document.querySelector("#player");
+    if (videoElement) {
+      playerRef.current = new Plyr("#player", {
+        controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
+        hideControls: false,
+        youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
+        vimeo: { byline: false, portrait: false, title: false, transparent: false }
+      });
+    }
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+    };
+  }, [currentVideoId]); // Re-init strictly when the video source changes
+
+  // Deterrent for non-admins
+  useEffect(() => {
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
       document.addEventListener("contextmenu", handleContextMenu);
@@ -126,23 +132,22 @@ function LessonContent() {
     }
   }, [isAdmin]);
 
+  // Data Fetching
   useEffect(() => {
     if (loading || !firestore) return;
 
-    if (!courseId) {
-      setNoAccess(true);
-      setFetching(false);
-      return;
-    }
-
     const fetchLesson = async () => {
+      if (!courseId) {
+        setFetching(false);
+        return;
+      }
+
       setFetching(true);
       try {
         const courseRef = doc(firestore, 'courses', courseId);
         const courseSnap = await getDoc(courseRef);
         
         if (!courseSnap.exists()) {
-          setNoAccess(true);
           setFetching(false);
           return;
         }
@@ -150,477 +155,208 @@ function LessonContent() {
         const cData = courseSnap.data() as CourseData;
         setCourse({ ...cData, id: courseSnap.id });
 
-        // Access check logic
         if (cData.visibility !== 'PUBLIC' && !user) {
-          const currentPath = window.location.pathname + (window.location.search || '');
-          router.push(`/login?redirect=${encodeURIComponent(currentPath)}`);
+          router.push(`/login?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`);
           return;
         }
 
-        if (cData.visibility === 'PRIVATE' && !isAdmin && !cData.studentIds?.includes(user?.uid || '')) {
-          setNoAccess(true);
-          setFetching(false);
-          return;
-        }
-
-        const q = query(
-          collection(firestore, "lessons"), 
-          where("dayNumber", "==", day),
-          where("courseId", "==", courseId)
-        ) as Query<LessonData>;
+        const q = query(collection(firestore, "lessons"), where("dayNumber", "==", day), where("courseId", "==", courseId)) as Query<LessonData>;
         const querySnapshot = await getDocs(q);
         
         if (!querySnapshot.empty) {
           const lId = querySnapshot.docs[0].id;
-          const lData = querySnapshot.docs[0].data() as LessonData;
           setLessonId(lId);
-          setLesson({ ...lData, id: lId });
-
-          // Progress check
+          setLesson({ ...querySnapshot.docs[0].data(), id: lId });
           if (user) {
-            const progressRef = doc(firestore, 'users', user.uid, 'completedLessons', lId);
-            const docSnap = await getDoc(progressRef);
+            const docSnap = await getDoc(doc(firestore, 'users', user.uid, 'completedLessons', lId));
             setIsCompleted(docSnap.exists());
           }
-        } else {
-          setLessonId(null);
-          setLesson(null);
+        } else { 
+          setLesson(null); 
         }
-      } catch (error: any) {
-        if (error.code === 'permission-denied') {
-          setNoAccess(true);
-        }
+      } catch (error) {
+        console.error("Error fetching lesson:", error);
       } finally {
         setFetching(false);
       }
     };
-    
+
     fetchLesson();
-  }, [user, loading, day, courseId, router, isAdmin, firestore]);
+  }, [user, loading, day, courseId, firestore, router]);
 
   const notesQuery = useMemo(() => {
     if (!firestore || !user || !lessonId) return null;
-    return query(
-      collection(firestore, "user_notes"),
-      where("userId", "==", user.uid),
-      where("lessonId", "==", lessonId),
-      orderBy("createdAt", "desc")
-    ) as Query<UserNote>;
+    return query(collection(firestore, "user_notes"), where("userId", "==", user.uid), where("lessonId", "==", lessonId), orderBy("createdAt", "desc")) as Query<UserNote>;
   }, [firestore, user, lessonId]);
 
   const { data: notes } = useCollection<UserNote>(notesQuery);
 
-  const handleToggleComplete = () => {
-    if (!user || !lessonId || !firestore) return;
-    if (completing) return;
+  const handleToggleComplete = async () => {
+    if (!user || !lessonId || !firestore || completing) return;
     setCompleting(true);
-
     const progressRef = doc(firestore, 'users', user.uid, 'completedLessons', lessonId);
-    
-    if (isCompleted) {
-      deleteDoc(progressRef)
-        .then(() => {
-          setIsCompleted(false);
-          toast({ title: "Lesson Unmarked", description: "Lesson removed from completed list." });
-        })
-        .catch(async (err) => {
-          errorEmitter.emit('permission-error', new FirestorePermissionError({ path: progressRef.path, operation: 'delete' }));
-        })
-        .finally(() => setCompleting(false));
-    } else {
-      const data = { completedAt: serverTimestamp() };
-      setDoc(progressRef, data)
-        .then(() => {
-          setIsCompleted(true);
-          toast({ title: "Great Job!", description: "Day " + day + " marked as complete." });
-        })
-        .catch(async (err) => {
-          errorEmitter.emit('permission-error', new FirestorePermissionError({ path: progressRef.path, operation: 'create', requestResourceData: data }));
-        })
-        .finally(() => setCompleting(false));
-    }
-  };
-
-  const handleNoteFocus = () => {
-    if (playerRef.current?.plyr) {
-      const plyr = playerRef.current.plyr;
-      try {
-        if (plyr.playing) {
-          plyr.pause();
-        }
-        setCapturedTimestamp(plyr.currentTime);
-      } catch (e) {
-        console.warn("Player not fully ready for timestamp capture");
+    try {
+      if (isCompleted) {
+        await deleteDoc(progressRef);
+        setIsCompleted(false);
+        toast({ title: "Progress Reset", description: "Lesson marked as incomplete." });
+      } else {
+        await setDoc(progressRef, { completedAt: serverTimestamp() });
+        setIsCompleted(true);
+        toast({ title: "Lesson Completed!", description: "Way to go! On to the next one." });
       }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCompleting(false);
     }
   };
 
   const handleSaveNote = async () => {
-    if (!user || !lessonId || !noteText.trim() || capturedTimestamp === null || !firestore) return;
+    if (!user || !lessonId || !noteText.trim() || !firestore) return;
     setSavingNote(true);
-
-    const noteData = {
-      userId: user.uid,
-      lessonId: lessonId,
-      courseId: courseId || '',
-      text: noteText,
-      timestamp: capturedTimestamp,
-      createdAt: serverTimestamp()
-    };
-
-    addDoc(collection(firestore, "user_notes"), noteData)
-      .then(() => {
-        setNoteText("");
-        setCapturedTimestamp(null);
-        try {
-          playerRef.current?.plyr?.play();
-        } catch (e) {}
-        toast({ title: "Note Saved", description: "Timestamped note added to your collection." });
-      })
-      .catch((err) => {
-        errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'user_notes', operation: 'create', requestResourceData: noteData }));
-      })
-      .finally(() => setSavingNote(false));
+    const time = playerRef.current?.currentTime || 0;
+    try {
+      await addDoc(collection(firestore, "user_notes"), {
+        userId: user.uid, lessonId, courseId: courseId || '',
+        text: noteText, timestamp: time, createdAt: serverTimestamp()
+      });
+      setNoteText("");
+      playerRef.current?.play();
+      toast({ title: "Note Saved", description: "Your study note has been added to this lesson." });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingNote(false);
+    }
   };
 
-  const handleDeleteNote = (id: string) => {
-    if (!firestore) return;
-    const noteRef = doc(firestore, 'user_notes', id);
-    deleteDoc(noteRef).catch((err) => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: noteRef.path, operation: 'delete' }));
+  const handleShareCourse = () => {
+    if (!courseId) return;
+    const url = `${window.location.origin}/lesson/1?courseId=${courseId}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copied",
+      description: "Hub access link copied to clipboard.",
     });
   };
 
   const formatTime = (seconds: number) => {
     const date = new Date(seconds * 1000);
-    const mm = date.getUTCMinutes();
-    const ss = date.getUTCSeconds().toString().padStart(2, '0');
-    return `${mm}:${ss}`;
+    return `${date.getUTCMinutes()}:${date.getUTCSeconds().toString().padStart(2, '0')}`;
   };
 
-  // Video Source Calculation
-  const plyrSource = useMemo(() => {
-    if (!lesson) return null;
-    if (lesson.vimeoVideoId) {
-      return {
-        type: 'video',
-        sources: [{ src: lesson.vimeoVideoId, provider: 'vimeo' }]
-      };
-    }
-    if (lesson.youtubeVideoId) {
-      return {
-        type: 'video',
-        sources: [{ src: lesson.youtubeVideoId, provider: 'youtube' }]
-      };
-    }
-    return null;
-  }, [lesson]);
-
-  const plyrOptions = useMemo(() => ({
-    controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
-    settings: ['quality', 'speed'],
-    speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-    ratio: '16:9',
-    youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
-    vimeo: { byline: false, portrait: false, title: false, transparent: false }
-  }), []);
-
-  // Use a stable key for Plyr to prevent "getAttribute" null errors on route change
-  const playerKey = useMemo(() => {
-    return `plyr-${lesson?.vimeoVideoId || lesson?.youtubeVideoId || 'no-video'}-${day}`;
-  }, [lesson?.vimeoVideoId, lesson?.youtubeVideoId, day]);
-
-  if (loading || fetching) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-        <Loader2 className="animate-spin h-12 w-12 text-primary" />
-        <p className="font-bold text-slate-400 animate-pulse">Syncing Session...</p>
-      </div>
-    );
-  }
-
-  if (noAccess) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 text-center">
-        <div className="bg-rose-50 dark:bg-rose-950 w-24 h-24 rounded-full flex items-center justify-center mb-8">
-          <AlertCircle size={48} className="text-primary" />
-        </div>
-        <h1 className="text-3xl font-black text-foreground mb-4">Access Denied</h1>
-        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
-          This program is private and requires enrollment to view content.
-        </p>
-        <Button asChild className="rounded-full px-8 h-12">
-          <Link href="/dashboard">Go to My Dashboard</Link>
-        </Button>
-      </div>
-    );
-  }
+  if (loading || fetching) return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
+      <Loader2 className="animate-spin h-12 w-12 text-primary" />
+      <p className="font-bold text-slate-400">Syncing Session...</p>
+    </div>
+  );
 
   return (
-    <div className={cn(
-      "min-h-screen bg-background text-foreground pb-20 font-body transition-colors",
-      !isAdmin && "content-protected"
-    )}>
-      {/* Dynamic Hub Navbar */}
+    <div className={cn("min-h-screen bg-background text-foreground pb-20 transition-colors", !isAdmin && "content-protected")}>
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <Button variant="ghost" size="sm" asChild className="rounded-full h-9 px-3 text-slate-600 dark:text-slate-400">
-              <Link href="/dashboard">
-                <ChevronLeft className="mr-1 h-4 w-4" />
-                <span className="hidden sm:inline font-bold">Hub</span>
-              </Link>
+          <Button variant="ghost" size="sm" asChild className="rounded-full">
+            <Link href="/dashboard"><ChevronLeft className="mr-1 h-4 w-4" /> Hub</Link>
+          </Button>
+          <div className="font-bold flex items-center gap-1.5"><GraduationCap className="h-5 w-5 text-primary" /> Session {day}</div>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="icon" onClick={handleShareCourse} className="rounded-full h-9 w-9 text-slate-400">
+              <Share2 size={18} />
             </Button>
-            <div className="font-bold text-sm sm:text-base text-foreground flex items-center gap-1.5">
-              <GraduationCap className="h-5 w-5 text-primary" />
-              Session {day}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 sm:gap-4">
             <ThemeToggle />
-            <div className="flex gap-1">
-              <Button variant="ghost" size="icon" asChild disabled={day <= 1} className="rounded-full h-9 w-9">
-                <Link href={day > 1 ? `/lesson/${day - 1}?courseId=${courseId}` : "#"}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild disabled={day >= 90} className="rounded-full h-9 w-9">
-                <Link href={day < 90 ? `/lesson/${day + 1}?courseId=${courseId}` : "#"}>
-                  <ChevronRight className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
           </div>
         </div>
       </div>
 
       <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
-          
-          {/* Main Video & Details Column */}
-          <div className="lg:col-span-8 space-y-10">
-            {/* Professional Video Player Container */}
-            <div 
-              className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black touch-manipulation"
-              style={{ touchAction: 'manipulation' }}
-            >
-              {isMounted && plyrSource ? (
-                <div 
-                  key={playerKey} 
-                  className="w-full h-full min-h-[300px] lg:min-h-[450px]"
-                >
-                  <Plyr 
-                    ref={playerRef}
-                    source={plyrSource as any} 
-                    options={plyrOptions as any} 
-                  />
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+          <div className="lg:col-span-8 space-y-8">
+            <div key={currentVideoId} className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black">
+              {lesson ? (
+                <div className="w-full h-full">
+                  <video id="player" playsInline className="plyr__video-embed">
+                    <source 
+                      src={lesson.vimeoVideoId ? `https://vimeo.com/${lesson.vimeoVideoId}` : `https://youtube.com/watch?v=${lesson.youtubeVideoId}`} 
+                      type={lesson.vimeoVideoId ? "video/vimeo" : "video/youtube"} 
+                    />
+                  </video>
+                  {user && (
+                    <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-20 select-none">
+                      <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">{user.email}</div>
+                      <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">{user.email}</div>
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 text-white text-[8px] font-black opacity-10 uppercase tracking-widest">Property of Graphixhub</div>
+                    </div>
+                  )}
                 </div>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 space-y-4 bg-slate-50 dark:bg-slate-900 border-2 border-dashed rounded-[2rem]">
-                  <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center">
-                    <Activity className="w-10 h-10 text-primary" />
-                  </div>
-                  <div className="space-y-1">
-                    <h3 className="text-2xl font-black text-foreground">Session Coming Soon</h3>
-                    <p className="text-slate-500 font-medium max-w-xs mx-auto">
-                      Day {day} content is currently being finalized for this program track.
-                    </p>
-                  </div>
+                <div className="flex flex-col items-center justify-center h-full bg-slate-900 text-slate-500">
+                  <Activity className="w-12 h-12 mb-4 animate-pulse" />
+                  <p>Session Content Finalizing...</p>
                 </div>
               )}
             </div>
 
-            {/* Title & Metadata */}
-            <div className="space-y-10">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-                <div className="space-y-2">
-                  <h1 className="text-3xl sm:text-5xl font-black text-foreground tracking-tight leading-none">
-                    {lesson?.title || `Day ${day} Session`}
-                  </h1>
-                  <div className="flex items-center gap-4 pt-2">
-                    <Badge className="bg-primary/10 text-primary border-none rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-widest">
-                      Session {day}
-                    </Badge>
-                    <span className="flex items-center gap-2 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                      <Clock size={12} /> {course?.visibility === 'PUBLIC' ? 'PUBLIC ACCESS' : 'PREMIUM CONTENT'}
-                    </span>
-                  </div>
+            <div className="space-y-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                <div className="space-y-1">
+                  <h1 className="text-3xl sm:text-4xl font-black">{lesson?.title || `Session ${day}`}</h1>
+                  {course && <p className="text-sm font-bold text-primary uppercase tracking-widest">{course.title}</p>}
                 </div>
-                
-                {lessonId && user && (
-                  <Button 
-                    onClick={handleToggleComplete}
-                    disabled={completing}
-                    className={cn(
-                      "rounded-full h-14 px-10 font-black transition-all shadow-xl text-xs uppercase tracking-widest border-2 active:scale-95",
-                      isCompleted 
-                        ? "bg-emerald-500 border-emerald-400 hover:bg-emerald-600 text-white" 
-                        : "bg-slate-900 dark:bg-slate-100 border-transparent dark:text-slate-900"
-                    )}
-                  >
-                    {isCompleted ? <><CheckCircle2 className="mr-3 h-5 w-5" /> Done</> : "Mark Complete"}
+                <div className="flex items-center gap-3">
+                   <Button variant="outline" onClick={handleShareCourse} className="rounded-full flex gap-2 font-bold h-11 px-6">
+                     <Share2 size={16} /> Share Hub
+                   </Button>
+                   <Button onClick={handleToggleComplete} disabled={completing} className={cn("rounded-full px-8 h-11 font-black", isCompleted ? "bg-emerald-500 hover:bg-emerald-600" : "bg-primary")}>
+                    {isCompleted ? "Completed" : "Mark Complete"}
                   </Button>
-                )}
+                </div>
               </div>
-
-              <Separator className="bg-slate-100 dark:bg-slate-800" />
-
-              {/* Description & Action Plan Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h3 className="text-xl font-black flex items-center gap-2">
-                      <AlertCircle size={20} className="text-primary" /> Session Overview
-                    </h3>
-                    <div className="prose dark:prose-invert max-w-none">
-                      {lesson?.description && lesson.description.length > 10 ? (
-                        <p className="text-slate-600 dark:text-slate-400 leading-relaxed text-lg font-medium whitespace-pre-wrap">
-                          {lesson.description}
-                        </p>
-                      ) : (
-                        <p className="text-slate-400 font-bold italic text-base">
-                          Overview coming soon! Stay tuned for more details about this session.
-                        </p>
-                      )}
-                    </div>
+              <Separator />
+              <div className="grid md:grid-cols-2 gap-8">
+                <div>
+                  <h3 className="text-xl font-black mb-4 flex items-center gap-2"><AlertCircle size={20}/> Overview</h3>
+                  <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">{lesson?.description || "No overview provided for this session yet."}</p>
+                </div>
+                {lesson?.actionPlan && (
+                  <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 h-fit">
+                    <h3 className="text-xl font-black mb-2 text-primary flex items-center gap-2"><CheckCircle2 size={18} /> Action Plan</h3>
+                    <p className="font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{lesson.actionPlan}</p>
                   </div>
-
-                  {/* Resource Download if available */}
-                  {lesson?.pdfUrl && (
-                    <Card className="border-none shadow-xl rounded-[2rem] bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/20 dark:border-slate-800/50 overflow-hidden group">
-                      <div className="p-6 lg:p-7 flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
-                        <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-2xl bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform duration-500">
-                          <FileText className="h-7 w-7 lg:h-8 lg:w-8 text-primary" />
-                        </div>
-                        <div className="flex-1 text-center sm:text-left">
-                          <h4 className="text-lg lg:text-xl font-black text-slate-900 dark:text-slate-100 leading-tight">Class Handouts</h4>
-                          <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase tracking-widest">High-Resolution PDF Workbook</p>
-                        </div>
-                        <Button 
-                          asChild
-                          className="w-full sm:w-auto rounded-2xl h-12 lg:h-14 px-6 lg:px-8 font-black text-[10px] lg:text-xs uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 hover:-translate-y-1 transition-all"
-                        >
-                          <a href={lesson.pdfUrl} target="_blank" rel="noopener noreferrer">
-                            <Download className="mr-2 h-4 w-4" /> Download PDF
-                          </a>
-                        </Button>
-                      </div>
-                    </Card>
-                  )}
-                </div>
-
-                {/* Right Mini Column for Action Items */}
-                <div className="space-y-10">
-                  {lesson?.actionPlan && (
-                    <div className="space-y-6">
-                      <h3 className="text-xl font-black flex items-center gap-2 text-primary">
-                        <ClipboardList size={20} /> Action Plan
-                      </h3>
-                      <div className="bg-primary/5 dark:bg-primary/10 p-7 rounded-3xl border border-primary/10 relative overflow-hidden group">
-                        <div className="text-slate-700 dark:text-slate-200 leading-relaxed font-bold text-base whitespace-pre-wrap relative z-10">
-                          {lesson.actionPlan}
-                        </div>
-                        <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                          <ClipboardList size={80} />
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Sidebar for Notes */}
-          <div className="lg:col-span-4 h-full">
-            <Card className="border-none shadow-2xl rounded-[2.5rem] bg-white dark:bg-slate-900 h-full flex flex-col sticky top-24 max-h-[calc(100vh-120px)] overflow-hidden">
-              <UICardHeader className="border-b dark:border-slate-800 px-8 py-6">
-                <UICardTitle className="text-2xl font-black flex items-center gap-3">
-                  <StickyNote size={24} className="text-primary" /> Study Notes
-                </UICardTitle>
-                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Live Sync Active</p>
-              </UICardHeader>
+          <div className="lg:col-span-4 space-y-6">
+            <Card className="rounded-[2.5rem] p-6 shadow-xl sticky top-24 border-none bg-white dark:bg-slate-900">
+              <h2 className="text-2xl font-black mb-4 flex items-center gap-2"><StickyNote className="text-primary"/> Study Notes</h2>
+              <Textarea 
+                placeholder="Type your notes here. They will be timestamped to the current video time..." 
+                value={noteText} 
+                onChange={(e) => setNoteText(e.target.value)}
+                className="rounded-2xl mb-4 bg-slate-50 dark:bg-slate-800 border-none min-h-[120px] focus-visible:ring-primary/20"
+              />
+              <Button onClick={handleSaveNote} disabled={savingNote || !noteText.trim()} className="w-full rounded-full h-12 font-bold shadow-lg shadow-primary/20">
+                {savingNote ? "Saving..." : "Save Timestamped Note"}
+              </Button>
               
-              <div className="px-8 py-6 space-y-4">
-                {user ? (
-                  <div className="relative">
-                    <Textarea 
-                      placeholder="Capture a key takeaway..."
-                      value={noteText}
-                      onFocus={handleNoteFocus}
-                      onChange={(e) => {
-                        setNoteText(e.target.value);
-                        if (capturedTimestamp === null) handleNoteFocus();
-                      }}
-                      className="min-h-[120px] rounded-2xl bg-slate-50 dark:bg-slate-950 border-none focus-visible:ring-primary font-medium p-4 text-slate-800 dark:text-slate-200"
-                    />
-                    <div className="absolute bottom-4 right-4 flex items-center gap-3">
-                      {capturedTimestamp !== null && (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary rounded-full animate-pulse border border-primary/20">
-                          <Activity size={12} className="stroke-[3]" />
-                          <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">
-                            Syncing {formatTime(capturedTimestamp)}
-                          </span>
-                        </div>
-                      )}
-                      <Button 
-                        size="icon" 
-                        onClick={handleSaveNote} 
-                        disabled={savingNote || !noteText.trim()}
-                        className="rounded-full h-10 w-10 bg-primary shadow-lg shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
-                      >
-                        {savingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send size={18} />}
-                      </Button>
+              <ScrollArea className="h-[400px] mt-6 pr-4">
+                <div className="space-y-4">
+                  {notes && notes.length > 0 ? notes.map(note => (
+                    <div key={note.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all group">
+                       <div className="flex justify-between items-center mb-2">
+                         <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tabular-nums">At {formatTime(note.timestamp)}</span>
+                         <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteDoc(doc(firestore, 'user_notes', note.id))}>
+                            <Trash2 size={12} className="text-slate-400 hover:text-red-500" />
+                         </Button>
+                       </div>
+                       <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-snug">{note.text}</p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl text-center space-y-2">
-                    <LockIcon size={24} className="mx-auto text-slate-400" />
-                    <p className="text-xs font-bold text-slate-500">Sign in to save personal study notes.</p>
-                    <Button variant="link" size="sm" asChild className="text-primary">
-                      <Link href="/login">Login Now</Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-
-              <ScrollArea className="flex-1 px-8 pb-8">
-                <div className="space-y-4 pt-2">
-                  {notes && notes.length > 0 ? (
-                    notes.map((note) => (
-                      <div key={note.id} className="group bg-slate-50 dark:bg-slate-950 p-5 rounded-3xl border border-transparent hover:border-primary/20 transition-all hover:shadow-md">
-                        <div className="flex items-start justify-between gap-4">
-                          <button 
-                            onClick={() => {
-                              if (playerRef.current?.plyr) {
-                                try {
-                                  playerRef.current.plyr.currentTime = note.timestamp;
-                                  playerRef.current.plyr.play();
-                                } catch (e) {}
-                              }
-                            }}
-                            className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
-                          >
-                            <Bookmark size={14} className="fill-primary" />
-                            <span className="text-[10px] font-black uppercase tracking-widest tabular-nums">{formatTime(note.timestamp)}</span>
-                          </button>
-                          <button 
-                            onClick={() => handleDeleteNote(note.id)}
-                            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 transition-all"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                        <p className="mt-3 text-sm text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                          {note.text}
-                        </p>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 opacity-20">
-                      <StickyNote size={48} />
-                      <p className="text-xs font-black uppercase tracking-widest">{user ? "No notes yet" : "Personalize your learning"}</p>
+                  )) : (
+                    <div className="text-center py-10">
+                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No notes for this session</p>
                     </div>
                   )}
                 </div>
@@ -635,12 +371,7 @@ function LessonContent() {
 
 export default function LessonPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-        <Loader2 className="animate-spin h-12 w-12 text-primary" />
-        <p className="font-bold text-slate-400">Loading Track...</p>
-      </div>
-    }>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="animate-spin text-primary h-10 w-10" /></div>}>
       <LessonContent />
     </Suspense>
   );

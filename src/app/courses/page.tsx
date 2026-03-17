@@ -5,7 +5,7 @@ import React, { useMemo } from 'react';
 import { collection, query, where, Query } from 'firebase/firestore';
 import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
-import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Grid } from 'lucide-react';
+import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Grid, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { BrandLogo } from '@/components/BrandLogo';
+import { useToast } from '@/hooks/use-toast';
 
 interface Course {
   id: string;
@@ -125,6 +126,7 @@ export default function CoursesPage() {
 }
 
 function MarketplaceCard({ course }: { course: Course }) {
+  const { toast } = useToast();
   const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
     : "https://picsum.photos/seed/course/800/450";
@@ -134,6 +136,15 @@ function MarketplaceCard({ course }: { course: Course }) {
   const displayRatingCount = course.ratingCount || course.reviewCount || 0;
   const displayPrice = course.price || 0;
   const displayOldPrice = course.originalPrice || course.oldPrice || 0;
+
+  const handleShare = () => {
+    const url = `${window.location.origin}/lesson/1?courseId=${course.id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copied",
+      description: "Program details link copied to clipboard.",
+    });
+  };
 
   return (
     <div className="bg-card text-card-foreground rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl dark:hover:shadow-primary/5 transition-all duration-500 group">
@@ -149,6 +160,14 @@ function MarketplaceCard({ course }: { course: Course }) {
             Bestseller
           </div>
         )}
+        <Button 
+          variant="secondary" 
+          size="icon" 
+          onClick={handleShare}
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 h-9 w-9 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur shadow-lg border-none opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Share2 className="h-4 w-4" />
+        </Button>
       </div>
 
       <div className="p-5 sm:p-7 space-y-4">
