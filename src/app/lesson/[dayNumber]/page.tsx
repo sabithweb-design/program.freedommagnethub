@@ -13,13 +13,10 @@ import {
   deleteDoc,
   addDoc,
   serverTimestamp,
-  orderBy,
   Query
 } from "firebase/firestore";
-import { signOut } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { useAuth as useAuthContext } from "@/context/auth-context";
-import { useCollection, useAuth as useFirebaseAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,7 +33,8 @@ import {
   Trash2,
   Activity,
   Share2,
-  LogOut
+  PlayCircle,
+  Lock
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -69,7 +67,7 @@ interface UserNote {
 }
 
 /**
- * Isolated Player Component to manage Plyr lifecycle and prevent 'getAttribute' errors.
+ * Isolated Player Component to manage Plyr lifecycle
  */
 function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: 'youtube' | 'vimeo' }) {
   const playerRef = useRef<any>(null);
@@ -87,13 +85,8 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
         
         if (!active || !containerRef.current) return;
 
-        // Clean up any existing instance first
         if (playerRef.current) {
-          try {
-            playerRef.current.destroy();
-          } catch (e) {
-            // Silently handle destruction errors
-          }
+          playerRef.current.destroy();
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
@@ -102,7 +95,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
         
-        if (active) setIsInitializing(false);
+        setIsInitializing(false);
       } catch (err) {
         console.error("Plyr initialization failed:", err);
       }
@@ -113,11 +106,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
     return () => {
       active = false;
       if (playerRef.current) {
-        try {
-          playerRef.current.destroy();
-        } catch (e) {
-          // Silently handle destruction errors
-        }
+        playerRef.current.destroy();
         playerRef.current = null;
       }
     };
@@ -126,7 +115,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
   return (
     <div className="w-full h-full aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl relative">
       <div 
-        key={`player-${provider}-${videoId}`}
+        key={`${provider}-${videoId}`}
         ref={containerRef} 
         data-plyr-provider={provider} 
         data-plyr-embed-id={videoId}
@@ -148,21 +137,17 @@ function LessonContent() {
   const courseId = searchParams.get('courseId');
   const router = useRouter();
   const { user, loading, isAdmin } = useAuthContext();
-  const auth = useFirebaseAuth();
   const firestore = db;
   const { toast } = useToast();
   
   const [lesson, setLesson] = useState<LessonData | null>(null);
+  const [allLessons, setAllLessons] = useState<LessonData[]>([]);
   const [lessonId, setLessonId] = useState<string | null>(null);
   const [fetching, setFetching] = useState(true);
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [course, setCourse] = useState<CourseData | null>(null);
 
-  const [noteText, setNoteText] = useState("");
-  const [savingNote, setSavingNote] = useState(false);
-
-  // Deterrent for non-admins
   useEffect(() => {
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -171,11 +156,10 @@ function LessonContent() {
     }
   }, [isAdmin]);
 
-  // Data Fetching
   useEffect(() => {
     if (loading || !firestore) return;
 
-    const fetchLesson = async () => {
+    const fetchLessonData = async () => {
       if (!courseId) {
         setFetching(false);
         return;
@@ -199,16 +183,23 @@ function LessonContent() {
           return;
         }
 
-        const q = query(collection(db, "lessons"), where("dayNumber", "==", day), where("courseId", "==", courseId)) as Query<LessonData>;
-        const querySnapshot = await getDocs(q);
+        const allLessonsQ = query(collection(db, "lessons"), where("courseId", "==", courseId));
+        const allLessonsSnap = await getDocs(allLessonsQ);
         
-        if (!querySnapshot.empty) {
-          const lDoc = querySnapshot.docs[0];
-          setLessonId(lDoc.id);
-          setLesson({ ...lDoc.data(), id: lDoc.id });
+        const fetchedAllLessons = allLessonsSnap.docs
+          .map(d => ({ ...d.data(), id: d.id } as LessonData))
+          .sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0));
+          
+        setAllLessons(fetchedAllLessons);
+
+        const currentLesson = fetchedAllLessons.find(l => l.dayNumber === day);
+        
+        if (currentLesson && currentLesson.id) {
+          setLessonId(currentLesson.id);
+          setLesson(currentLesson);
           
           if (user) {
-            const docSnap = await getDoc(doc(firestore, 'users', user.uid, 'completedLessons', lDoc.id));
+            const docSnap = await getDoc(doc(firestore, 'users', user.uid, 'completedLessons', currentLesson.id));
             setIsCompleted(docSnap.exists());
           }
         } else { 
@@ -221,20 +212,8 @@ function LessonContent() {
       }
     };
 
-    fetchLesson();
+    fetchLessonData();
   }, [user, loading, day, courseId, firestore, router]);
-
-  const notesQuery = useMemo(() => {
-    if (!firestore || !user || !lessonId) return null;
-    return query(
-      collection(firestore, "user_notes"), 
-      where("userId", "==", user.uid), 
-      where("lessonId", "==", lessonId), 
-      orderBy("createdAt", "desc")
-    ) as Query<UserNote>;
-  }, [firestore, user, lessonId]);
-
-  const { data: notes } = useCollection<UserNote>(notesQuery);
 
   const handleToggleComplete = async () => {
     if (!user || !lessonId || !firestore || completing) return;
@@ -257,27 +236,6 @@ function LessonContent() {
     }
   };
 
-  const handleSaveNote = async () => {
-    if (!user || !lessonId || !noteText.trim() || !firestore) return;
-    setSavingNote(true);
-    try {
-      await addDoc(collection(firestore, "user_notes"), {
-        userId: user.uid, 
-        lessonId, 
-        courseId: courseId || '',
-        text: noteText, 
-        timestamp: 0, 
-        createdAt: serverTimestamp()
-      });
-      setNoteText("");
-      toast({ title: "Note Saved", description: "Your study note has been added to this lesson." });
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSavingNote(false);
-    }
-  };
-
   const handleShareCourse = () => {
     if (!courseId) return;
     const url = `${window.location.origin}/lesson/1?courseId=${courseId}`;
@@ -286,15 +244,6 @@ function LessonContent() {
       title: "Link Copied",
       description: "Hub access link copied to clipboard.",
     });
-  };
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      router.push('/login');
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
   };
 
   if (loading || fetching) return (
@@ -324,15 +273,13 @@ function LessonContent() {
               <Share2 size={18} />
             </Button>
             <ThemeToggle />
-            <Button variant="ghost" size="icon" onClick={handleSignOut} className="rounded-full h-9 w-9 text-slate-400 hover:text-red-500 transition-colors" title="Sign Out">
-              <LogOut size={18} />
-            </Button>
           </div>
         </div>
       </div>
 
       <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
+          
           <div className="lg:col-span-8 space-y-8">
             <div className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black">
               {videoId ? (
@@ -385,39 +332,31 @@ function LessonContent() {
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-            <Card className="rounded-[2.5rem] p-8 shadow-2xl sticky top-24 border-none bg-white dark:bg-slate-900 overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-5">
-                <StickyNote size={80} />
-              </div>
-              <h2 className="text-2xl font-black mb-6 flex items-center gap-3 tracking-tight">
-                <StickyNote className="text-primary"/> Study Notes
+            <Card className="rounded-[2.5rem] p-6 shadow-xl border-none bg-white dark:bg-slate-900 overflow-hidden">
+              <h2 className="text-xl font-black mb-4 flex items-center gap-3 tracking-tight">
+                <PlayCircle className="text-primary"/> Course Content
               </h2>
-              <Textarea 
-                placeholder="Capture your insights from this session..." 
-                value={noteText} 
-                onChange={(e) => setNoteText(e.target.value)}
-                className="rounded-2xl mb-4 bg-slate-50 dark:bg-slate-800 border-none min-h-[140px] focus-visible:ring-primary/20 p-5 font-medium"
-              />
-              <Button onClick={handleSaveNote} disabled={savingNote || !noteText.trim()} className="w-full rounded-full h-12 font-bold shadow-lg shadow-primary/20">
-                {savingNote ? "Saving..." : "Save Note"}
-              </Button>
-              
-              <ScrollArea className="h-[400px] mt-8 pr-4">
-                <div className="space-y-4">
-                  {notes && notes.length > 0 ? notes.map(note => (
-                    <div key={note.id} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all group relative overflow-hidden">
-                       <div className="flex justify-between items-center mb-3">
-                         <span className="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-widest tabular-nums">Saved Entry</span>
-                         <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-900 shadow-sm" onClick={() => deleteDoc(doc(firestore, 'user_notes', note.id))}>
-                            <Trash2 size={14} className="text-slate-400 hover:text-red-500" />
-                         </Button>
-                       </div>
-                       <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{note.text}</p>
-                    </div>
-                  )) : (
-                    <div className="text-center py-16 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
-                      <p className="text-xs font-black text-slate-300 dark:text-slate-700 uppercase tracking-[0.2em]">Insights are empty</p>
-                    </div>
+              <ScrollArea className="h-[250px] pr-4">
+                <div className="space-y-2">
+                  {allLessons.length > 0 ? allLessons.map((l) => {
+                    const isActive = l.dayNumber === day;
+                    return (
+                      <Link href={`/lesson/${l.dayNumber}?courseId=${courseId}`} key={l.id}>
+                        <div className={cn(
+                          "flex items-center gap-3 p-4 rounded-2xl transition-all border",
+                          isActive 
+                            ? "bg-primary/10 border-primary/20 text-primary font-bold shadow-sm" 
+                            : "bg-slate-50 dark:bg-slate-800/50 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 font-medium"
+                        )}>
+                          <div className={cn("flex items-center justify-center w-8 h-8 rounded-full text-xs font-black", isActive ? "bg-primary text-white" : "bg-slate-200 dark:bg-slate-700")}>
+                            {l.dayNumber}
+                          </div>
+                          <p className="flex-1 text-sm line-clamp-1">{l.title}</p>
+                        </div>
+                      </Link>
+                    )
+                  }) : (
+                    <p className="text-sm text-slate-400 italic">No other sessions found.</p>
                   )}
                 </div>
               </ScrollArea>
