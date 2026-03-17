@@ -96,14 +96,8 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
           if (active) setIsInitializing(false);
         });
 
-        playerRef.current.on('error', (event: any) => {
-          if (process.env.NODE_ENV === 'development') {
-            console.warn("Plyr handled a non-critical error event.");
-          }
-        });
-
       } catch (err) {
-        console.warn("Plyr initialization status:", err);
+        console.warn("Plyr initialization error:", err);
       }
     };
 
@@ -226,7 +220,7 @@ function LessonContent() {
           setLesson(null); 
         }
       } catch (error) {
-        console.warn("Session data fetch status:", error);
+        console.warn("Session data fetch error:", error);
       } finally {
         setFetching(false);
       }
@@ -272,7 +266,7 @@ function LessonContent() {
         toast({ title: "Lesson Completed!", description: "Way to go! On to the next one." });
       }
     } catch (err) {
-      console.warn("Progress update status:", err);
+      console.warn("Progress update error:", err);
     } finally {
       setCompleting(false);
     }
@@ -293,7 +287,7 @@ function LessonContent() {
       setNoteText("");
       toast({ title: "Note Saved", description: "Your study note has been added to this session." });
     } catch (err) {
-      console.warn("Note save status:", err);
+      console.warn("Note save error:", err);
     } finally {
       setSavingNote(false);
     }
@@ -332,9 +326,11 @@ function LessonContent() {
             <span className="text-xs text-slate-500 font-bold uppercase">Session {day}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={handleShareCourse} className="rounded-full h-9 w-9 text-slate-400" title="Share Hub">
-              <Share2 size={18} />
-            </Button>
+            {isAdmin && (
+              <Button variant="ghost" size="icon" onClick={handleShareCourse} className="rounded-full h-9 w-9 text-slate-400" title="Share Hub">
+                <Share2 size={18} />
+              </Button>
+            )}
             <ThemeToggle />
             <Button variant="ghost" size="icon" onClick={handleSignOut} className="rounded-full h-9 w-9 text-slate-400" title="Sign Out">
               <LogOut size={18} />
@@ -373,9 +369,11 @@ function LessonContent() {
                   {course && <p className="text-sm font-bold text-primary uppercase tracking-widest">{course.title}</p>}
                 </div>
                 <div className="flex items-center gap-3">
-                   <Button variant="outline" onClick={handleShareCourse} className="rounded-full flex gap-2 font-bold h-11 px-6 border-slate-200 dark:border-slate-800">
-                     <Share2 size={16} /> Share Hub
-                   </Button>
+                   {isAdmin && (
+                     <Button variant="outline" onClick={handleShareCourse} className="rounded-full flex gap-2 font-bold h-11 px-6 border-slate-200 dark:border-slate-800">
+                       <Share2 size={16} /> Share Hub
+                     </Button>
+                   )}
                    <Button onClick={handleToggleComplete} disabled={completing} className={cn("rounded-full px-8 h-11 font-black shadow-lg transition-all", isCompleted ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-primary shadow-primary/20")}>
                     {isCompleted ? "Session Completed" : "Mark Complete"}
                   </Button>

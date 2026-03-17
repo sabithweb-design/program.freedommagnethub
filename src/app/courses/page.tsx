@@ -5,7 +5,7 @@ import { collection, query, where, Query } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useAuth as useAuthContext } from '@/context/auth-context';
 import { useCollection, useFirestore, useAuth as useFirebaseAuth } from '@/firebase';
-import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Grid, Share2, LogOut } from 'lucide-react';
+import { Star, ShieldCheck, ChevronLeft, Search, Grid, Share2, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -130,7 +130,7 @@ export default function CoursesPage() {
         <div className="flex flex-col gap-8">
           {courses && courses.length > 0 ? (
             courses.map((course) => (
-              <MarketplaceCard key={course.id} course={course} />
+              <MarketplaceCard key={course.id} course={course} isAdmin={isAdmin} />
             ))
           ) : (
             <div className="text-center py-20 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] sm:rounded-[3rem]">
@@ -143,7 +143,7 @@ export default function CoursesPage() {
   );
 }
 
-function MarketplaceCard({ course }: { course: Course }) {
+function MarketplaceCard({ course, isAdmin }: { course: Course, isAdmin: boolean }) {
   const { toast } = useToast();
   const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
@@ -178,14 +178,16 @@ function MarketplaceCard({ course }: { course: Course }) {
             Bestseller
           </div>
         )}
-        <Button 
-          variant="secondary" 
-          size="icon" 
-          onClick={handleShare}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 h-9 w-9 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur shadow-lg border-none opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          <Share2 className="h-4 w-4" />
-        </Button>
+        {isAdmin && (
+          <Button 
+            variant="secondary" 
+            size="icon" 
+            onClick={handleShare}
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 h-9 w-9 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur shadow-lg border-none opacity-0 group-hover:opacity-100 transition-opacity"
+          >
+            <Share2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       <div className="p-5 sm:p-7 space-y-4">

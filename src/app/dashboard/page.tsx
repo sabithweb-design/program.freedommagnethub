@@ -131,6 +131,7 @@ export default function DashboardPage() {
                 <CourseUdemyCard 
                   key={course.id} 
                   course={course} 
+                  isAdmin={isAdmin}
                   onClick={() => !course.isLocked && router.push(`/lesson/1?courseId=${course.id}`)} 
                 />
               ))
@@ -155,7 +156,7 @@ export default function DashboardPage() {
   );
 }
 
-function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
+function CourseUdemyCard({ course, onClick, isAdmin }: { course: Course; onClick: () => void; isAdmin: boolean }) {
   const { toast } = useToast();
   const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
@@ -198,7 +199,7 @@ function CourseUdemyCard({ course, onClick }: { course: Course; onClick: () => v
             Bestseller
           </div>
         )}
-        {!course.isLocked && (
+        {!course.isLocked && isAdmin && (
           <Button 
             variant="secondary" 
             size="icon" 

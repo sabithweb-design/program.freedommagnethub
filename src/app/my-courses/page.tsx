@@ -8,7 +8,7 @@ import { useAuth as useAuthContext } from '@/context/auth-context';
 import { useCollection, useFirestore, useAuth as useFirebaseAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { PlayCircle, Bell, Grid, Share2, LogOut } from 'lucide-react';
+import { PlayCircle, Grid, LogOut, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -113,7 +113,7 @@ export default function MyCoursesPage() {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-8 sm:gap-10">
           {courses && courses.length > 0 ? (
             courses.map((course) => (
-              <EnrolledUdemyCard key={course.id} course={course} onClick={() => router.push(`/lesson/1?courseId=${course.id}`)} />
+              <EnrolledUdemyCard key={course.id} course={course} isAdmin={isAdmin} onClick={() => router.push(`/lesson/1?courseId=${course.id}`)} />
             ))
           ) : (
              <div className="col-span-full text-center py-20 sm:py-24 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-[2rem] sm:rounded-[3rem]">
@@ -142,7 +142,7 @@ function NavItem({ label, href, active = false }: { label: string; href: string;
   );
 }
 
-function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
+function EnrolledUdemyCard({ course, onClick, isAdmin }: { course: Course; onClick: () => void; isAdmin: boolean }) {
   const { toast } = useToast();
   const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
@@ -173,14 +173,16 @@ function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () =>
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <PlayCircle size={40} className="text-white fill-white/20 sm:size-[48px]" />
         </div>
-        <Button 
-          variant="secondary" 
-          size="icon" 
-          onClick={handleShare}
-          className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
-        >
-          <Share2 size={16} />
-        </Button>
+        {isAdmin && (
+          <Button 
+            variant="secondary" 
+            size="icon" 
+            onClick={handleShare}
+            className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+          >
+            <Share2 size={16} />
+          </Button>
+        )}
       </div>
 
       <div className="p-5 sm:p-6 space-y-4 flex flex-col flex-1">
