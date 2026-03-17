@@ -313,8 +313,6 @@ function LessonContent() {
           </Button>
           <div className="font-bold flex items-center gap-1.5 uppercase tracking-tighter">
             freedom<span className="text-primary">magnethub</span>
-            <span className="mx-2 text-slate-300">|</span>
-            <span className="text-xs text-slate-500 font-bold uppercase">Session {day}</span>
           </div>
           <div className="flex items-center gap-2">
             {isAdmin && (
