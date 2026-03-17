@@ -1,11 +1,7 @@
 {
   "hosting": {
-    "site": "studio-5549119316-fde4e",
     "public": "out",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ]
+    "cleanUrls": true,
+    "trailingSlash": false
   }
 }

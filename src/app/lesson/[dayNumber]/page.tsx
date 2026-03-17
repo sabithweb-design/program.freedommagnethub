@@ -16,9 +16,10 @@ import {
   orderBy,
   Query
 } from "firebase/firestore";
+import { signOut } from "firebase/auth";
 import { db } from "@/lib/firebase";
-import { useAuth } from "@/context/auth-context";
-import { useCollection } from "@/firebase";
+import { useAuth as useAuthContext } from "@/context/auth-context";
+import { useCollection, useAuth as useFirebaseAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -34,7 +35,8 @@ import {
   StickyNote,
   Trash2,
   Activity,
-  Share2
+  Share2,
+  LogOut
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -87,7 +89,11 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
 
         // Clean up any existing instance first
         if (playerRef.current) {
-          playerRef.current.destroy();
+          try {
+            playerRef.current.destroy();
+          } catch (e) {
+            // Silently handle destruction errors
+          }
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
@@ -96,7 +102,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
         
-        setIsInitializing(false);
+        if (active) setIsInitializing(false);
       } catch (err) {
         console.error("Plyr initialization failed:", err);
       }
@@ -107,7 +113,11 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
     return () => {
       active = false;
       if (playerRef.current) {
-        playerRef.current.destroy();
+        try {
+          playerRef.current.destroy();
+        } catch (e) {
+          // Silently handle destruction errors
+        }
         playerRef.current = null;
       }
     };
@@ -116,7 +126,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
   return (
     <div className="w-full h-full aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl relative">
       <div 
-        key={`${provider}-${videoId}`}
+        key={`player-${provider}-${videoId}`}
         ref={containerRef} 
         data-plyr-provider={provider} 
         data-plyr-embed-id={videoId}
@@ -137,7 +147,8 @@ function LessonContent() {
   const day = parseInt(dayNumber as string);
   const courseId = searchParams.get('courseId');
   const router = useRouter();
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin } = useAuthContext();
+  const auth = useFirebaseAuth();
   const firestore = db;
   const { toast } = useToast();
   
@@ -277,6 +288,15 @@ function LessonContent() {
     });
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   if (loading || fetching) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
       <Loader2 className="animate-spin h-12 w-12 text-primary" />
@@ -294,12 +314,19 @@ function LessonContent() {
           <Button variant="ghost" size="sm" asChild className="rounded-full">
             <Link href="/dashboard"><ChevronLeft className="mr-1 h-4 w-4" /> Hub</Link>
           </Button>
-          <div className="font-bold flex items-center gap-1.5"><GraduationCap className="h-5 w-5 text-primary" /> Session {day}</div>
+          <div className="font-bold flex items-center gap-1.5 uppercase tracking-tighter">
+            freedom<span className="text-primary">magnethub</span>
+            <span className="mx-2 text-slate-300">|</span>
+            <span className="text-xs text-slate-500 font-bold uppercase">Session {day}</span>
+          </div>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={handleShareCourse} className="rounded-full h-9 w-9 text-slate-400">
+            <Button variant="ghost" size="icon" onClick={handleShareCourse} className="rounded-full h-9 w-9 text-slate-400" title="Share Hub">
               <Share2 size={18} />
             </Button>
             <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={handleSignOut} className="rounded-full h-9 w-9 text-slate-400 hover:text-red-500 transition-colors" title="Sign Out">
+              <LogOut size={18} />
+            </Button>
           </div>
         </div>
       </div>
@@ -329,7 +356,7 @@ function LessonContent() {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="space-y-1">
-                  <h1 className="text-3xl sm:text-4xl font-black">{lesson?.title || `Session ${day}`}</h1>
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{lesson?.title || `Session ${day}`}</h1>
                   {course && <p className="text-sm font-bold text-primary uppercase tracking-widest">{course.title}</p>}
                 </div>
                 <div className="flex items-center gap-3">
@@ -344,13 +371,13 @@ function LessonContent() {
               <Separator />
               <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <h3 className="text-xl font-black mb-4 flex items-center gap-2"><AlertCircle size={20}/> Overview</h3>
-                  <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed">{lesson?.description || "No overview provided for this session yet."}</p>
+                  <h3 className="text-xl font-black mb-4 flex items-center gap-2 tracking-tight"><AlertCircle size={20} className="text-primary"/> Overview</h3>
+                  <p className="text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed font-medium">{lesson?.description || "No overview provided for this session yet."}</p>
                 </div>
                 {lesson?.actionPlan && (
-                  <div className="bg-primary/5 p-6 rounded-3xl border border-primary/10 h-fit">
-                    <h3 className="text-xl font-black mb-2 text-primary flex items-center gap-2"><CheckCircle2 size={18} /> Action Plan</h3>
-                    <p className="font-medium text-slate-700 dark:text-slate-300 leading-relaxed">{lesson.actionPlan}</p>
+                  <div className="bg-primary/5 p-8 rounded-[2.5rem] border border-primary/10 h-fit shadow-sm">
+                    <h3 className="text-xl font-black mb-3 text-primary flex items-center gap-2 tracking-tight"><CheckCircle2 size={18} /> Action Plan</h3>
+                    <p className="font-bold text-slate-700 dark:text-slate-200 leading-relaxed italic">{lesson.actionPlan}</p>
                   </div>
                 )}
               </div>
@@ -358,33 +385,38 @@ function LessonContent() {
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-            <Card className="rounded-[2.5rem] p-6 shadow-xl sticky top-24 border-none bg-white dark:bg-slate-900">
-              <h2 className="text-2xl font-black mb-4 flex items-center gap-2"><StickyNote className="text-primary"/> Study Notes</h2>
+            <Card className="rounded-[2.5rem] p-8 shadow-2xl sticky top-24 border-none bg-white dark:bg-slate-900 overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-5">
+                <StickyNote size={80} />
+              </div>
+              <h2 className="text-2xl font-black mb-6 flex items-center gap-3 tracking-tight">
+                <StickyNote className="text-primary"/> Study Notes
+              </h2>
               <Textarea 
-                placeholder="Type your notes here..." 
+                placeholder="Capture your insights from this session..." 
                 value={noteText} 
                 onChange={(e) => setNoteText(e.target.value)}
-                className="rounded-2xl mb-4 bg-slate-50 dark:bg-slate-800 border-none min-h-[120px] focus-visible:ring-primary/20"
+                className="rounded-2xl mb-4 bg-slate-50 dark:bg-slate-800 border-none min-h-[140px] focus-visible:ring-primary/20 p-5 font-medium"
               />
               <Button onClick={handleSaveNote} disabled={savingNote || !noteText.trim()} className="w-full rounded-full h-12 font-bold shadow-lg shadow-primary/20">
                 {savingNote ? "Saving..." : "Save Note"}
               </Button>
               
-              <ScrollArea className="h-[400px] mt-6 pr-4">
+              <ScrollArea className="h-[400px] mt-8 pr-4">
                 <div className="space-y-4">
                   {notes && notes.length > 0 ? notes.map(note => (
-                    <div key={note.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all group">
-                       <div className="flex justify-between items-center mb-2">
-                         <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tabular-nums">Saved Note</span>
-                         <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteDoc(doc(firestore, 'user_notes', note.id))}>
-                            <Trash2 size={12} className="text-slate-400 hover:text-red-500" />
+                    <div key={note.id} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all group relative overflow-hidden">
+                       <div className="flex justify-between items-center mb-3">
+                         <span className="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-widest tabular-nums">Saved Entry</span>
+                         <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-900 shadow-sm" onClick={() => deleteDoc(doc(firestore, 'user_notes', note.id))}>
+                            <Trash2 size={14} className="text-slate-400 hover:text-red-500" />
                          </Button>
                        </div>
-                       <p className="text-sm font-medium text-slate-700 dark:text-slate-300 leading-snug">{note.text}</p>
+                       <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{note.text}</p>
                     </div>
                   )) : (
-                    <div className="text-center py-10">
-                      <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">No notes for this session</p>
+                    <div className="text-center py-16 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
+                      <p className="text-xs font-black text-slate-300 dark:text-slate-700 uppercase tracking-[0.2em]">Insights are empty</p>
                     </div>
                   )}
                 </div>

@@ -1,14 +1,14 @@
-
 "use client";
 
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, Query } from 'firebase/firestore';
-import { useAuth } from '@/context/auth-context';
-import { useCollection, useFirestore } from '@/firebase';
+import { useAuth as useAuthContext } from '@/context/auth-context';
+import { useCollection, useFirestore, useAuth as useFirebaseAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, Star, ShieldCheck, Lock, Grid, Share2 } from 'lucide-react';
+import { Search, ChevronDown, Star, ShieldCheck, Lock, Grid, Share2, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -36,7 +36,8 @@ const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, profile, loading: authLoading, isAdmin } = useAuth();
+  const { user, profile, loading: authLoading, isAdmin } = useAuthContext();
+  const auth = useFirebaseAuth();
   const firestore = useFirestore();
 
   const isMainAdmin = user?.email === MAIN_ADMIN_EMAIL;
@@ -57,6 +58,15 @@ export default function DashboardPage() {
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   if (authLoading || coursesLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
@@ -69,7 +79,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-background text-foreground pb-20 font-body transition-colors">
       <header className="px-6 sm:px-12 md:px-20 h-20 flex items-center justify-between sticky top-0 bg-background/95 backdrop-blur-md z-30 border-b transition-colors">
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground">
+          <h1 className="text-base sm:text-xl font-black tracking-tighter text-foreground uppercase">
             freedom<span className="text-primary">magnethub</span>
           </h1>
         </div>
@@ -95,6 +105,16 @@ export default function DashboardPage() {
               </Link>
             </Button>
           )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleSignOut}
+            className="rounded-full text-slate-400 hover:text-red-500 transition-colors h-9 w-9 sm:h-10 sm:w-10"
+            title="Sign Out"
+          >
+            <LogOut size={20} />
+          </Button>
 
           <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />
         </div>

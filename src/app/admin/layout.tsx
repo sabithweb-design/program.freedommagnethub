@@ -1,9 +1,10 @@
-
 'use client';
 
 import React from 'react';
-import { useAuth } from '@/context/auth-context';
+import { useAuth as useAuthContext } from '@/context/auth-context';
+import { useAuth as useFirebaseAuth } from '@/firebase';
 import { useRouter, usePathname } from 'next/navigation';
+import { signOut } from 'firebase/auth';
 import { 
   LayoutDashboard, 
   Compass, 
@@ -12,7 +13,8 @@ import {
   Bell, 
   Grid,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -23,7 +25,8 @@ import { PlayerIcon } from '@/components/icons/PlayerIcon';
 const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, profile, loading, isAdmin } = useAuth();
+  const { user, profile, loading, isAdmin } = useAuthContext();
+  const auth = useFirebaseAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -34,6 +37,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       router.push('/login');
     }
   }, [loading, isAdmin, router]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -90,6 +102,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <ExternalLink size={14} />
                 <span className="text-[10px] sm:text-xs">View Hub</span>
               </Link>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleSignOut}
+              className="rounded-full text-slate-400 hover:text-red-500 transition-colors h-9 w-9 sm:h-10 sm:w-10"
+              title="Sign Out"
+            >
+              <LogOut size={20} />
             </Button>
 
             <BrandLogo className="h-8 w-8 sm:h-10 sm:w-10" />

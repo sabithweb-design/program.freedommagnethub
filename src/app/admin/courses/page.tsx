@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from "next/link";
@@ -104,12 +103,13 @@ export default function ProgramManagementPage() {
       });
   };
 
+  // ഇതാണ് നമ്മൾ മാറ്റിയ ഭാഗം: ഷെയർ ചെയ്യുമ്പോൾ കോഴ്സ് പേജിന്റെ ലിങ്ക് കിട്ടാൻ 
   const handleShare = (programId: string) => {
-    const url = `${window.location.origin}/lesson/1?courseId=${programId}`;
+    const url = `${window.location.origin}/course/${programId}`; 
     navigator.clipboard.writeText(url);
     toast({
       title: "Link Copied",
-      description: "Program link copied to clipboard. Share this with your clients.",
+      description: "Course overview link copied to clipboard. Share this with your clients.",
     });
   };
 
