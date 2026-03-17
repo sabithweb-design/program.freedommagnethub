@@ -8,11 +8,12 @@ import { useAuth } from '@/context/auth-context';
 import { useCollection, useFirestore } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { PlayCircle, Bell, Grid } from 'lucide-react';
+import { PlayCircle, Bell, Grid, Share2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { BrandLogo } from '@/components/BrandLogo';
+import { useToast } from '@/hooks/use-toast';
 
 interface Course {
   id: string;
@@ -126,9 +127,20 @@ function NavItem({ label, href, active = false }: { label: string; href: string;
 }
 
 function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () => void }) {
+  const { toast } = useToast();
   const thumbnailSrc = course.imageUrl && (course.imageUrl.startsWith('http') || course.imageUrl.startsWith('https'))
     ? course.imageUrl 
     : "https://picsum.photos/seed/course/800/450";
+
+  const handleShare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const url = `${window.location.origin}/lesson/1?courseId=${course.id}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Link Copied",
+      description: "Hub link copied to clipboard.",
+    });
+  };
 
   return (
     <Card 
@@ -145,6 +157,14 @@ function EnrolledUdemyCard({ course, onClick }: { course: Course; onClick: () =>
         <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <PlayCircle size={40} className="text-white fill-white/20 sm:size-[48px]" />
         </div>
+        <Button 
+          variant="secondary" 
+          size="icon" 
+          onClick={handleShare}
+          className="absolute top-3 right-3 h-9 w-9 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+        >
+          <Share2 size={16} />
+        </Button>
       </div>
 
       <div className="p-5 sm:p-6 space-y-4 flex flex-col flex-1">

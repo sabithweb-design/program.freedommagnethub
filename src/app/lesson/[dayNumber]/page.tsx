@@ -41,8 +41,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-// Dynamic import for Plyr to avoid SSR issues
-import dynamic from 'next/dynamic';
+// Dynamic import for Plyr is handled inside the component to avoid SSR issues
 import "plyr/dist/plyr.css";
 
 interface LessonData {
@@ -77,25 +76,42 @@ interface UserNote {
 function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: 'youtube' | 'vimeo' }) {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
+    let active = true;
     if (typeof window === "undefined" || !videoId) return;
 
-    // Load Plyr dynamically
-    import('plyr').then((PlyrModule) => {
-      const PlyrClass = PlyrModule.default;
-      
-      if (containerRef.current) {
+    const initPlyr = async () => {
+      try {
+        const PlyrModule = await import('plyr');
+        const PlyrClass = PlyrModule.default;
+        
+        if (!active || !containerRef.current) return;
+
+        // Clean up any existing instance first
+        if (playerRef.current) {
+          playerRef.current.destroy();
+        }
+
         playerRef.current = new PlyrClass(containerRef.current, {
           controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
+        
+        setIsInitializing(false);
+      } catch (err) {
+        console.error("Plyr initialization failed:", err);
       }
-    });
+    };
+
+    initPlyr();
 
     return () => {
+      active = false;
       if (playerRef.current) {
+        // Essential to destroy before unmount to prevent YouTube API errors
         playerRef.current.destroy();
         playerRef.current = null;
       }
@@ -103,12 +119,20 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
   }, [videoId, provider]);
 
   return (
-    <div className="plyr__video-embed w-full h-full aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl">
+    <div className="w-full h-full aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl relative">
+      {/* The key is crucial: it forces a clean DOM remount when the video changes */}
       <div 
+        key={`${provider}-${videoId}`}
         ref={containerRef} 
         data-plyr-provider={provider} 
         data-plyr-embed-id={videoId}
       />
+      {isInitializing && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10">
+          <Loader2 className="animate-spin h-10 w-10 text-primary mb-2" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Preparing Session...</p>
+        </div>
+      )}
     </div>
   );
 }
@@ -249,11 +273,6 @@ function LessonContent() {
     });
   };
 
-  const formatTime = (seconds: number) => {
-    const date = new Date(seconds * 1000);
-    return `${date.getUTCMinutes()}:${date.getUTCSeconds().toString().padStart(2, '0')}`;
-  };
-
   if (loading || fetching) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
       <Loader2 className="animate-spin h-12 w-12 text-primary" />
@@ -286,10 +305,10 @@ function LessonContent() {
           <div className="lg:col-span-8 space-y-8">
             <div className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black">
               {videoId ? (
-                <div className="w-full h-full">
+                <div className="w-full h-full relative">
                   <CustomVideoPlayer videoId={videoId} provider={provider} />
                   {user && (
-                    <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-20 select-none">
+                    <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-10 select-none">
                       <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">{user.email}</div>
                       <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">{user.email}</div>
                     </div>
@@ -298,7 +317,7 @@ function LessonContent() {
               ) : (
                 <div className="flex flex-col items-center justify-center h-full bg-slate-900 text-slate-500">
                   <Activity className="w-12 h-12 mb-4 animate-pulse" />
-                  <p>Session Content Finalizing...</p>
+                  <p className="font-bold uppercase text-[10px] tracking-widest">Session Content Finalizing...</p>
                 </div>
               )}
             </div>
@@ -310,11 +329,11 @@ function LessonContent() {
                   {course && <p className="text-sm font-bold text-primary uppercase tracking-widest">{course.title}</p>}
                 </div>
                 <div className="flex items-center gap-3">
-                   <Button variant="outline" onClick={handleShareCourse} className="rounded-full flex gap-2 font-bold h-11 px-6">
+                   <Button variant="outline" onClick={handleShareCourse} className="rounded-full flex gap-2 font-bold h-11 px-6 border-slate-200 dark:border-slate-800">
                      <Share2 size={16} /> Share Hub
                    </Button>
-                   <Button onClick={handleToggleComplete} disabled={completing} className={cn("rounded-full px-8 h-11 font-black", isCompleted ? "bg-emerald-500 hover:bg-emerald-600" : "bg-primary")}>
-                    {isCompleted ? "Completed" : "Mark Complete"}
+                   <Button onClick={handleToggleComplete} disabled={completing} className={cn("rounded-full px-8 h-11 font-black shadow-lg transition-all", isCompleted ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-primary shadow-primary/20")}>
+                    {isCompleted ? "Session Completed" : "Mark Complete"}
                   </Button>
                 </div>
               </div>
