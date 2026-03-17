@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs, writeBatch, Query } from 'firebase/firestore';
+import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs, writeBatch, Query, Timestamp } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
@@ -68,7 +68,9 @@ import {
   Lock as LockIcon,
   Link as LinkIcon,
   Upload,
-  Loader2
+  Loader2,
+  ExternalLink,
+  Zap
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -187,15 +189,24 @@ export default function AdminPage() {
     reviewCount: 0,
     visibility: 'PRIVATE',
     adminIds: [] as string[],
-    studentIds: [] as string[]
+    studentIds: [] as string[],
+    // Landing Page Fields
+    landingHeading: '',
+    landingSubtitle: '',
+    demoVideoId: '',
+    joinLink: '',
+    offerEndTime: '',
+    galleryImages: [] as string[],
+    feedbackVideoIds: [] as string[],
+    testimonialImageUrls: [] as string[]
   });
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'course' | 'lesson' | 'edit-course' | 'edit-lesson') => {
     const file = e.target.files?.[0];
     if (!file || !storage) return;
 
-    if (file.type !== 'image/jpeg') {
-      toast({ variant: "destructive", title: "Invalid Format", description: "Please upload a JPEG image." });
+    if (file.type !== 'image/jpeg' && file.type !== 'image/png') {
+      toast({ variant: "destructive", title: "Invalid Format", description: "Please upload a JPEG or PNG image." });
       return;
     }
 
@@ -455,7 +466,16 @@ export default function AdminPage() {
       reviewCount: Number(editFields.reviewCount),
       visibility: editFields.visibility,
       adminIds: editFields.adminIds,
-      studentIds: editFields.studentIds
+      studentIds: editFields.studentIds,
+      // Landing Page Data
+      landingHeading: editFields.landingHeading,
+      landingSubtitle: editFields.landingSubtitle,
+      demoVideoId: extractYoutubeId(editFields.demoVideoId),
+      joinLink: editFields.joinLink,
+      offerEndTime: editFields.offerEndTime ? Timestamp.fromDate(new Date(editFields.offerEndTime)) : null,
+      galleryImages: editFields.galleryImages,
+      feedbackVideoIds: editFields.feedbackVideoIds.map(extractYoutubeId).filter(Boolean),
+      testimonialImageUrls: editFields.testimonialImageUrls
     };
 
     updateDoc(programRef, updateData)
@@ -592,6 +612,29 @@ export default function AdminPage() {
         currentAdmins.push(adminUid);
       }
       return { ...prev, adminIds: currentAdmins };
+    });
+  };
+
+  const handleArrayUpdate = (field: 'galleryImages' | 'feedbackVideoIds' | 'testimonialImageUrls', index: number, value: string) => {
+    setEditFields(prev => {
+      const arr = [...(prev[field] as string[])];
+      arr[index] = value;
+      return { ...prev, [field]: arr };
+    });
+  };
+
+  const addToArray = (field: 'galleryImages' | 'feedbackVideoIds' | 'testimonialImageUrls') => {
+    setEditFields(prev => {
+      const arr = [...(prev[field] as string[]), ''];
+      return { ...prev, [field]: arr };
+    });
+  };
+
+  const removeFromArray = (field: 'galleryImages' | 'feedbackVideoIds' | 'testimonialImageUrls', index: number) => {
+    setEditFields(prev => {
+      const arr = [...(prev[field] as string[])];
+      arr.splice(index, 1);
+      return { ...prev, [field]: arr };
     });
   };
 
@@ -793,7 +836,7 @@ export default function AdminPage() {
                     <div className="flex gap-2">
                       <Input placeholder="https://..." value={courseForm.imageUrl} onChange={e => setCourseForm({...courseForm, imageUrl: e.target.value})} className="rounded-xl h-12 text-slate-900 flex-1" />
                       <div className="relative">
-                        <input type="file" accept=".jpg,.jpeg" className="hidden" id="course-thumb-upload" onChange={(e) => handleFileUpload(e, 'course')} />
+                        <input type="file" accept=".jpg,.jpeg,.png" className="hidden" id="course-thumb-upload" onChange={(e) => handleFileUpload(e, 'course')} />
                         <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
                           <label htmlFor="course-thumb-upload" className="cursor-pointer">
                             {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
@@ -801,7 +844,7 @@ export default function AdminPage() {
                         </Button>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG only, max 1MB</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG/PNG only, max 1MB</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Category</Label>
@@ -845,7 +888,15 @@ export default function AdminPage() {
                       <Button variant="ghost" size="icon" className="rounded-full hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400 hover:text-primary transition-all" onClick={() => { 
                         setEditingProgram(c); 
                         setEditFields({ 
-                          title: c.title || '', description: c.description || '', category: c.category || '', imageUrl: c.imageUrl || '', author: c.author || '', price: c.price || 0, originalPrice: c.originalPrice || 0, rating: c.rating || 4.5, reviewCount: c.reviewCount || 0, visibility: c.visibility || 'PRIVATE', adminIds: c.adminIds || [], studentIds: c.studentIds || []
+                          title: c.title || '', description: c.description || '', category: c.category || '', imageUrl: c.imageUrl || '', author: c.author || '', price: c.price || 0, originalPrice: c.originalPrice || 0, rating: c.rating || 4.5, reviewCount: c.reviewCount || 0, visibility: c.visibility || 'PRIVATE', adminIds: c.adminIds || [], studentIds: c.studentIds || [],
+                          landingHeading: c.landingHeading || '',
+                          landingSubtitle: c.landingSubtitle || '',
+                          demoVideoId: c.demoVideoId || '',
+                          joinLink: c.joinLink || '',
+                          offerEndTime: c.offerEndTime ? new Date(c.offerEndTime.seconds * 1000).toISOString().slice(0, 16) : '',
+                          galleryImages: c.galleryImages || [],
+                          feedbackVideoIds: c.feedbackVideoIds || [],
+                          testimonialImageUrls: c.testimonialImageUrls || []
                         }); 
                       }}>
                         <Edit2 size={16} />
@@ -904,7 +955,7 @@ export default function AdminPage() {
                     <div className="flex gap-2">
                       <Input placeholder="https://..." value={lessonForm.thumbnailUrl} onChange={e => setLessonForm({...lessonForm, thumbnailUrl: e.target.value})} className="h-12 rounded-xl text-slate-900 flex-1" />
                       <div className="relative">
-                        <input type="file" accept=".jpg,.jpeg" className="hidden" id="lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'lesson')} />
+                        <input type="file" accept=".jpg,.jpeg,.png" className="hidden" id="lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'lesson')} />
                         <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
                           <label htmlFor="lesson-thumb-upload" className="cursor-pointer">
                             {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
@@ -912,7 +963,7 @@ export default function AdminPage() {
                         </Button>
                       </div>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG only, max 1MB</p>
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG/PNG only, max 1MB</p>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold flex items-center gap-2 text-xs uppercase tracking-tight text-slate-500">
@@ -995,7 +1046,7 @@ export default function AdminPage() {
                         <Button variant="ghost" size="icon" className="rounded-full text-slate-400" onClick={() => {
                           const url = `${window.location.origin}/lesson/${l.dayNumber}?courseId=${l.courseId}`;
                           navigator.clipboard.writeText(url);
-                          toast({ title: "Session Link Copied", description: "Share this link with your enrolled students." });
+                          toast({ title: "Session Link copied", description: "Share this link with your enrolled students." });
                         }}>
                           <Share2 size={16} />
                         </Button>
@@ -1103,7 +1154,7 @@ export default function AdminPage() {
               <div className="flex gap-2">
                 <Input value={editLessonFields.thumbnailUrl} onChange={e => setEditLessonFields({...editLessonFields, thumbnailUrl: e.target.value})} className="h-12 rounded-xl text-slate-900 flex-1" />
                 <div className="relative">
-                  <input type="file" accept=".jpg,.jpeg" className="hidden" id="edit-lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'edit-lesson')} />
+                  <input type="file" accept=".jpg,.jpeg,.png" className="hidden" id="edit-lesson-thumb-upload" onChange={(e) => handleFileUpload(e, 'edit-lesson')} />
                   <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
                     <label htmlFor="edit-lesson-thumb-upload" className="cursor-pointer">
                       {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
@@ -1111,7 +1162,7 @@ export default function AdminPage() {
                   </Button>
                 </div>
               </div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG only, max 1MB</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG/PNG only, max 1MB</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -1147,12 +1198,22 @@ export default function AdminPage() {
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
         <DialogContent className="rounded-3xl max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Program Configuration</DialogTitle>
-            <DialogDescription>Manage content and enroll students for this program session.</DialogDescription>
+            <DialogTitle className="flex items-center gap-2">
+              <Zap className="text-primary" /> Program Configuration
+            </DialogTitle>
+            <DialogDescription>Manage hub access, enrollments, and your public landing page settings.</DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-8 text-slate-900">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-6">
+          
+          <Tabs defaultValue="general" className="w-full">
+            <TabsList className="bg-slate-100 dark:bg-slate-800 rounded-xl p-1 mb-6">
+              <TabsTrigger value="general" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">General Hub</TabsTrigger>
+              <TabsTrigger value="landing" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Landing Page</TabsTrigger>
+              <TabsTrigger value="students" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Enrollments</TabsTrigger>
+              {isMainAdmin && <TabsTrigger value="admins" className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-900 data-[state=active]:shadow-sm">Admins</TabsTrigger>}
+            </TabsList>
+
+            <TabsContent value="general" className="space-y-6">
+              <div className="grid md:grid-cols-2 gap-8">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Program Title</Label>
@@ -1176,8 +1237,136 @@ export default function AdminPage() {
                     </Select>
                   </div>
                 </div>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail (JPEG/PNG)</Label>
+                    <div className="flex gap-2">
+                      <Input value={editFields.imageUrl} onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})} className="rounded-xl h-12 flex-1 text-slate-900" />
+                      <div className="relative">
+                        <input type="file" accept=".jpg,.jpeg,.png" className="hidden" id="edit-course-thumb-upload-inner" onChange={(e) => handleFileUpload(e, 'edit-course')} />
+                        <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
+                          <label htmlFor="edit-course-thumb-upload-inner" className="cursor-pointer">
+                            {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
+                          </label>
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Hub Price (₹)</Label>
+                      <Input type="number" value={editFields.price} onChange={(e) => setEditFields({...editFields, price: Number(e.target.value)})} className="rounded-xl h-11 text-slate-900" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Rating</Label>
+                      <Input type="number" step="0.1" value={editFields.rating} onChange={(e) => setEditFields({...editFields, rating: Number(e.target.value)})} className="rounded-xl h-11 text-slate-900" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
 
-                <Card className="border shadow-none rounded-2xl bg-white dark:bg-slate-900">
+            <TabsContent value="landing" className="space-y-8 animate-in slide-in-from-right-2">
+              <div className="grid md:grid-cols-2 gap-10">
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <h4 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Edit2 size={16} /> Content & Urgency
+                    </h4>
+                    <div className="space-y-2">
+                      <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Sales Heading</Label>
+                      <Input placeholder="Bold catchy title..." value={editFields.landingHeading} onChange={(e) => setEditFields({...editFields, landingHeading: e.target.value})} className="rounded-xl h-12 text-slate-900" />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Sales Subtitle</Label>
+                      <Textarea placeholder="Explain what they get..." value={editFields.landingSubtitle} onChange={(e) => setEditFields({...editFields, landingSubtitle: e.target.value})} className="rounded-xl min-h-[80px] text-slate-900" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Demo Video (YouTube ID)</Label>
+                        <Input placeholder="dQw4w9WgXcQ" value={editFields.demoVideoId} onChange={(e) => setEditFields({...editFields, demoVideoId: e.target.value})} className="rounded-xl h-11 text-slate-900" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Join Link (CTA)</Label>
+                        <Input placeholder="https://payment-link.com" value={editFields.joinLink} onChange={(e) => setEditFields({...editFields, joinLink: e.target.value})} className="rounded-xl h-11 text-slate-900" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Offer End Time (For Countdown)</Label>
+                      <Input type="datetime-local" value={editFields.offerEndTime} onChange={(e) => setEditFields({...editFields, offerEndTime: e.target.value})} className="rounded-xl h-11 text-slate-900" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                     <h4 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                      <Video size={16} /> Student Video Feedback (Max 4)
+                    </h4>
+                    <div className="space-y-2">
+                      {[0, 1, 2, 3].map(idx => (
+                        <div key={idx} className="flex gap-2">
+                           <Input placeholder={`YouTube Video ID ${idx+1}`} value={editFields.feedbackVideoIds[idx] || ''} onChange={(e) => handleArrayUpdate('feedbackVideoIds', idx, e.target.value)} className="rounded-xl h-10 text-slate-900" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <ImageIcon size={16} /> Course Gallery Images
+                      </h4>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => addToArray('galleryImages')} className="h-8 rounded-lg text-xs font-black">
+                        <Plus size={14} className="mr-1" /> Add Slot
+                      </Button>
+                    </div>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                      {editFields.galleryImages.map((img, idx) => (
+                        <div key={idx} className="flex gap-2 group">
+                          <Input placeholder="Image URL" value={img} onChange={(e) => handleArrayUpdate('galleryImages', idx, e.target.value)} className="rounded-xl h-10 text-slate-900" />
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeFromArray('galleryImages', idx)} className="h-10 w-10 text-slate-400 hover:text-red-500">
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-sm font-black uppercase tracking-widest text-primary flex items-center gap-2">
+                        <MessageSquare size={16} /> Testimonial Images (Max 5)
+                      </h4>
+                      <Button type="button" variant="ghost" size="sm" onClick={() => addToArray('testimonialImageUrls')} className="h-8 rounded-lg text-xs font-black">
+                        <Plus size={14} className="mr-1" /> Add Slot
+                      </Button>
+                    </div>
+                    <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                      {editFields.testimonialImageUrls.map((img, idx) => (
+                        <div key={idx} className="flex gap-2">
+                          <Input placeholder="Testimonial Image URL" value={img} onChange={(e) => handleArrayUpdate('testimonialImageUrls', idx, e.target.value)} className="rounded-xl h-10 text-slate-900" />
+                          <Button type="button" variant="ghost" size="icon" onClick={() => removeFromArray('testimonialImageUrls', idx)} className="h-10 w-10 text-slate-400 hover:text-red-500">
+                            <Trash2 size={16} />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="pt-6 border-t dark:border-slate-800">
+                     <Button asChild variant="outline" className="w-full rounded-2xl h-14 font-black border-primary/20 text-primary hover:bg-primary/5 gap-2">
+                        <Link href={`/program/${editingProgram?.id}`} target="_blank">
+                          <ExternalLink size={18} /> View Public Landing Page
+                        </Link>
+                     </Button>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="students" className="space-y-6">
+               <Card className="border shadow-none rounded-2xl bg-white dark:bg-slate-900">
                   <CardHeader className="p-5 pb-2">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Users size={18} className="text-primary" /> Student Enrollment
@@ -1203,7 +1392,7 @@ export default function AdminPage() {
                         {enrolling ? "Syncing..." : "Register & Enroll"}
                       </Button>
                     </div>
-                    <div className="space-y-2 mt-6 max-h-[200px] overflow-y-auto pr-2">
+                    <div className="space-y-2 mt-6 max-h-[300px] overflow-y-auto pr-2">
                       <Label className="text-[10px] font-bold uppercase text-slate-400">Enrolled Members ({editFields.studentIds.length})</Label>
                       {editFields.studentIds.length === 0 ? (
                         <div className="text-[10px] text-slate-400 text-center py-4 border border-dashed rounded-lg font-bold">No students enrolled yet.</div>
@@ -1224,27 +1413,9 @@ export default function AdminPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </div>
+            </TabsContent>
 
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label className="font-bold text-xs uppercase tracking-widest text-slate-500">Thumbnail (URL or Upload JPEG) - Optional</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-                      <Input value={editFields.imageUrl} onChange={(e) => setEditFields({...editFields, imageUrl: e.target.value})} className="rounded-xl h-12 pl-10 text-slate-900" />
-                    </div>
-                    <div className="relative">
-                      <input type="file" accept=".jpg,.jpeg" className="hidden" id="edit-course-thumb-upload" onChange={(e) => handleFileUpload(e, 'edit-course')} />
-                      <Button type="button" variant="outline" size="icon" className="h-12 w-12 rounded-xl" asChild>
-                        <label htmlFor="edit-course-thumb-upload" className="cursor-pointer">
-                          {isUploading ? <Loader2 className="animate-spin h-5 w-5" /> : <Upload size={18} />}
-                        </label>
-                      </Button>
-                    </div>
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">JPEG only, max 1MB</p>
-                </div>
+            <TabsContent value="admins" className="space-y-6">
                 {isMainAdmin && (
                   <Card className="border shadow-none rounded-2xl bg-slate-50/50 dark:bg-slate-950/50">
                     <CardHeader className="p-4 pb-2">
@@ -1270,10 +1441,10 @@ export default function AdminPage() {
                     </CardContent>
                   </Card>
                 )}
-              </div>
-            </div>
-          </div>
-          <DialogFooter className="gap-2 pt-4 border-t">
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter className="gap-2 pt-6 border-t mt-6">
             <Button variant="ghost" onClick={() => setEditingProgram(null)} className="rounded-xl h-12 font-bold flex-1">Discard</Button>
             <Button onClick={handleUpdateProgram} className="rounded-xl h-12 font-bold bg-primary text-white flex-1 shadow-lg shadow-primary/20 transition-all active:scale-95">Save Configuration</Button>
           </DialogFooter>
