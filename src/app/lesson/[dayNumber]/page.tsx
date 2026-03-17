@@ -18,8 +18,7 @@ import {
   Query
 } from "firebase/firestore";
 import { useAuth } from "@/context/auth-context";
-import { useCollection } from "@/firebase";
-import { useFirestore } from "@/firebase";
+import { useCollection, useFirestore } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,7 +27,6 @@ import { Separator } from "@/components/ui/separator";
 import { Card } from "@/components/ui/card";
 import { 
   ChevronLeft, 
-  ChevronRight, 
   GraduationCap, 
   CheckCircle2,
   AlertCircle,
@@ -43,8 +41,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-// Import Standard Plyr for better control
-import Plyr from "plyr";
+// Dynamic import for Plyr to avoid SSR issues
+import dynamic from 'next/dynamic';
 import "plyr/dist/plyr.css";
 
 interface LessonData {
@@ -73,6 +71,48 @@ interface UserNote {
   createdAt: any;
 }
 
+/**
+ * Isolated Player Component to manage Plyr lifecycle and prevent 'getAttribute' errors.
+ */
+function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: 'youtube' | 'vimeo' }) {
+  const playerRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !videoId) return;
+
+    // Load Plyr dynamically
+    import('plyr').then((PlyrModule) => {
+      const PlyrClass = PlyrModule.default;
+      
+      if (containerRef.current) {
+        playerRef.current = new PlyrClass(containerRef.current, {
+          controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
+          youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
+          vimeo: { byline: false, portrait: false, title: false, transparent: false }
+        });
+      }
+    });
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+    };
+  }, [videoId, provider]);
+
+  return (
+    <div className="plyr__video-embed w-full h-full aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl">
+      <div 
+        ref={containerRef} 
+        data-plyr-provider={provider} 
+        data-plyr-embed-id={videoId}
+      />
+    </div>
+  );
+}
+
 function LessonContent() {
   const { dayNumber } = useParams();
   const searchParams = useSearchParams();
@@ -92,36 +132,6 @@ function LessonContent() {
 
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
-
-  // STABLE PLAYER REFERENCE
-  const playerRef = useRef<any>(null);
-
-  // Determine Video Source ID for Plyr Key stability
-  const currentVideoId = useMemo(() => {
-    return lesson?.vimeoVideoId || lesson?.youtubeVideoId || `lesson-${day}`;
-  }, [lesson, day]);
-
-  // Player initialization effect
-  useEffect(() => {
-    if (typeof window === "undefined" || !lesson) return;
-
-    const videoElement = document.querySelector("#player");
-    if (videoElement) {
-      playerRef.current = new Plyr("#player", {
-        controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
-        hideControls: false,
-        youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
-        vimeo: { byline: false, portrait: false, title: false, transparent: false }
-      });
-    }
-
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-    };
-  }, [currentVideoId]); // Re-init strictly when the video source changes
 
   // Deterrent for non-admins
   useEffect(() => {
@@ -215,14 +225,12 @@ function LessonContent() {
   const handleSaveNote = async () => {
     if (!user || !lessonId || !noteText.trim() || !firestore) return;
     setSavingNote(true);
-    const time = playerRef.current?.currentTime || 0;
     try {
       await addDoc(collection(firestore, "user_notes"), {
         userId: user.uid, lessonId, courseId: courseId || '',
-        text: noteText, timestamp: time, createdAt: serverTimestamp()
+        text: noteText, timestamp: 0, createdAt: serverTimestamp()
       });
       setNoteText("");
-      playerRef.current?.play();
       toast({ title: "Note Saved", description: "Your study note has been added to this lesson." });
     } catch (err) {
       console.error(err);
@@ -253,6 +261,9 @@ function LessonContent() {
     </div>
   );
 
+  const videoId = lesson?.vimeoVideoId || lesson?.youtubeVideoId;
+  const provider = lesson?.vimeoVideoId ? 'vimeo' : 'youtube';
+
   return (
     <div className={cn("min-h-screen bg-background text-foreground pb-20 transition-colors", !isAdmin && "content-protected")}>
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
@@ -273,20 +284,14 @@ function LessonContent() {
       <main className="max-w-[1600px] mx-auto py-8 px-4 sm:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12">
           <div className="lg:col-span-8 space-y-8">
-            <div key={currentVideoId} className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black">
-              {lesson ? (
+            <div className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black">
+              {videoId ? (
                 <div className="w-full h-full">
-                  <video id="player" playsInline className="plyr__video-embed">
-                    <source 
-                      src={lesson.vimeoVideoId ? `https://vimeo.com/${lesson.vimeoVideoId}` : `https://youtube.com/watch?v=${lesson.youtubeVideoId}`} 
-                      type={lesson.vimeoVideoId ? "video/vimeo" : "video/youtube"} 
-                    />
-                  </video>
+                  <CustomVideoPlayer videoId={videoId} provider={provider} />
                   {user && (
                     <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-20 select-none">
                       <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">{user.email}</div>
                       <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">{user.email}</div>
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 text-white text-[8px] font-black opacity-10 uppercase tracking-widest">Property of Graphixhub</div>
                     </div>
                   )}
                 </div>
@@ -333,13 +338,13 @@ function LessonContent() {
             <Card className="rounded-[2.5rem] p-6 shadow-xl sticky top-24 border-none bg-white dark:bg-slate-900">
               <h2 className="text-2xl font-black mb-4 flex items-center gap-2"><StickyNote className="text-primary"/> Study Notes</h2>
               <Textarea 
-                placeholder="Type your notes here. They will be timestamped to the current video time..." 
+                placeholder="Type your notes here..." 
                 value={noteText} 
                 onChange={(e) => setNoteText(e.target.value)}
                 className="rounded-2xl mb-4 bg-slate-50 dark:bg-slate-800 border-none min-h-[120px] focus-visible:ring-primary/20"
               />
               <Button onClick={handleSaveNote} disabled={savingNote || !noteText.trim()} className="w-full rounded-full h-12 font-bold shadow-lg shadow-primary/20">
-                {savingNote ? "Saving..." : "Save Timestamped Note"}
+                {savingNote ? "Saving..." : "Save Note"}
               </Button>
               
               <ScrollArea className="h-[400px] mt-6 pr-4">
@@ -347,7 +352,7 @@ function LessonContent() {
                   {notes && notes.length > 0 ? notes.map(note => (
                     <div key={note.id} className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all group">
                        <div className="flex justify-between items-center mb-2">
-                         <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tabular-nums">At {formatTime(note.timestamp)}</span>
+                         <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded-full uppercase tabular-nums">Saved Note</span>
                          <Button variant="ghost" size="icon" className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => deleteDoc(doc(firestore, 'user_notes', note.id))}>
                             <Trash2 size={12} className="text-slate-400 hover:text-red-500" />
                          </Button>

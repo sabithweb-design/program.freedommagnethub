@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useCollection, useFirestore } from '@/firebase';
-import { query, collection, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
+import { query, collection, doc, updateDoc, deleteDoc, where, Query } from 'firebase/firestore';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -55,9 +55,9 @@ export default function ProgramManagementPage() {
   const programsQuery = useMemo(() => {
     if (!firestore || !user) return null;
     if (isMainAdmin && activeTab === 'all') {
-      return query(collection(firestore, 'courses'));
+      return query(collection(firestore, 'courses')) as Query<any>;
     }
-    return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', user.uid));
+    return query(collection(firestore, 'courses'), where('adminIds', 'array-contains', user.uid)) as Query<any>;
   }, [firestore, user, isMainAdmin, activeTab]);
   
   const { data: programs, loading } = useCollection<any>(programsQuery);
@@ -104,7 +104,7 @@ export default function ProgramManagementPage() {
   };
 
   const handleShare = (programId: string) => {
-    const url = `${window.location.origin}/courses`;
+    const url = `${window.location.origin}/lesson/1?courseId=${programId}`;
     navigator.clipboard.writeText(url);
     toast({
       title: "Link Copied",
@@ -114,17 +114,15 @@ export default function ProgramManagementPage() {
 
   return (
     <div className="max-w-[1200px] mx-auto px-6 py-10 space-y-8 animate-in fade-in duration-500">
-      {/* Sub-Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-4xl font-extrabold text-slate-900 dark:text-slate-100 tracking-tight">Programs</h1>
         <div className="flex items-center gap-6">
-          <Button className="bg-primary hover:bg-primary/90 text-white rounded-xl px-7 h-11 flex gap-2 font-bold shadow-md transition-all active:scale-95">
-            <Plus size={20} /> Create Program
+          <Button asChild className="bg-primary hover:bg-primary/90 text-white rounded-xl px-7 h-11 flex gap-2 font-bold shadow-md transition-all active:scale-95">
+            <Link href="/admin"><Plus size={20} /> Create Program</Link>
           </Button>
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-4">
         <TabButton 
           active={activeTab === 'by-me'} 
@@ -140,7 +138,6 @@ export default function ProgramManagementPage() {
         )}
       </div>
 
-      {/* Search Section */}
       <div className="flex flex-col md:flex-row gap-4 items-center">
         <div className="relative flex-1 w-full group">
           <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors" size={20} />
@@ -153,7 +150,6 @@ export default function ProgramManagementPage() {
         </div>
       </div>
 
-      {/* Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
         {loading ? (
           Array(3).fill(0).map((_, i) => (
@@ -183,7 +179,6 @@ export default function ProgramManagementPage() {
         )}
       </div>
 
-      {/* Edit Dialog */}
       <Dialog open={!!editingProgram} onOpenChange={(open) => !open && setEditingProgram(null)}>
         <DialogContent className="rounded-3xl max-w-sm">
           <DialogHeader>
@@ -228,7 +223,6 @@ function TabButton({ active, label, onClick }: { active: boolean, label: string,
 function ProgramCard({ program, onEdit, onShare, onDelete, isMainAdmin }: { program: any, onEdit: () => void, onShare: () => void, onDelete: () => void, isMainAdmin: boolean }) {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 overflow-hidden shadow-sm hover:shadow-xl transition-all group flex flex-col h-full hover:-translate-y-1">
-      {/* Image */}
       <div className="relative aspect-[16/10] w-full bg-slate-100 dark:bg-slate-800">
         <Image 
           src={program.imageUrl || 'https://picsum.photos/seed/course/600/400'} 
@@ -238,7 +232,6 @@ function ProgramCard({ program, onEdit, onShare, onDelete, isMainAdmin }: { prog
         />
       </div>
 
-      {/* Content */}
       <div className="p-7 space-y-4 flex flex-col flex-1">
         <div className="space-y-3 flex-1">
           <div className="inline-flex">
@@ -254,7 +247,6 @@ function ProgramCard({ program, onEdit, onShare, onDelete, isMainAdmin }: { prog
           </p>
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between pt-5 border-t border-slate-100 dark:border-slate-800 gap-2">
           <Button 
             variant="ghost" 
@@ -281,7 +273,7 @@ function ProgramCard({ program, onEdit, onShare, onDelete, isMainAdmin }: { prog
                 <Edit2 size={14} /> Edit Title
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onShare} className="flex gap-2 font-bold cursor-pointer">
-                <Share2 size={14} /> Share Hub
+                <Share2 size={14} /> Share Link
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onDelete} className="flex gap-2 font-bold text-red-500 cursor-pointer hover:!text-red-600 hover:!bg-red-50 dark:hover:!bg-red-950/30">
                 <Trash2 size={14} /> Delete Program
