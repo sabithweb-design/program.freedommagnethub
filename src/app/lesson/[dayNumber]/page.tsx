@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useRef, useState, useMemo, Suspense } from "react";
@@ -15,7 +16,6 @@ import {
   serverTimestamp,
   onSnapshot
 } from "firebase/firestore"; 
-import { signOut } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { useAuth as useAuthContext } from "@/context/auth-context";
 import { useAuth as useFirebaseAuth } from "@/firebase";
@@ -33,8 +33,7 @@ import {
   Trash2,
   Activity,
   Share2,
-  PlayCircle,
-  LogOut
+  PlayCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -137,7 +136,6 @@ function LessonContent() {
   const courseId = searchParams.get('courseId');
   const router = useRouter();
   const { user, loading, isAdmin } = useAuthContext();
-  const auth = useFirebaseAuth();
   const firestore = db;
   const { toast } = useToast();
   
@@ -160,15 +158,6 @@ function LessonContent() {
       return () => document.removeEventListener("contextmenu", handleContextMenu);
     }
   }, [isAdmin]);
-
-  const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      router.push('/login');
-    } catch (error) {
-      console.error("Error signing out:", error);
-    }
-  };
 
   useEffect(() => {
     if (loading || !firestore) return;
@@ -246,6 +235,8 @@ function LessonContent() {
         return timeB - timeA;
       });
       setNotes(fetchedNotes);
+    }, (error) => {
+      console.warn("Notes listener error:", error);
     });
 
     return () => unsubscribe();
@@ -332,9 +323,6 @@ function LessonContent() {
               </Button>
             )}
             <ThemeToggle />
-            <Button variant="ghost" size="icon" onClick={handleSignOut} className="rounded-full h-9 w-9 text-slate-400" title="Sign Out">
-              <LogOut size={18} />
-            </Button>
           </div>
         </div>
       </div>
