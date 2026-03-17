@@ -333,12 +333,13 @@ function LessonContent() {
               {videoId ? (
                 <div className="w-full h-full relative">
                   <CustomVideoPlayer videoId={videoId} provider={provider} />
-                  {user && (
-                    <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-10 select-none">
-                      <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">{user.email}</div>
-                      <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">{user.email}</div>
-                    </div>
-                  )}
+                  <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-10 select-none">
+                    <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
+                    <div className="absolute top-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
+                    <div className="absolute bottom-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
+                    <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-white text-sm font-black whitespace-nowrap">Freedom Magnet Hub</div>
+                  </div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full bg-slate-900 text-slate-500">

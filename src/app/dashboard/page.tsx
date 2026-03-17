@@ -62,7 +62,13 @@ export default function DashboardPage() {
       return query(collection(firestore, "courses"), where("adminIds", "array-contains", user.uid)) as Query<Course>;
     }
 
-    return query(collection(firestore, "courses"), where("studentIds", "array-contains", user.uid)) as Query<Course>;
+    // മാറ്റി എഴുതിയ ഭാഗം: വിദ്യാർത്ഥികൾക്ക് അവരുടെ എൻറോൾ ചെയ്തവ മാത്രമല്ല, 
+    // UNLISTED ആയിട്ടുള്ള എല്ലാ കോഴ്സുകളും നേരിട്ട് ഡാഷ്‌ബോർഡിൽ ലഭിക്കാൻ
+    return query(
+      collection(firestore, "courses"), 
+      where("visibility", "==", "UNLISTED")
+    ) as Query<Course>;
+
   }, [firestore, user, isMainAdmin, profile]);
 
   const { data: courses, loading: coursesLoading } = useCollection<Course>(coursesQuery);
