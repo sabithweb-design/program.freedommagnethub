@@ -13,19 +13,17 @@ import {
   deleteDoc,
   addDoc,
   serverTimestamp,
-  Query
-} from "firebase/firestore";
+  onSnapshot
+} from "firebase/firestore"; 
 import { db } from "@/lib/firebase";
 import { useAuth as useAuthContext } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { 
   ChevronLeft, 
-  GraduationCap, 
   CheckCircle2, 
   AlertCircle, 
   Loader2,
@@ -33,8 +31,7 @@ import {
   Trash2,
   Activity,
   Share2,
-  PlayCircle,
-  Lock
+  PlayCircle
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -67,7 +64,8 @@ interface UserNote {
 }
 
 /**
- * Isolated Player Component to manage Plyr lifecycle
+ * Isolated Player Component to manage Plyr lifecycle.
+ * Prevents "getAttribute of null" by ensuring proper destruction.
  */
 function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: 'youtube' | 'vimeo' }) {
   const playerRef = useRef<any>(null);
@@ -85,6 +83,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
         
         if (!active || !containerRef.current) return;
 
+        // Cleanup any existing instance before creating a new one
         if (playerRef.current) {
           playerRef.current.destroy();
         }
@@ -95,9 +94,21 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
         
-        setIsInitializing(false);
+        // Handle Plyr ready state
+        playerRef.current.on('ready', () => {
+          if (active) setIsInitializing(false);
+        });
+
+        // Suppress raw event object logging that causes [object Event] errors
+        playerRef.current.on('error', (event: any) => {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn("Plyr handled a non-critical error event.");
+          }
+        });
+
       } catch (err) {
-        console.error("Plyr initialization failed:", err);
+        const errorMsg = err instanceof Error ? err.message : "Initialization error";
+        console.warn("Plyr initialization status:", errorMsg);
       }
     };
 
@@ -115,7 +126,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
   return (
     <div className="w-full h-full aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl relative">
       <div 
-        key={`${provider}-${videoId}`}
+        key={`${provider}-${videoId}`} // Force re-mount on source change
         ref={containerRef} 
         data-plyr-provider={provider} 
         data-plyr-embed-id={videoId}
@@ -148,6 +159,11 @@ function LessonContent() {
   const [completing, setCompleting] = useState(false);
   const [course, setCourse] = useState<CourseData | null>(null);
 
+  const [notes, setNotes] = useState<UserNote[]>([]);
+  const [noteText, setNoteText] = useState("");
+  const [savingNote, setSavingNote] = useState(false);
+
+  // Prevent context menu (right-click) for non-admins to protect content
   useEffect(() => {
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -188,7 +204,7 @@ function LessonContent() {
         
         const fetchedAllLessons = allLessonsSnap.docs
           .map(d => ({ ...d.data(), id: d.id } as LessonData))
-          .sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0));
+          .sort((a, b) => (a.dayNumber || 0) - (b.dayNumber || 0)); 
           
         setAllLessons(fetchedAllLessons);
 
@@ -206,7 +222,7 @@ function LessonContent() {
           setLesson(null); 
         }
       } catch (error) {
-        console.error("Error fetching lesson:", error);
+        console.warn("Session data fetch status:", error);
       } finally {
         setFetching(false);
       }
@@ -214,6 +230,28 @@ function LessonContent() {
 
     fetchLessonData();
   }, [user, loading, day, courseId, firestore, router]);
+
+  useEffect(() => {
+    if (!user || !lessonId || !firestore) return;
+
+    const notesQ = query(
+      collection(firestore, "user_notes"),
+      where("userId", "==", user.uid),
+      where("lessonId", "==", lessonId)
+    );
+
+    const unsubscribe = onSnapshot(notesQ, (snapshot) => {
+      const fetchedNotes = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UserNote));
+      fetchedNotes.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
+        return timeB - timeA;
+      });
+      setNotes(fetchedNotes);
+    });
+
+    return () => unsubscribe();
+  }, [user, lessonId, firestore]);
 
   const handleToggleComplete = async () => {
     if (!user || !lessonId || !firestore || completing) return;
@@ -230,9 +268,30 @@ function LessonContent() {
         toast({ title: "Lesson Completed!", description: "Way to go! On to the next one." });
       }
     } catch (err) {
-      console.error(err);
+      console.warn("Progress update status:", err);
     } finally {
       setCompleting(false);
+    }
+  };
+
+  const handleSaveNote = async () => {
+    if (!user || !lessonId || !noteText.trim() || !firestore) return;
+    setSavingNote(true);
+    try {
+      await addDoc(collection(firestore, "user_notes"), {
+        userId: user.uid, 
+        lessonId, 
+        courseId: courseId || '',
+        text: noteText, 
+        timestamp: Date.now(), 
+        createdAt: serverTimestamp()
+      });
+      setNoteText("");
+      toast({ title: "Note Saved", description: "Your study note has been added to this session." });
+    } catch (err) {
+      console.warn("Note save status:", err);
+    } finally {
+      setSavingNote(false);
     }
   };
 
@@ -332,6 +391,7 @@ function LessonContent() {
           </div>
 
           <div className="lg:col-span-4 space-y-6">
+            
             <Card className="rounded-[2.5rem] p-6 shadow-xl border-none bg-white dark:bg-slate-900 overflow-hidden">
               <h2 className="text-xl font-black mb-4 flex items-center gap-3 tracking-tight">
                 <PlayCircle className="text-primary"/> Course Content
@@ -361,6 +421,45 @@ function LessonContent() {
                 </div>
               </ScrollArea>
             </Card>
+
+            <Card className="rounded-[2.5rem] p-8 shadow-xl border-none bg-white dark:bg-slate-900 overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                <StickyNote size={80} />
+              </div>
+              <h2 className="text-2xl font-black mb-6 flex items-center gap-3 tracking-tight">
+                <StickyNote className="text-primary"/> Study Notes
+              </h2>
+              <Textarea 
+                placeholder="Capture your insights from this session..." 
+                value={noteText} 
+                onChange={(e) => setNoteText(e.target.value)}
+                className="rounded-2xl mb-4 bg-slate-50 dark:bg-slate-800 border-none min-h-[140px] focus-visible:ring-primary/20 p-5 font-medium relative z-10"
+              />
+              <Button onClick={handleSaveNote} disabled={savingNote || !noteText.trim()} className="w-full rounded-full h-12 font-bold shadow-lg shadow-primary/20 relative z-10">
+                {savingNote ? "Saving..." : "Save Note"}
+              </Button>
+              
+              <ScrollArea className="h-[250px] mt-8 pr-4 relative z-10">
+                <div className="space-y-4">
+                  {notes && notes.length > 0 ? notes.map(note => (
+                    <div key={note.id} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all group relative overflow-hidden">
+                       <div className="flex justify-between items-center mb-3">
+                         <span className="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-widest tabular-nums">Saved Entry</span>
+                         <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-900 shadow-sm" onClick={() => deleteDoc(doc(firestore, 'user_notes', note.id))}>
+                            <Trash2 size={14} className="text-slate-400 hover:text-red-500" />
+                         </Button>
+                       </div>
+                       <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{note.text}</p>
+                    </div>
+                  )) : (
+                    <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
+                      <p className="text-xs font-black text-slate-300 dark:text-slate-700 uppercase tracking-[0.2em]">Insights are empty</p>
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </Card>
+
           </div>
         </div>
       </main>

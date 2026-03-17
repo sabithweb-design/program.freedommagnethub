@@ -9,9 +9,10 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Minor change to trigger chunk re-evaluation and manifest refresh
+  // Explicitly set reactStrictMode and trigger chunk manifest refresh
   reactStrictMode: true,
   poweredByHeader: false,
+  // Minor change to trigger chunk re-evaluation and manifest refresh
 };
 
 export default nextConfig;
