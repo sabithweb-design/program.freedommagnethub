@@ -15,8 +15,10 @@ import {
   serverTimestamp,
   onSnapshot
 } from "firebase/firestore"; 
+import { signOut } from "firebase/auth";
 import { db } from "@/lib/firebase";
 import { useAuth as useAuthContext } from "@/context/auth-context";
+import { useAuth as useFirebaseAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,7 +33,8 @@ import {
   Trash2,
   Activity,
   Share2,
-  PlayCircle
+  PlayCircle,
+  LogOut
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -63,10 +66,6 @@ interface UserNote {
   createdAt: any;
 }
 
-/**
- * Isolated Player Component to manage Plyr lifecycle.
- * Prevents "getAttribute of null" by ensuring proper destruction.
- */
 function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: 'youtube' | 'vimeo' }) {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -83,7 +82,6 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
         
         if (!active || !containerRef.current) return;
 
-        // Cleanup any existing instance before creating a new one
         if (playerRef.current) {
           playerRef.current.destroy();
         }
@@ -94,12 +92,10 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
         
-        // Handle Plyr ready state
         playerRef.current.on('ready', () => {
           if (active) setIsInitializing(false);
         });
 
-        // Suppress raw event object logging that causes [object Event] errors
         playerRef.current.on('error', (event: any) => {
           if (process.env.NODE_ENV === 'development') {
             console.warn("Plyr handled a non-critical error event.");
@@ -107,8 +103,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
         });
 
       } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : "Initialization error";
-        console.warn("Plyr initialization status:", errorMsg);
+        console.warn("Plyr initialization status:", err);
       }
     };
 
@@ -126,7 +121,7 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
   return (
     <div className="w-full h-full aspect-video rounded-[2rem] overflow-hidden bg-black shadow-2xl relative">
       <div 
-        key={`${provider}-${videoId}`} // Force re-mount on source change
+        key={`${provider}-${videoId}`} 
         ref={containerRef} 
         data-plyr-provider={provider} 
         data-plyr-embed-id={videoId}
@@ -148,6 +143,7 @@ function LessonContent() {
   const courseId = searchParams.get('courseId');
   const router = useRouter();
   const { user, loading, isAdmin } = useAuthContext();
+  const auth = useFirebaseAuth();
   const firestore = db;
   const { toast } = useToast();
   
@@ -163,7 +159,6 @@ function LessonContent() {
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
 
-  // Prevent context menu (right-click) for non-admins to protect content
   useEffect(() => {
     if (!isAdmin) {
       const handleContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -171,6 +166,15 @@ function LessonContent() {
       return () => document.removeEventListener("contextmenu", handleContextMenu);
     }
   }, [isAdmin]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   useEffect(() => {
     if (loading || !firestore) return;
@@ -332,6 +336,9 @@ function LessonContent() {
               <Share2 size={18} />
             </Button>
             <ThemeToggle />
+            <Button variant="ghost" size="icon" onClick={handleSignOut} className="rounded-full h-9 w-9 text-slate-400" title="Sign Out">
+              <LogOut size={18} />
+            </Button>
           </div>
         </div>
       </div>

@@ -2,9 +2,10 @@
 
 import React, { useMemo } from 'react';
 import { collection, query, where, Query } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { useAuth as useAuthContext } from '@/context/auth-context';
-import { useCollection, useFirestore } from '@/firebase';
-import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Grid, Share2 } from 'lucide-react';
+import { useCollection, useFirestore, useAuth as useFirebaseAuth } from '@/firebase';
+import { Star, ShieldCheck, ChevronLeft, ShoppingCart, Search, Grid, Share2, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -35,6 +36,17 @@ interface Course {
 export default function CoursesPage() {
   const { user, isAdmin, loading: authLoading } = useAuthContext();
   const firestore = useFirestore();
+  const auth = useFirebaseAuth();
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   const coursesQuery = useMemo(() => {
     if (!firestore) return null;
@@ -95,8 +107,14 @@ export default function CoursesPage() {
 
           <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="text-slate-600 dark:text-slate-400 h-9 w-9 sm:h-10 sm:w-10">
-              <ShoppingCart className="h-5 w-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleSignOut}
+              className="text-slate-600 dark:text-slate-400 h-9 w-9 sm:h-10 sm:w-10"
+              title="Sign Out"
+            >
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
 

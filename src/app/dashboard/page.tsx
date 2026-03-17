@@ -3,11 +3,12 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, Query } from 'firebase/firestore';
+import { signOut } from 'firebase/auth';
 import { useAuth as useAuthContext } from '@/context/auth-context';
-import { useCollection, useFirestore } from '@/firebase';
+import { useCollection, useFirestore, useAuth as useFirebaseAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Search, ChevronDown, Star, ShieldCheck, Lock, Grid, Share2 } from 'lucide-react';
+import { ChevronDown, Star, ShieldCheck, Lock, Grid, Share2, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -37,8 +38,18 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, profile, loading: authLoading, isAdmin } = useAuthContext();
   const firestore = useFirestore();
+  const auth = useFirebaseAuth();
 
   const isMainAdmin = user?.email === MAIN_ADMIN_EMAIL;
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      router.push('/login');
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   const coursesQuery = useMemo(() => {
     if (!firestore || !user) return null;
@@ -76,8 +87,14 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
           <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
-            <Button variant="ghost" size="icon" className="text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10">
-              <Search className="h-5 w-5" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={handleSignOut}
+              className="text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10"
+              title="Sign Out"
+            >
+              <LogOut className="h-5 w-5" />
             </Button>
           </div>
 
