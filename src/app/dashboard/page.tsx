@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { collection, query, where, Query } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
@@ -62,8 +62,6 @@ export default function DashboardPage() {
       return query(collection(firestore, "courses"), where("adminIds", "array-contains", user.uid)) as Query<Course>;
     }
 
-    // മാറ്റി എഴുതിയ ഭാഗം: വിദ്യാർത്ഥികൾക്ക് അവരുടെ എൻറോൾ ചെയ്തവ മാത്രമല്ല, 
-    // UNLISTED ആയിട്ടുള്ള എല്ലാ കോഴ്സുകളും നേരിട്ട് ഡാഷ്‌ബോർഡിൽ ലഭിക്കാൻ
     return query(
       collection(firestore, "courses"), 
       where("visibility", "==", "UNLISTED")
@@ -93,11 +91,12 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
           <div className="flex items-center gap-1 sm:gap-3">
             <ThemeToggle />
+            {/* Unified Sign Out for all roles */}
             <Button 
               variant="ghost" 
               size="icon" 
               onClick={handleSignOut}
-              className="text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10"
+              className="text-slate-400 dark:text-slate-500 h-9 w-9 sm:h-10 sm:w-10 rounded-full hover:bg-accent"
               title="Sign Out"
             >
               <LogOut className="h-5 w-5" />
@@ -198,11 +197,6 @@ function CourseUdemyCard({ course, onClick, isAdmin }: { course: Course; onClick
             <div className="bg-white/90 p-2 sm:p-3 rounded-full shadow-lg">
               <Lock size={20} className="text-slate-900 sm:size-6" />
             </div>
-          </div>
-        )}
-        {course.isBestseller && !course.isLocked && (
-          <div className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-1 rounded-sm border border-[#acd2cc] dark:border-emerald-800 shadow-sm">
-            Bestseller
           </div>
         )}
         {!course.isLocked && isAdmin && (

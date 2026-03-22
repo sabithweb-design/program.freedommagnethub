@@ -5,13 +5,12 @@ import { collection, query, where, Query } from 'firebase/firestore';
 import { signOut } from 'firebase/auth';
 import { useAuth as useAuthContext } from '@/context/auth-context';
 import { useCollection, useFirestore, useAuth as useFirebaseAuth } from '@/firebase';
-import { Star, ShieldCheck, ChevronLeft, Search, Grid, Share2, LogOut } from 'lucide-react';
+import { Star, ShieldCheck, ChevronLeft, Grid, Share2, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { BrandLogo } from '@/components/BrandLogo';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +33,7 @@ interface Course {
 }
 
 export default function CoursesPage() {
-  const { user, isAdmin, loading: authLoading } = useAuthContext();
+  const { isAdmin, loading: authLoading } = useAuthContext();
   const firestore = useFirestore();
   const auth = useFirebaseAuth();
   const router = useRouter();
@@ -74,18 +73,9 @@ export default function CoursesPage() {
           </Link>
         </div>
         
-        <div className="hidden md:flex items-center flex-1 max-w-sm lg:max-w-md mx-4 lg:mx-8">
-          <div className="relative w-full">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
-            <Input 
-              placeholder="Search for anything" 
-              className="pl-10 h-10 rounded-full border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 sm:gap-4 lg:gap-6">
-          <Button variant="ghost" size="icon" asChild className="rounded-full h-9 w-9">
+        {/* Sign Out option for all users instead of search icon */}
+        <div className="flex items-center gap-2 sm:gap-4 lg:gap-6 ml-auto">
+          <Button variant="ghost" size="sm" asChild className="rounded-full h-9 w-9">
             <Link href="/dashboard">
               <ChevronLeft className="h-5 w-5" />
             </Link>
@@ -111,7 +101,7 @@ export default function CoursesPage() {
               variant="ghost" 
               size="icon" 
               onClick={handleSignOut}
-              className="text-slate-600 dark:text-slate-400 h-9 w-9 sm:h-10 sm:w-10"
+              className="text-slate-600 dark:text-slate-400 h-9 w-9 sm:h-10 sm:w-10 rounded-full hover:bg-accent"
               title="Sign Out"
             >
               <LogOut className="h-5 w-5" />
@@ -173,11 +163,6 @@ function MarketplaceCard({ course, isAdmin }: { course: Course, isAdmin: boolean
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-1000"
         />
-        {course.isBestseller !== false && (
-          <div className="absolute top-3 left-3 sm:top-4 sm:left-4 bg-[#e1f7f1] dark:bg-[#064e3b] text-[#1c1d1f] dark:text-emerald-100 text-[10px] sm:text-[11px] font-black px-2 sm:px-3 py-1 rounded-md border border-[#acd2cc] dark:border-emerald-800 shadow-sm uppercase tracking-wider">
-            Bestseller
-          </div>
-        )}
         {isAdmin && (
           <Button 
             variant="secondary" 

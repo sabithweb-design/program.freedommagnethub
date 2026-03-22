@@ -1,7 +1,6 @@
-
 "use client";
 
-import React, { useEffect, useRef, useState, useMemo, Suspense } from "react";
+import React, { useEffect, useRef, useState, Suspense } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { 
   collection, 
@@ -18,7 +17,6 @@ import {
 } from "firebase/firestore"; 
 import { db } from "@/lib/firebase";
 import { useAuth as useAuthContext } from "@/context/auth-context";
-import { useAuth as useFirebaseAuth } from "@/firebase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -86,8 +84,8 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
-          // Volume and Mute removed as requested
-          controls: ['play-large', 'play', 'progress', 'current-time', 'captions', 'settings', 'fullscreen'],
+          // Volume controls removed as requested. Showing starting time and duration.
+          controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'captions', 'settings', 'fullscreen'],
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
@@ -309,7 +307,7 @@ function LessonContent() {
     <div className={cn("min-h-screen bg-background text-foreground pb-20 transition-colors", !isAdmin && "content-protected")}>
       <div className="bg-background/80 backdrop-blur-md border-b sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Button variant="ghost" size="sm" asChild className="rounded-full">
+          <Button variant="ghost" size="sm" asChild className="rounded-full text-slate-500">
             <Link href="/dashboard"><ChevronLeft className="mr-1 h-4 w-4" /> Hub</Link>
           </Button>
           <div className="font-bold flex items-center gap-1.5 uppercase tracking-tighter">
@@ -334,6 +332,7 @@ function LessonContent() {
               {videoId ? (
                 <div className="w-full h-full relative">
                   <CustomVideoPlayer videoId={videoId} provider={provider} />
+                  {/* Branding Watermark */}
                   <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-10 select-none">
                     <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
                     <div className="absolute top-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
