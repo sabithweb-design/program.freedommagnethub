@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { useEffect, useRef, useState, Suspense, useImperativeHandle, forwardRef } from "react";
@@ -115,6 +114,7 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
+          clickToPlay: false, // Block default click-to-play on the video area
           controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'captions', 'settings', 'fullscreen'],
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
@@ -381,8 +381,10 @@ function LessonContent() {
               {videoId ? (
                 <div className="w-full h-full relative">
                   <CustomVideoPlayer ref={playerRef} videoId={videoId} provider={provider} />
-                  {/* Branding Watermark */}
-                  <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-10 select-none">
+                  
+                  {/* Branding Watermark & Click Shield */}
+                  {/* Removing pointer-events-none turns this into a shield that blocks YouTube interaction */}
+                  <div className="absolute inset-0 z-40 overflow-hidden opacity-10 select-none cursor-default">
                     <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
                     <div className="absolute top-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
                     <div className="absolute bottom-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
@@ -401,7 +403,7 @@ function LessonContent() {
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div className="space-y-1">
-                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{lesson?.title || `Session ${day}`}</h1>
+                  <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{lesson?.title || 'Training Session'}</h1>
                   {course && <p className="text-sm font-bold text-primary uppercase tracking-widest">{course.title}</p>}
                 </div>
                 <div className="flex items-center gap-3">
