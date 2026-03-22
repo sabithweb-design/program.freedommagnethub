@@ -1,6 +1,7 @@
+
 "use client";
 
-import React, { useEffect, useRef, useState, Suspense } from "react";
+import React, { useEffect, useRef, useState, Suspense, useImperativeHandle, forwardRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { 
   collection, 
@@ -13,7 +14,8 @@ import {
   deleteDoc,
   addDoc,
   serverTimestamp,
-  onSnapshot
+  onSnapshot,
+  orderBy
 } from "firebase/firestore"; 
 import { db } from "@/lib/firebase";
 import { useAuth as useAuthContext } from "@/context/auth-context";
@@ -22,6 +24,8 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import { 
   ChevronLeft, 
   CheckCircle2, 
@@ -31,7 +35,9 @@ import {
   Trash2,
   Activity,
   Share2,
-  PlayCircle
+  PlayCircle,
+  Clock,
+  History
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -63,10 +69,35 @@ interface UserNote {
   createdAt: any;
 }
 
-function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: 'youtube' | 'vimeo' }) {
+interface PlayerHandle {
+  currentTime: number;
+  seek: (time: number) => void;
+  pause: () => void;
+  play: () => void;
+}
+
+const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 'youtube' | 'vimeo' }>(({ videoId, provider }, ref) => {
   const playerRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+
+  useImperativeHandle(ref, () => ({
+    get currentTime() {
+      return playerRef.current?.currentTime || 0;
+    },
+    seek(time: number) {
+      if (playerRef.current) {
+        playerRef.current.currentTime = time;
+        playerRef.current.play();
+      }
+    },
+    pause() {
+      playerRef.current?.pause();
+    },
+    play() {
+      playerRef.current?.play();
+    }
+  }));
 
   useEffect(() => {
     let active = true;
@@ -84,7 +115,6 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
-          // Volume controls removed as requested. Showing starting time and duration.
           controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'captions', 'settings', 'fullscreen'],
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
@@ -126,7 +156,9 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
       )}
     </div>
   );
-}
+});
+
+CustomVideoPlayer.displayName = "CustomVideoPlayer";
 
 function LessonContent() {
   const { dayNumber } = useParams();
@@ -137,6 +169,7 @@ function LessonContent() {
   const { user, loading, isAdmin } = useAuthContext();
   const firestore = db;
   const { toast } = useToast();
+  const playerRef = useRef<PlayerHandle>(null);
   
   const [lesson, setLesson] = useState<LessonData | null>(null);
   const [allLessons, setAllLessons] = useState<LessonData[]>([]);
@@ -149,6 +182,7 @@ function LessonContent() {
   const [notes, setNotes] = useState<UserNote[]>([]);
   const [noteText, setNoteText] = useState("");
   const [savingNote, setSavingNote] = useState(false);
+  const [resumeAfterSave, setResumeAfterSave] = useState(true);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -223,16 +257,12 @@ function LessonContent() {
     const notesQ = query(
       collection(firestore, "user_notes"),
       where("userId", "==", user.uid),
-      where("lessonId", "==", lessonId)
+      where("lessonId", "==", lessonId),
+      orderBy("createdAt", "asc")
     );
 
     const unsubscribe = onSnapshot(notesQ, (snapshot) => {
       const fetchedNotes = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UserNote));
-      fetchedNotes.sort((a, b) => {
-        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.timestamp || 0);
-        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.timestamp || 0);
-        return timeB - timeA;
-      });
       setNotes(fetchedNotes);
     }, (error) => {
       console.warn("Notes listener error:", error);
@@ -265,22 +295,41 @@ function LessonContent() {
   const handleSaveNote = async () => {
     if (!user || !lessonId || !noteText.trim() || !firestore) return;
     setSavingNote(true);
+    const videoTimestamp = playerRef.current?.currentTime || 0;
+    
     try {
       await addDoc(collection(firestore, "user_notes"), {
         userId: user.uid, 
         lessonId, 
         courseId: courseId || '',
         text: noteText, 
-        timestamp: Date.now(), 
+        timestamp: videoTimestamp, 
         createdAt: serverTimestamp()
       });
       setNoteText("");
       toast({ title: "Note Saved", description: "Your study note has been added to this session." });
+      if (resumeAfterSave) {
+        playerRef.current?.play();
+      }
     } catch (err) {
       console.warn("Note save error:", err);
     } finally {
       setSavingNote(false);
     }
+  };
+
+  const formatTimestamp = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleSeek = (time: number) => {
+    playerRef.current?.seek(time);
+  };
+
+  const handleNoteFocus = () => {
+    playerRef.current?.pause();
   };
 
   const handleShareCourse = () => {
@@ -331,7 +380,7 @@ function LessonContent() {
             <div className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black">
               {videoId ? (
                 <div className="w-full h-full relative">
-                  <CustomVideoPlayer videoId={videoId} provider={provider} />
+                  <CustomVideoPlayer ref={playerRef} videoId={videoId} provider={provider} />
                   {/* Branding Watermark */}
                   <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden opacity-10 select-none">
                     <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
@@ -388,7 +437,7 @@ function LessonContent() {
               <h2 className="text-xl font-black mb-4 flex items-center gap-3 tracking-tight">
                 <PlayCircle className="text-primary"/> Course Content
               </h2>
-              <ScrollArea className="h-[250px] pr-4">
+              <ScrollArea className="h-[200px] pr-4">
                 <div className="space-y-2">
                   {allLessons.length > 0 ? allLessons.map((l) => {
                     const isActive = l.dayNumber === day;
@@ -414,42 +463,91 @@ function LessonContent() {
               </ScrollArea>
             </Card>
 
-            <Card className="rounded-[2.5rem] p-8 shadow-xl border-none bg-white dark:bg-slate-900 overflow-hidden relative">
-              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <StickyNote size={80} />
+            <Card className="rounded-[2.5rem] p-8 shadow-xl border-none bg-white dark:bg-slate-900 overflow-hidden flex flex-col min-h-[500px]">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-black flex items-center gap-3 tracking-tight">
+                  <StickyNote className="text-primary"/> Study Notes
+                </h2>
+                <div className="bg-primary/10 px-3 py-1 rounded-full flex items-center gap-2">
+                  <History size={14} className="text-primary" />
+                  <span className="text-[10px] font-black uppercase text-primary tracking-widest">Timeline</span>
+                </div>
               </div>
-              <h2 className="text-2xl font-black mb-6 flex items-center gap-3 tracking-tight">
-                <StickyNote className="text-primary"/> Study Notes
-              </h2>
-              <Textarea 
-                placeholder="Capture your insights from this session..." 
-                value={noteText} 
-                onChange={(e) => setNoteText(e.target.value)}
-                className="rounded-2xl mb-4 bg-slate-50 dark:bg-slate-800 border-none min-h-[140px] focus-visible:ring-primary/20 p-5 font-medium relative z-10"
-              />
-              <Button onClick={handleSaveNote} disabled={savingNote || !noteText.trim()} className="w-full rounded-full h-12 font-bold shadow-lg shadow-primary/20 relative z-10">
-                {savingNote ? "Saving..." : "Save Note"}
-              </Button>
-              
-              <ScrollArea className="h-[250px] mt-8 pr-4 relative z-10">
-                <div className="space-y-4">
+
+              {/* Timeline Container */}
+              <ScrollArea className="flex-1 mb-6 pr-4">
+                <div className="space-y-6 relative ml-4 pl-6 border-l-2 border-slate-100 dark:border-slate-800">
                   {notes && notes.length > 0 ? notes.map(note => (
-                    <div key={note.id} className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all group relative overflow-hidden">
-                       <div className="flex justify-between items-center mb-3">
-                         <span className="text-[10px] font-black text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-widest tabular-nums">Saved Entry</span>
-                         <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-900 shadow-sm" onClick={() => deleteDoc(doc(firestore, 'user_notes', note.id))}>
-                            <Trash2 size={14} className="text-slate-400 hover:text-red-500" />
-                         </Button>
+                    <div key={note.id} className="relative group animate-in fade-in slide-in-from-left-2 duration-300">
+                       {/* Timeline Dot */}
+                       <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-white dark:bg-slate-900 border-2 border-primary shadow-sm" />
+                       
+                       <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all hover:shadow-md relative overflow-hidden">
+                          <div className="flex justify-between items-start mb-2">
+                            <button 
+                              onClick={() => handleSeek(note.timestamp)}
+                              className="flex items-center gap-2 group/btn"
+                            >
+                               <div className="bg-primary text-white px-2.5 py-1 rounded-lg text-[10px] font-black flex items-center gap-1.5 transition-transform active:scale-90 group-hover/btn:bg-primary/90">
+                                 <PlayCircle size={12} />
+                                 {formatTimestamp(note.timestamp)}
+                               </div>
+                               <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">
+                                 {note.createdAt?.toDate ? note.createdAt.toDate().toLocaleDateString() : 'New'}
+                               </span>
+                            </button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-900 shadow-sm" 
+                              onClick={() => deleteDoc(doc(firestore, 'user_notes', note.id))}
+                            >
+                               <Trash2 size={14} className="text-slate-400 hover:text-red-500" />
+                            </Button>
+                          </div>
+                          <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{note.text}</p>
                        </div>
-                       <p className="text-sm font-bold text-slate-700 dark:text-slate-300 leading-snug">{note.text}</p>
                     </div>
                   )) : (
-                    <div className="text-center py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl">
-                      <p className="text-xs font-black text-slate-300 dark:text-slate-700 uppercase tracking-[0.2em]">Insights are empty</p>
+                    <div className="text-center py-20 border-2 border-dashed border-slate-50 dark:border-slate-800 rounded-3xl opacity-40">
+                      <StickyNote className="mx-auto mb-3 text-slate-300" size={32} />
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Timeline is empty</p>
                     </div>
                   )}
                 </div>
               </ScrollArea>
+              
+              {/* Editor Container */}
+              <div className="pt-6 border-t dark:border-slate-800 space-y-4">
+                <Textarea 
+                  placeholder="Capture insights... (Video will pause)" 
+                  value={noteText} 
+                  onChange={(e) => setNoteText(e.target.value)}
+                  onFocus={handleNoteFocus}
+                  className="rounded-2xl bg-slate-50 dark:bg-slate-800 border-none min-h-[100px] focus-visible:ring-primary/20 p-4 font-medium"
+                />
+                
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="resume" 
+                      checked={resumeAfterSave} 
+                      onCheckedChange={(checked) => setResumeAfterSave(checked === true)}
+                      className="rounded-md"
+                    />
+                    <Label htmlFor="resume" className="text-[10px] font-bold text-slate-500 uppercase cursor-pointer select-none tracking-tight">
+                      Auto-resume after saving
+                    </Label>
+                  </div>
+                  <Button 
+                    onClick={handleSaveNote} 
+                    disabled={savingNote || !noteText.trim()} 
+                    className="flex-1 rounded-full h-11 font-black shadow-lg shadow-primary/20"
+                  >
+                    {savingNote ? "Syncing..." : "Publish Note"}
+                  </Button>
+                </div>
+              </div>
             </Card>
 
           </div>
