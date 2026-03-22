@@ -86,7 +86,8 @@ function CustomVideoPlayer({ videoId, provider }: { videoId: string, provider: '
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
-          controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'captions', 'settings', 'fullscreen'],
+          // Volume and Mute removed as requested
+          controls: ['play-large', 'play', 'progress', 'current-time', 'captions', 'settings', 'fullscreen'],
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
