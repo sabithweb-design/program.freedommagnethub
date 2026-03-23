@@ -26,6 +26,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { 
   ChevronLeft, 
   CheckCircle2, 
@@ -37,7 +38,8 @@ import {
   Share2,
   PlayCircle,
   Clock,
-  History
+  History,
+  TrendingUp
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -208,6 +210,7 @@ function LessonContent() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [course, setCourse] = useState<CourseData | null>(null);
+  const [completedLessonIds, setCompletedLessonIds] = useState<string[]>([]);
 
   const [notes, setNotes] = useState<UserNote[]>([]);
   const [noteText, setNoteText] = useState("");
@@ -263,11 +266,6 @@ function LessonContent() {
         if (currentLesson && currentLesson.id) {
           setLessonId(currentLesson.id);
           setLesson(currentLesson);
-          
-          if (user) {
-            const docSnap = await getDoc(doc(firestore, 'users', user.uid, 'completedLessons', currentLesson.id));
-            setIsCompleted(docSnap.exists());
-          }
         } else { 
           setLesson(null); 
         }
@@ -280,6 +278,22 @@ function LessonContent() {
 
     fetchLessonData();
   }, [user, loading, day, courseId, firestore, router]);
+
+  // Real-time progress listener
+  useEffect(() => {
+    if (!user || !firestore) return;
+
+    const progressRef = collection(firestore, 'users', user.uid, 'completedLessons');
+    const unsubscribe = onSnapshot(progressRef, (snapshot) => {
+      const ids = snapshot.docs.map(doc => doc.id);
+      setCompletedLessonIds(ids);
+      if (lessonId) {
+        setIsCompleted(ids.includes(lessonId));
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user, firestore, lessonId]);
 
   useEffect(() => {
     if (!user || !lessonId || !firestore) return;
@@ -302,19 +316,12 @@ function LessonContent() {
   }, [user, lessonId, firestore]);
 
   const handleToggleComplete = async () => {
-    if (!user || !lessonId || !firestore || completing) return;
+    if (!user || !lessonId || !firestore || completing || isCompleted) return;
     setCompleting(true);
     const progressRef = doc(firestore, 'users', user.uid, 'completedLessons', lessonId);
     try {
-      if (isCompleted) {
-        await deleteDoc(progressRef);
-        setIsCompleted(false);
-        toast({ title: "Progress Reset", description: "Lesson marked as incomplete." });
-      } else {
-        await setDoc(progressRef, { completedAt: serverTimestamp() });
-        setIsCompleted(true);
-        toast({ title: "Lesson Completed!", description: "Way to go! On to the next one." });
-      }
+      await setDoc(progressRef, { completedAt: serverTimestamp() });
+      toast({ title: "Lesson Completed!", description: "Progress updated. Move on to the next session!" });
     } catch (err) {
       console.warn("Progress update error:", err);
     } finally {
@@ -371,6 +378,13 @@ function LessonContent() {
       description: "Hub access link copied to clipboard.",
     });
   };
+
+  // Progress Calculation
+  const progressPercentage = useMemo(() => {
+    if (!allLessons.length) return 0;
+    const completedInCourse = allLessons.filter(l => completedLessonIds.includes(l.id!)).length;
+    return Math.round((completedInCourse / allLessons.length) * 100);
+  }, [allLessons, completedLessonIds]);
 
   if (loading || fetching) return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
@@ -430,8 +444,15 @@ function LessonContent() {
                        <Share2 size={16} /> Share Hub
                      </Button>
                    )}
-                   <Button onClick={handleToggleComplete} disabled={completing} className={cn("rounded-full px-8 h-11 font-black shadow-lg transition-all", isCompleted ? "bg-emerald-500 hover:bg-emerald-600 shadow-emerald-500/20" : "bg-primary shadow-primary/20")}>
-                    {isCompleted ? "Session Completed" : "Mark Complete"}
+                   <Button 
+                    onClick={handleToggleComplete} 
+                    disabled={completing || isCompleted} 
+                    className={cn(
+                      "rounded-full px-8 h-11 font-black shadow-lg transition-all", 
+                      isCompleted ? "bg-emerald-500 text-white cursor-default opacity-100 shadow-none" : "bg-primary shadow-primary/20"
+                    )}
+                   >
+                    {isCompleted ? "Session Completed" : "Mark as Complete"}
                   </Button>
                 </div>
               </div>
@@ -452,6 +473,17 @@ function LessonContent() {
           </div>
 
           <div className="lg:col-span-4 space-y-6">
+            {/* Progress Section */}
+            <Card className="rounded-[2.5rem] p-6 shadow-xl border-none bg-white dark:bg-slate-900">
+               <div className="flex items-center justify-between mb-4">
+                 <h2 className="text-lg font-black flex items-center gap-2 tracking-tight">
+                   <TrendingUp className="text-primary h-5 w-5" /> Track Progress
+                 </h2>
+                 <span className="text-sm font-black text-primary">{progressPercentage}%</span>
+               </div>
+               <Progress value={progressPercentage} className="h-2 rounded-full mb-2 bg-slate-100 dark:bg-slate-800" />
+               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Your Course Completion</p>
+            </Card>
             
             <Card className="rounded-[2.5rem] p-6 shadow-xl border-none bg-white dark:bg-slate-900 overflow-hidden">
               <h2 className="text-xl font-black mb-4 flex items-center gap-3 tracking-tight">
@@ -461,6 +493,7 @@ function LessonContent() {
                 <div className="space-y-2">
                   {allLessons.length > 0 ? allLessons.map((l) => {
                     const isActive = l.dayNumber === day;
+                    const isLessonDone = completedLessonIds.includes(l.id!);
                     return (
                       <Link href={`/lesson/${l.dayNumber}?courseId=${courseId}`} key={l.id}>
                         <div className={cn(
@@ -469,8 +502,11 @@ function LessonContent() {
                             ? "bg-primary/10 border-primary/20 text-primary font-bold shadow-sm" 
                             : "bg-slate-50 dark:bg-slate-800/50 border-transparent text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-200 dark:hover:border-slate-700 font-medium"
                         )}>
-                          <div className={cn("flex items-center justify-center w-8 h-8 rounded-full text-xs font-black", isActive ? "bg-primary text-white" : "bg-slate-200 dark:bg-slate-700")}>
-                            {l.dayNumber}
+                          <div className={cn(
+                            "flex items-center justify-center w-8 h-8 rounded-full text-xs font-black shrink-0", 
+                            isActive ? "bg-primary text-white" : isLessonDone ? "bg-emerald-500 text-white" : "bg-slate-200 dark:bg-slate-700"
+                          )}>
+                            {isLessonDone && !isActive ? <CheckCircle2 size={14} /> : l.dayNumber}
                           </div>
                           <p className="flex-1 text-sm line-clamp-1">{l.title}</p>
                         </div>
