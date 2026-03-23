@@ -153,10 +153,14 @@
   pointer-events: auto !important;
 }
 
-/* Remove volume controls */
+/* Remove volume controls and force duration visibility */
 .plyr__volume,
 .plyr__control[data-plyr="mute"] {
   display: none !important;
+}
+
+.plyr__time--duration {
+  display: block !important;
 }
 
 .plyr--full-ui input[type=range] {

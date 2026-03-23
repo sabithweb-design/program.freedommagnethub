@@ -166,11 +166,7 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         data-plyr-provider={provider} 
         data-plyr-embed-id={videoId}
       />
-      {/* Branding Watermark & Interaction Shield */}
-      {/* 
-          We leave the bottom 80px (controls area) free so events hit the progress bar/speed settings directly.
-          The rest of the video is covered by this shield to block YouTube navigation.
-      */}
+      
       <div 
         className="absolute inset-x-0 top-0 bottom-20 z-40 overflow-hidden opacity-10 select-none cursor-pointer flex items-center justify-center pointer-events-auto"
         onClick={() => playerRef.current?.togglePlay()}
