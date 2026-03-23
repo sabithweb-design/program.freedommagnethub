@@ -114,8 +114,17 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
-          clickToPlay: false, // Block default click-to-play on the video area
-          controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'captions', 'settings', 'fullscreen'],
+          clickToPlay: false, // Block default click-to-play to prevent focus stealing
+          controls: [
+            'play-large', 
+            'play', 
+            'progress', 
+            'current-time', // Starting Time
+            'duration',     // Ending Time
+            'captions', 
+            'settings', 
+            'fullscreen'
+          ],
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
@@ -382,8 +391,7 @@ function LessonContent() {
                 <div className="w-full h-full relative">
                   <CustomVideoPlayer ref={playerRef} videoId={videoId} provider={provider} />
                   
-                  {/* Branding Watermark & Click Shield */}
-                  {/* Removing pointer-events-none turns this into a shield that blocks YouTube interaction */}
+                  {/* Branding Watermark & Click Shield - Intercepts clicks to prevent YouTube navigation */}
                   <div className="absolute inset-0 z-40 overflow-hidden opacity-10 select-none cursor-default">
                     <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
                     <div className="absolute top-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
