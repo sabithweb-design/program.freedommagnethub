@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useEffect, useRef, useState, Suspense, useImperativeHandle, forwardRef } from "react";
@@ -114,14 +115,13 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
-          clickToPlay: false, // Block default click-to-play to prevent focus stealing
+          clickToPlay: true, // Restore click to play for usability
           controls: [
             'play-large', 
             'play', 
             'progress', 
-            'current-time', // Starting Time
-            'duration',     // Ending Time
-            'captions', 
+            'current-time', 
+            'duration', 
             'settings', 
             'fullscreen'
           ],
@@ -391,14 +391,16 @@ function LessonContent() {
                 <div className="w-full h-full relative">
                   <CustomVideoPlayer ref={playerRef} videoId={videoId} provider={provider} />
                   
-                  {/* Branding Watermark & Click Shield - Intercepts clicks to prevent YouTube navigation */}
-                  <div className="absolute inset-0 z-40 overflow-hidden opacity-10 select-none cursor-default">
+                  {/* Branding Watermark & Click Shield */}
+                  <div className="absolute inset-0 z-40 overflow-hidden opacity-10 select-none cursor-default pointer-events-none">
                     <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
                     <div className="absolute top-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
                     <div className="absolute bottom-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
                     <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-white text-sm font-black whitespace-nowrap">Freedom Magnet Hub</div>
                   </div>
+                  {/* Interaction interceptor to block external links while allowing internal player clicks */}
+                  <div className="absolute inset-0 z-30 opacity-0 pointer-events-auto" style={{ height: 'calc(100% - 60px)' }}></div>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full bg-slate-900 text-slate-500">

@@ -1,3 +1,4 @@
+
 @import "tailwindcss";
 
 @plugin "tailwindcss-animate";
@@ -143,10 +144,17 @@
   z-index: 1;
 }
 
-/* Ensure controls are clickable even when a click-shield is present */
+/* Ensure controls are reachable and visible */
 .plyr__controls,
 .plyr__control--overlaid {
   z-index: 50 !important;
+  pointer-events: auto !important;
+}
+
+/* Remove volume controls */
+.plyr__volume,
+.plyr__control[data-plyr="mute"] {
+  display: none !important;
 }
 
 .plyr--full-ui input[type=range] {
