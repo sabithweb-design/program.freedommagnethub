@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { useEffect, useRef, useState, Suspense, useImperativeHandle, forwardRef } from "react";
+import React, { useEffect, useRef, useState, Suspense, useImperativeHandle, forwardRef, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { 
   collection, 
@@ -169,15 +169,16 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         data-plyr-embed-id={videoId}
       />
       
+      {/* Interaction Shield & Watermark */}
       <div 
-        className="absolute inset-x-0 top-0 bottom-20 z-40 overflow-hidden opacity-10 select-none cursor-pointer flex items-center justify-center pointer-events-auto"
+        className="absolute inset-x-0 top-0 bottom-20 z-40 overflow-hidden select-none cursor-pointer flex items-center justify-center pointer-events-auto"
         onClick={() => playerRef.current?.togglePlay()}
       >
-        <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
-        <div className="absolute top-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
-        <div className="absolute bottom-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
-        <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-white text-sm font-black whitespace-nowrap">Freedom Magnet Hub</div>
+        <div className="absolute top-10 left-10 -rotate-12 text-white opacity-10 text-[10px] font-bold">Freedom Magnet Hub</div>
+        <div className="absolute top-10 right-10 -rotate-12 text-white opacity-10 text-[10px] font-bold">Freedom Magnet Hub</div>
+        <div className="absolute bottom-10 left-10 -rotate-12 text-white opacity-10 text-[10px] font-bold">Freedom Magnet Hub</div>
+        <div className="absolute bottom-10 right-10 -rotate-12 text-white opacity-10 text-[10px] font-bold">Freedom Magnet Hub</div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-white opacity-10 text-sm font-black whitespace-nowrap">Freedom Magnet Hub</div>
       </div>
       
       {isInitializing && (
