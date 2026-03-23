@@ -39,7 +39,8 @@ import {
   PlayCircle,
   Clock,
   History,
-  TrendingUp
+  TrendingUp,
+  Settings
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -139,7 +140,6 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
             default: 1080,
             options: [1080, 720, 540, 480, 360, 240],
             forced: true,
-            onChange: (quality: number) => console.log(`Quality changed to ${quality}`)
           },
           speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
@@ -177,7 +177,7 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
       
       {/* Interaction Shield & Watermark - Shielding top 70% to allow settings menu interaction */}
       <div 
-        className="absolute inset-x-0 top-0 bottom-32 z-40 overflow-hidden select-none cursor-pointer flex items-center justify-center pointer-events-auto"
+        className="absolute inset-x-0 top-0 bottom-[30%] z-40 overflow-hidden select-none cursor-pointer flex items-center justify-center pointer-events-auto"
         onClick={() => playerRef.current?.togglePlay()}
       >
         <div className="absolute top-10 left-10 -rotate-12 text-white opacity-10 text-[10px] font-bold">Freedom Magnet Hub</div>
