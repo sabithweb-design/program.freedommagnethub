@@ -132,6 +132,8 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
             'settings', 
             'fullscreen'
           ],
+          speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+          settings: ['speed'],
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
@@ -165,8 +167,12 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         data-plyr-embed-id={videoId}
       />
       {/* Branding Watermark & Interaction Shield */}
+      {/* 
+          We leave the bottom 80px (controls area) free so events hit the progress bar/speed settings directly.
+          The rest of the video is covered by this shield to block YouTube navigation.
+      */}
       <div 
-        className="absolute inset-0 z-40 overflow-hidden opacity-10 select-none cursor-pointer flex items-center justify-center pointer-events-auto"
+        className="absolute inset-x-0 top-0 bottom-20 z-40 overflow-hidden opacity-10 select-none cursor-pointer flex items-center justify-center pointer-events-auto"
         onClick={() => playerRef.current?.togglePlay()}
       >
         <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
