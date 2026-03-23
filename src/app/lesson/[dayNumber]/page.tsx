@@ -134,8 +134,14 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
             'settings', 
             'fullscreen'
           ],
+          settings: ['quality', 'speed'],
+          quality: {
+            default: 1080,
+            options: [1080, 720, 540, 480, 360, 240],
+            forced: true,
+            onChange: (quality: number) => console.log(`Quality changed to ${quality}`)
+          },
           speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-          settings: ['speed'],
           youtube: { noCookie: true, rel: 0, showinfo: 0, iv_load_policy: 3, modestbranding: 1 },
           vimeo: { byline: false, portrait: false, title: false, transparent: false }
         });
@@ -169,7 +175,7 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         data-plyr-embed-id={videoId}
       />
       
-      {/* Interaction Shield & Watermark - Shielding top 70% to allow settings interaction */}
+      {/* Interaction Shield & Watermark - Shielding top 70% to allow settings menu interaction */}
       <div 
         className="absolute inset-x-0 top-0 bottom-32 z-40 overflow-hidden select-none cursor-pointer flex items-center justify-center pointer-events-auto"
         onClick={() => playerRef.current?.togglePlay()}
