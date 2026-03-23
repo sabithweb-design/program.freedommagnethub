@@ -169,9 +169,9 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         data-plyr-embed-id={videoId}
       />
       
-      {/* Interaction Shield & Watermark */}
+      {/* Interaction Shield & Watermark - Shielding top 70% to allow settings interaction */}
       <div 
-        className="absolute inset-x-0 top-0 bottom-20 z-40 overflow-hidden select-none cursor-pointer flex items-center justify-center pointer-events-auto"
+        className="absolute inset-x-0 top-0 bottom-32 z-40 overflow-hidden select-none cursor-pointer flex items-center justify-center pointer-events-auto"
         onClick={() => playerRef.current?.togglePlay()}
       >
         <div className="absolute top-10 left-10 -rotate-12 text-white opacity-10 text-[10px] font-bold">Freedom Magnet Hub</div>

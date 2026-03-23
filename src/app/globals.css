@@ -149,7 +149,7 @@
 .plyr__control--overlaid,
 .plyr__menu,
 .plyr__tooltip {
-  z-index: 50 !important;
+  z-index: 100 !important;
   pointer-events: auto !important;
 }
 
