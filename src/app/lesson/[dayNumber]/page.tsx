@@ -74,6 +74,7 @@ interface PlayerHandle {
   seek: (time: number) => void;
   pause: () => void;
   play: () => void;
+  togglePlay: () => void;
 }
 
 const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 'youtube' | 'vimeo' }>(({ videoId, provider }, ref) => {
@@ -96,6 +97,11 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
     },
     play() {
       playerRef.current?.play();
+    },
+    togglePlay() {
+      if (playerRef.current) {
+        playerRef.current.togglePlay();
+      }
     }
   }));
 
@@ -115,7 +121,8 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         }
 
         playerRef.current = new PlyrClass(containerRef.current, {
-          clickToPlay: true, // Restore click to play for usability
+          clickToPlay: true,
+          keyboard: { focused: true, global: true },
           controls: [
             'play-large', 
             'play', 
@@ -157,8 +164,20 @@ const CustomVideoPlayer = forwardRef<PlayerHandle, { videoId: string, provider: 
         data-plyr-provider={provider} 
         data-plyr-embed-id={videoId}
       />
+      {/* Branding Watermark & Interaction Shield */}
+      <div 
+        className="absolute inset-0 z-40 overflow-hidden opacity-10 select-none cursor-pointer flex items-center justify-center pointer-events-auto"
+        onClick={() => playerRef.current?.togglePlay()}
+      >
+        <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
+        <div className="absolute top-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
+        <div className="absolute bottom-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
+        <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-white text-sm font-black whitespace-nowrap">Freedom Magnet Hub</div>
+      </div>
+      
       {isInitializing && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10">
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-50">
           <Loader2 className="animate-spin h-10 w-10 text-primary mb-2" />
           <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Preparing Session...</p>
         </div>
@@ -388,20 +407,7 @@ function LessonContent() {
           <div className="lg:col-span-8 space-y-8">
             <div className="relative aspect-video w-full rounded-[2rem] overflow-hidden shadow-2xl bg-black">
               {videoId ? (
-                <div className="w-full h-full relative">
-                  <CustomVideoPlayer ref={playerRef} videoId={videoId} provider={provider} />
-                  
-                  {/* Branding Watermark & Click Shield */}
-                  <div className="absolute inset-0 z-40 overflow-hidden opacity-10 select-none cursor-default pointer-events-none">
-                    <div className="absolute top-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
-                    <div className="absolute top-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
-                    <div className="absolute bottom-10 left-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
-                    <div className="absolute bottom-10 right-10 -rotate-12 text-white text-[10px] font-bold">Freedom Magnet Hub</div>
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 text-white text-sm font-black whitespace-nowrap">Freedom Magnet Hub</div>
-                  </div>
-                  {/* Interaction interceptor to block external links while allowing internal player clicks */}
-                  <div className="absolute inset-0 z-30 opacity-0 pointer-events-auto" style={{ height: 'calc(100% - 60px)' }}></div>
-                </div>
+                <CustomVideoPlayer ref={playerRef} videoId={videoId} provider={provider} />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full bg-slate-900 text-slate-500">
                   <Activity className="w-12 h-12 mb-4 animate-pulse" />
@@ -486,12 +492,10 @@ function LessonContent() {
                 </div>
               </div>
 
-              {/* Timeline Container */}
               <ScrollArea className="flex-1 mb-6 pr-4">
                 <div className="space-y-6 relative ml-4 pl-6 border-l-2 border-slate-100 dark:border-slate-800">
                   {notes && notes.length > 0 ? notes.map(note => (
                     <div key={note.id} className="relative group animate-in fade-in slide-in-from-left-2 duration-300">
-                       {/* Timeline Dot */}
                        <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-white dark:bg-slate-900 border-2 border-primary shadow-sm" />
                        
                        <div className="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-transparent hover:border-primary/20 transition-all hover:shadow-md relative overflow-hidden">
@@ -529,7 +533,6 @@ function LessonContent() {
                 </div>
               </ScrollArea>
               
-              {/* Editor Container */}
               <div className="pt-6 border-t dark:border-slate-800 space-y-4">
                 <Textarea 
                   placeholder="Capture insights... (Video will pause)" 
