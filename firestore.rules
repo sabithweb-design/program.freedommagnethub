@@ -45,6 +45,13 @@ service cloud.firestore {
       allow delete: if isSuperAdmin() || (resource != null && request.auth.uid in resource.data.adminIds);
     }
 
+    // Demo Pages: 
+    match /demo_pages/{demoId} {
+      allow get: if true; 
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+    }
+
     // User Notes: Users manage their own notes.
     match /user_notes/{noteId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
