@@ -70,6 +70,7 @@ interface UserNote {
   text: string;
   timestamp: number;
   createdAt: any;
+  lessonId: string;
 }
 
 interface PlayerHandle {
@@ -290,11 +291,28 @@ function LessonContent() {
 
   useEffect(() => {
     if (!user || !lessonId || !firestore) return;
-    const notesQ = query(collection(firestore, "user_notes"), where("userId", "==", user.uid), where("lessonId", "==", lessonId), orderBy("createdAt", "asc"));
+    
+    // Simplifed query to avoid composite index requirement
+    // We query by userId (single field) and filter/sort on the client
+    const notesQ = query(
+      collection(firestore, "user_notes"), 
+      where("userId", "==", user.uid)
+    );
+    
     const unsubscribe = onSnapshot(notesQ, (snapshot) => {
-      const fetchedNotes = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as UserNote));
+      const fetchedNotes = snapshot.docs
+        .map(d => ({ id: d.id, ...d.data() } as UserNote))
+        .filter(n => n.lessonId === lessonId)
+        .sort((a, b) => {
+          const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return timeA - timeB;
+        });
       setNotes(fetchedNotes);
+    }, (error) => {
+      console.warn("Notes sync issue:", error.message);
     });
+    
     return () => unsubscribe();
   }, [user, lessonId, firestore]);
 
@@ -318,7 +336,12 @@ function LessonContent() {
     const videoTimestamp = playerRef.current?.currentTime || 0;
     try {
       await addDoc(collection(firestore, "user_notes"), {
-        userId: user.uid, lessonId, courseId: courseId || '', text: noteText, timestamp: videoTimestamp, createdAt: serverTimestamp()
+        userId: user.uid, 
+        lessonId, 
+        courseId: courseId || '', 
+        text: noteText, 
+        timestamp: videoTimestamp, 
+        createdAt: serverTimestamp()
       });
       setNoteText("");
       toast({ title: "Note Saved" });
