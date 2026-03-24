@@ -10,9 +10,16 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   // Explicitly set reactStrictMode and trigger chunk manifest refresh
-  // Manifest refresh triggered at: 2024-05-20T12:00:00Z
+  // Manifest refresh triggered at: 2025-03-24T12:00:00Z
   reactStrictMode: true,
   poweredByHeader: false,
+  experimental: {
+    // Allow development resources to be loaded in the Cloud Workstation environment
+    allowedDevOrigins: [
+      "*.cloudworkstations.dev",
+      "localhost:9002"
+    ]
+  }
 };
 
 export default nextConfig;
