@@ -1,19 +1,15 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
 import { collection, query, updateDoc, doc, addDoc, setDoc, serverTimestamp, orderBy, deleteDoc, where, getDocs, writeBatch, Query } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebaseConfig } from '@/firebase/config';
-import { useCollection, useFirestore, useStorage } from '@/firebase';
+import { useCollection, useFirestore } from '@/firebase';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { 
   Select,
@@ -40,7 +36,7 @@ import {
   DialogDescription,
   DialogTrigger
 } from '@/components/ui/dialog';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { 
@@ -53,23 +49,11 @@ import {
   Edit2, 
   UserPlus, 
   Trash2, 
-  Star, 
   ShieldCheck,
   Eye,
   EyeOff,
   FolderOpen,
-  Info,
-  Video,
   Filter,
-  AlertTriangle,
-  Globe,
-  Lock as LockIcon,
-  Link as LinkIcon,
-  Upload,
-  Loader2,
-  Zap,
-  Share2,
-  Tv
 } from 'lucide-react';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
@@ -77,16 +61,13 @@ import Image from 'next/image';
 import { PlayerIcon } from '@/components/icons/PlayerIcon';
 
 const MAIN_ADMIN_EMAIL = "admin@freedommagnethub.com";
-const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
 
 export default function AdminPage() {
   const firestore = useFirestore();
-  const storage = useStorage();
   const { user: currentUser, isAdmin, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('courses');
   const [lessonFilter, setLessonFilter] = useState('all');
-  const [isUploading, setIsUploading] = useState(false);
 
   const isMainAdmin = currentUser?.email === MAIN_ADMIN_EMAIL;
 
@@ -111,15 +92,9 @@ export default function AdminPage() {
     return query(collection(firestore, 'lessons'), orderBy('dayNumber', 'asc')) as Query<any>;
   }, [firestore, lessonFilter, currentUser, isAdmin, authLoading]);
 
-  const demosQuery = useMemo(() => {
-    if (!firestore || authLoading || !currentUser || !isAdmin) return null;
-    return query(collection(firestore, 'demo_pages'), orderBy('createdAt', 'desc')) as Query<any>;
-  }, [firestore, currentUser, isAdmin, authLoading]);
-
   const { data: users, loading: usersLoading } = useCollection<any>(usersQuery);
   const { data: courses, loading: coursesLoading } = useCollection<any>(coursesQuery);
   const { data: lessons, loading: lessonsLoading } = useCollection<any>(lessonsQuery);
-  const { data: demos, loading: demosLoading } = useCollection<any>(demosQuery);
 
   const [courseForm, setCourseForm] = useState({ 
     title: '', description: '', category: 'General', imageUrl: '', author: 'Freedom Magnet Admin', price: 0, originalPrice: 0, rating: 4.5, reviewCount: 0, visibility: 'PRIVATE'
@@ -127,43 +102,10 @@ export default function AdminPage() {
   const [lessonForm, setLessonForm] = useState({ 
     title: '', description: '', dayNumber: 1, youtubeUrl: '', vimeoUrl: '', thumbnailUrl: '', pdfUrl: '', driveVideoUrl: '', courseId: '', actionPlan: '' 
   });
-  const [demoForm, setDemoForm] = useState({ title: '', description: '', youtubeUrl: '', isLocked: false });
   const [newUserForm, setNewUserForm] = useState({ displayName: '', email: '', password: '', role: 'student' as 'student' | 'admin' });
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
-
-  const handleCreateDemo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!firestore) return;
-
-    const demoData = {
-      title: demoForm.title,
-      description: demoForm.description,
-      youtubeVideoId: extractYoutubeId(demoForm.youtubeUrl),
-      isLocked: demoForm.isLocked,
-      createdAt: serverTimestamp()
-    };
-
-    addDoc(collection(firestore, 'demo_pages'), demoData).then(() => {
-      setDemoForm({ title: '', description: '', youtubeUrl: '', isLocked: false });
-      toast({ title: "Demo Page Created", description: "The public demo session is now available." });
-    }).catch(async (err) => {
-      errorEmitter.emit('permission-error', new FirestorePermissionError({ path: 'demo_pages', operation: 'create', requestResourceData: demoData }));
-    });
-  };
-
-  const handleToggleDemoLock = (id: string, currentLock: boolean) => {
-    if (!firestore) return;
-    const ref = doc(firestore, 'demo_pages', id);
-    updateDoc(ref, { isLocked: !currentLock });
-  };
-
-  const handleShareDemo = (id: string) => {
-    const url = `${window.location.origin}/demo/${id}`;
-    navigator.clipboard.writeText(url);
-    toast({ title: "Demo Link Copied", description: "Public share link copied to clipboard." });
-  };
 
   const extractYoutubeId = (url: string) => {
     if (!url) return '';
@@ -314,7 +256,6 @@ export default function AdminPage() {
           <TabsTrigger value="users" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all disabled:opacity-50 min-w-max" disabled={!isMainAdmin}><Users size={16} /> Directory</TabsTrigger>
           <TabsTrigger value="courses" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all min-w-max"><BookOpen size={16} /> Programs</TabsTrigger>
           <TabsTrigger value="lessons" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all min-w-max"><PlayerIcon className="h-4 w-4" /> Content</TabsTrigger>
-          <TabsTrigger value="demos" className="rounded-xl data-[state=active]:bg-primary data-[state=active]:text-white flex gap-2 font-bold transition-all min-w-max"><Tv size={16} /> Demos</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users">
@@ -402,47 +343,6 @@ export default function AdminPage() {
                   <Card key={l.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-4 flex items-center justify-between group">
                     <div className="flex items-center gap-4"><div className="relative w-16 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 shrink-0 overflow-hidden"><Image src={l.thumbnailUrl || `https://picsum.photos/seed/${l.id}/200/120`} alt={l.title} fill className="object-cover" /></div><div><h4 className="font-bold text-slate-800 dark:text-slate-200 line-clamp-1">{l.title}</h4><p className="text-xs text-slate-400">Day {l.dayNumber}</p></div></div>
                     <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-2"><Button variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-red-500" onClick={() => deleteDoc(doc(firestore, 'lessons', l.id))}><Trash2 size={16} /></Button></div>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="demos">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <Card className="lg:col-span-1 border-none shadow-sm rounded-3xl bg-white dark:bg-slate-900 h-fit">
-              <CardHeader><CardTitle className="flex items-center gap-2"><Tv className="text-primary" /> Create Demo Session</CardTitle><CardDescription>Add public demo pages to your LMS.</CardDescription></CardHeader>
-              <CardContent>
-                <form onSubmit={handleCreateDemo} className="space-y-4">
-                  <div className="space-y-2"><Label className="font-bold">Demo Title</Label><Input placeholder="Exclusive Preview" value={demoForm.title} onChange={e => setDemoForm({...demoForm, title: e.target.value})} required className="rounded-xl h-12 text-slate-900" /></div>
-                  <div className="space-y-2"><Label className="font-bold">YouTube URL</Label><Input placeholder="https://youtube.com/..." value={demoForm.youtubeUrl} onChange={e => setDemoForm({...demoForm, youtubeUrl: e.target.value})} required className="rounded-xl h-12 text-slate-900" /></div>
-                  <div className="space-y-2"><Label className="font-bold">Description (Optional)</Label><Textarea placeholder="Overview of this session..." value={demoForm.description} onChange={e => setDemoForm({...demoForm, description: e.target.value})} className="rounded-xl min-h-[100px] text-slate-900" /></div>
-                  <div className="flex items-center justify-between pt-2">
-                    <Label className="font-bold">Public Access Locked</Label>
-                    <Switch checked={demoForm.isLocked} onCheckedChange={(val) => setDemoForm({...demoForm, isLocked: val})} />
-                  </div>
-                  <Button type="submit" className="w-full h-12 rounded-xl font-bold bg-slate-900 text-white shadow-lg">Publish Demo</Button>
-                </form>
-              </CardContent>
-            </Card>
-            <div className="lg:col-span-2 space-y-4">
-              <h3 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2 px-2"><Tv size={18} className="text-primary" /> Managed Demo Pages</h3>
-              <div className="space-y-3">
-                {demosLoading ? <p className="text-center py-10 text-slate-400">Syncing...</p> : demos?.map((d: any) => (
-                  <Card key={d.id} className="border-none shadow-sm rounded-2xl bg-white dark:bg-slate-900 p-4 flex items-center justify-between group">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/5 flex items-center justify-center text-primary"><Tv size={24} /></div>
-                      <div>
-                        <h4 className="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">{d.title} {d.isLocked && <LockIcon size={12} className="text-rose-500" />}</h4>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Public Demo • {d.isLocked ? "Locked" : "Visible"}</p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="ghost" size="icon" className="rounded-full text-primary hover:bg-primary/5" onClick={() => handleShareDemo(d.id)}><Share2 size={16} /></Button>
-                      <Switch checked={!d.isLocked} onCheckedChange={() => handleToggleDemoLock(d.id, d.isLocked)} className="scale-75" />
-                      <Button variant="ghost" size="icon" className="rounded-full text-slate-400 hover:text-red-500" onClick={() => deleteDoc(doc(firestore, 'demo_pages', d.id))}><Trash2 size={16} /></Button>
-                    </div>
                   </Card>
                 ))}
               </div>

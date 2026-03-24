@@ -1,4 +1,3 @@
-
 {
   "entities": {
     "UserProfile": {
@@ -74,19 +73,6 @@
       },
       "required": ["title", "category", "visibility"]
     },
-    "DemoPage": {
-      "title": "Demo Page",
-      "description": "A public demo session page with video and overview.",
-      "type": "object",
-      "properties": {
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "youtubeVideoId": { "type": "string" },
-        "isLocked": { "type": "boolean", "default": false },
-        "createdAt": { "type": "object" }
-      },
-      "required": ["title", "youtubeVideoId"]
-    },
     "UserLessonProgress": {
       "title": "User Lesson Progress",
       "description": "Tracks if a user has completed a specific lesson.",
@@ -125,10 +111,6 @@
     "/courses/{courseId}": {
       "schema": "Course",
       "description": "Educational courses with progress and metadata."
-    },
-    "/demo_pages/{demoId}": {
-      "schema": "DemoPage",
-      "description": "Public demo sessions."
     },
     "/users/{userId}/completedLessons/{lessonId}": {
       "schema": "UserLessonProgress",
