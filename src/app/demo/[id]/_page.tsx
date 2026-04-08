@@ -1,6 +1,6 @@
 
 'use client';
-
+import { Card } from "@/components/ui/card";
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { doc, getDoc } from 'firebase/firestore';
